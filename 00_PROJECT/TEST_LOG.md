@@ -2,7 +2,7 @@
 
 ## 2026-09-17 — SaydiVoice Discovery Runner V0.1
 
-Scope: D0 runner foundation on branch `feat/saydivoice-discovery-v0.1` / PR #1.
+Scope: D0 runner foundation implemented on PR #1 and merged to `main`.
 
 ### Local self-test
 
@@ -13,12 +13,23 @@ Scope: D0 runner foundation on branch `feat/saydivoice-discovery-v0.1` / PR #1.
 - First privacy test exposed editor-text persistence risk; fixed and regression-tested.
 - Full real-browser navigation in the implementation sandbox: NOT RUN. Chromium navigation is blocked there by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`), including local/data test navigation. This is an environment limitation documented in `01_DISCOVERY/saydivoice/SMOKE_TEST_NOTES.md`.
 
-### GitHub Actions — Windows
+### GitHub Actions — PR validation
 
 - Workflow: `Discovery Tests`.
 - Run ID: `35130561175`.
-- Head SHA tested before project-log commits: `06d39030f08b1de635122c4edd1c0875001a5458`.
+- Code head: `06d39030f08b1de635122c4edd1c0875001a5458`.
 - Environment: `windows-latest`, Python 3.13.
+- Dependency install: PASS.
+- Compile package: PASS.
+- Unit tests: PASS.
+- Overall conclusion: PASS.
+
+### GitHub Actions — merged `main`
+
+- Merge/squash commit: `f5d35eb157b26ca0425267979be2d32e359b7f55`.
+- Workflow run ID: `35130819104`.
+- Environment: `windows-latest`, Python 3.13.
+- Checkout/setup: PASS.
 - Dependency install: PASS.
 - Compile package: PASS.
 - Unit tests: PASS.
@@ -26,7 +37,7 @@ Scope: D0 runner foundation on branch `feat/saydivoice-discovery-v0.1` / PR #1.
 
 ### Acceptance note
 
-Code/unit/CI verification for V0.1 is complete. D0 is not considered fully field-verified until `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat` are run on the target Windows laptop against the real SaydiVoice page and the local report/evidence are reviewed.
+Code/unit/CI verification for V0.1 is complete on `main`. D0 is not considered fully field-verified until `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat` are run on the target Windows laptop against the real SaydiVoice page and the local report/evidence are reviewed.
 
 ## 2026-09-17 — Repository initialization checks
 
