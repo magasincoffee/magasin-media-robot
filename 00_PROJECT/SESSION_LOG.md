@@ -2,6 +2,44 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 002 — SaydiVoice Discovery Runner V0.1
+
+### Goal
+
+Implement and self-test the D0 SaydiVoice Discovery Runner foundation without automating credentials, voice generation, or downloads.
+
+### Work completed
+
+- Created branch `feat/saydivoice-discovery-v0.1` and PR #1.
+- Added Python package metadata and pinned Playwright/pytest dependencies.
+- Added local runtime policy under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice`.
+- Implemented visible Playwright Chromium with persistent local profile.
+- Implemented sanitized DOM probe/evidence, screenshot capture, JSON discovery report, JSONL logs, state classifier, and explicit CLI exit codes.
+- Implemented bounded manual-login wait/re-probe so first use can populate the persistent profile without storing credentials in code.
+- Added `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat`.
+- Added Windows GitHub Actions CI.
+- Added/ran regression tests for runtime paths, secret redaction, classifier behavior, evidence privacy, report serialization, orchestration cleanup, and manual-login re-probe.
+- Found and fixed five implementation defects; recorded them in `BUG_LOG.md`.
+
+### Test result
+
+- Local compile: PASS.
+- Local pytest: PASS — 16 tests.
+- Package import/version: PASS.
+- GitHub Actions Windows run `35130561175`: PASS on code head `06d39030f08b1de635122c4edd1c0875001a5458` before project-log commits.
+- Real Chromium/SaydiVoice smoke in the coding sandbox: NOT RUN because browser navigation is blocked by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`).
+
+### Security/privacy result
+
+- No passwords, raw cookies, browser profiles, auth tokens, private media, or generated audio/video committed.
+- Editor/input text is suppressed from structured DOM inventory.
+- URL queries/fragments and obvious bearer/JWT/email values are redacted from persisted error/evidence text.
+- Screenshots and runtime browser/session data remain local-only.
+
+### Next step
+
+Run `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat` on the target Windows laptop, perform manual SaydiVoice login if needed, collect/review the first real report/inventory/screenshot/log, then implement D1 Surface Map from that evidence.
+
 ## 2026-09-17 — Session 001 — Repository foundation
 
 ### Goal
