@@ -20,13 +20,16 @@ Implement and self-test the D0 SaydiVoice Discovery Runner foundation without au
 - Added Windows GitHub Actions CI.
 - Added/ran regression tests for runtime paths, secret redaction, classifier behavior, evidence privacy, report serialization, orchestration cleanup, and manual-login re-probe.
 - Found and fixed five implementation defects; recorded them in `BUG_LOG.md`.
+- PR #1 was squash-merged to `main` as `f5d35eb157b26ca0425267979be2d32e359b7f55`.
+- Post-merge Windows Actions run `35130819104` completed successfully.
 
 ### Test result
 
 - Local compile: PASS.
 - Local pytest: PASS — 16 tests.
 - Package import/version: PASS.
-- GitHub Actions Windows run `35130561175`: PASS on code head `06d39030f08b1de635122c4edd1c0875001a5458` before project-log commits.
+- PR GitHub Actions Windows run `35130561175`: PASS.
+- Post-merge `main` GitHub Actions run `35130819104`: PASS.
 - Real Chromium/SaydiVoice smoke in the coding sandbox: NOT RUN because browser navigation is blocked by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`).
 
 ### Security/privacy result
