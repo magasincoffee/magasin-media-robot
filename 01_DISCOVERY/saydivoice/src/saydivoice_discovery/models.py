@@ -40,6 +40,8 @@ class DiscoveryConfig:
     viewport_width: int = 1440
     viewport_height: int = 1000
     chromium_executable_path: str | None = None
+    login_wait_seconds: int = 0
+    login_poll_ms: int = 2_000
 
 
 @dataclass(frozen=True)
