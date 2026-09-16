@@ -2,6 +2,35 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 003 — First real Windows/SaydiVoice field run
+
+### Goal
+
+Verify SaydiVoice Discovery Runner V0.1 on the target Windows laptop against the real SaydiVoice page.
+
+### Evidence observed
+
+- Playwright Chromium installed successfully.
+- Bundled tests completed: `16 passed in 0.29s`.
+- Discovery run ID: `20260917_011521_dcb358a9`.
+- Real page classified as `TTS_READY`.
+- Run status: `CAPTURED`.
+- Process status: `0`.
+- Runner printed report path under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\reports\`.
+
+### Result
+
+First real Windows/SaydiVoice execution: PASS at setup, browser navigation, classification, and capture level.
+
+### Remaining gate
+
+- Review the actual `discovery_report`, `dom_inventory`, screenshot, and JSONL log for this run.
+- Run the discovery again while the current session remains valid to confirm persistent-profile session reuse.
+
+### Next step
+
+Collect/upload the local run artifacts (preferably ZIP the local `saydivoice` runtime folder), review them, verify session reuse, then begin D1 Surface Map.
+
 ## 2026-09-17 — Session 002 — SaydiVoice Discovery Runner V0.1
 
 ### Goal
