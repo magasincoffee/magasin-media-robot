@@ -27,6 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout-ms", type=int, default=45_000, help="Navigation/default Playwright timeout.")
     parser.add_argument("--settle-ms", type=int, default=1_500, help="Wait after DOMContentLoaded before probing.")
     parser.add_argument("--chromium-executable", help="Optional Chromium/Chrome executable path for diagnostics.")
+    parser.add_argument("--login-wait-seconds", type=int, default=0, help="If login is required in visible mode, keep the browser open and re-check for this many seconds.")
     parser.add_argument("--verbose", action="store_true", help="Enable debug-level local logging.")
     parser.add_argument("--json", action="store_true", help="Print the final report JSON to stdout.")
     return parser
@@ -39,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         navigation_timeout_ms=max(1_000, args.timeout_ms),
         settle_ms=max(0, args.settle_ms),
         chromium_executable_path=args.chromium_executable,
+        login_wait_seconds=max(0, args.login_wait_seconds),
     )
     paths = build_runtime_paths(args.runtime_root) if args.runtime_root else build_runtime_paths()
     report = run_discovery(config, paths, verbose=args.verbose)
