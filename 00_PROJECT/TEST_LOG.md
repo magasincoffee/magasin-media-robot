@@ -1,5 +1,30 @@
 # Test Log
 
+## 2026-09-17 — Real Windows SaydiVoice field run
+
+Scope: first operator-run field verification of SaydiVoice Discovery Runner V0.1 on the target Windows laptop.
+
+### Evidence observed from operator screenshot
+
+- Playwright Chromium download/install: PASS.
+- Chromium version shown: `143.0.7499.4` (Playwright build `v1200`).
+- Bundled regression tests: PASS — `16 passed in 0.29s`.
+- Discovery run ID: `20260917_011521_dcb358a9`.
+- Final page classification: `TTS_READY`.
+- Final run status: `CAPTURED`.
+- Process status: `0`.
+- Report path printed by runner: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\reports\discovery_report_20260917_011521_dcb358a9.json`.
+
+### Result
+
+PASS for real Windows setup, real browser launch/navigation, test execution, and page classification/capture.
+
+### Remaining field checks
+
+- Full contents of the generated report, DOM inventory, screenshot, and JSONL log have not yet been reviewed by the project implementation session.
+- Persistent-session reuse still needs a second run while the SaydiVoice session remains valid.
+- D0 will be marked fully field-verified only after those checks pass.
+
 ## 2026-09-17 — SaydiVoice Discovery Runner V0.1
 
 Scope: D0 runner foundation implemented on PR #1 and merged to `main`.
@@ -37,7 +62,7 @@ Scope: D0 runner foundation implemented on PR #1 and merged to `main`.
 
 ### Acceptance note
 
-Code/unit/CI verification for V0.1 is complete on `main`. D0 is not considered fully field-verified until `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat` are run on the target Windows laptop against the real SaydiVoice page and the local report/evidence are reviewed.
+Code/unit/CI verification for V0.1 is complete on `main`.
 
 ## 2026-09-17 — Repository initialization checks
 
