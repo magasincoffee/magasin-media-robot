@@ -1,40 +1,72 @@
 # SaydiVoice Discovery
 
-This workstream exists to learn the real behavior of SaydiVoice Studio before production browser automation is frozen.
+This workstream learns the real behavior of SaydiVoice Studio before production browser automation is frozen.
 
 Target: `https://voice.saydi.ai/vi/studio/tts/`
 
-## Discovery goals
+## V0.1 status
 
-- identify logged-in / logged-out / blocked / unexpected states;
-- map TTS controls and accessible labels;
-- enumerate available voices and relevant metadata exposed by the UI;
-- identify language, speed, pitch, style/emotion, format, or other settings if present;
-- observe generation lifecycle states;
-- observe preview and download behavior;
-- determine download file naming/format behavior;
-- characterize popups/modals/cookie banners;
-- characterize session expiry and recoverable failures;
-- test text-length behavior safely;
-- generate robust locator candidates rather than hard-coded brittle selectors.
+V0.1 implements a **non-destructive discovery runner**. It opens a visible Playwright Chromium window with a persistent local browser profile, classifies the current page/login state, captures a local screenshot, writes a sanitized interactive-control inventory, and exports a structured discovery report.
 
-## Intended local discovery outputs
+It intentionally does **not** generate or download audio yet. Those actions belong to later discovery stages after the surface map is verified.
+
+## Windows setup
+
+1. Install Python 3.11+ if it is not already available.
+2. Run `SETUP_DISCOVERY.bat` once.
+3. Run `RUN_DISCOVERY.bat`.
+
+`SETUP_DISCOVERY.bat` creates a local `.venv`, installs pinned dependencies, installs Playwright Chromium, installs the discovery package, and runs unit tests before declaring setup complete.
+
+## Local runtime root
+
+Default:
+
+`%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\`
 
 ```text
-%LOCALAPPDATA%/MAGASIN/MediaRobot/discovery/saydivoice/
+saydivoice/
+  browser_profile/       persistent browser session; local only
+  logs/                  JSONL run logs
+  screenshots/           local screenshots
+  reports/               discovery_report_<run-id>.json
+  downloads/             reserved for later download discovery
   runs/<run-id>/
-    discovery.log
-    discovery_report.json
-    page_state.json
-    controls.json
-    voice_catalog.json
-    screenshots/
-    snapshots/
-    downloads/
+    dom_inventory.json   sanitized visible interactive controls
 ```
 
-These runtime artifacts are local and are not committed automatically. Sanitized examples/schemas may be committed only after review.
+Runtime artifacts are local and must not be committed.
 
-## Safety rules
+## V0.1 privacy boundary
 
-The discovery runner must not record passwords, raw cookies, tokens, authorization headers, or browser profile contents. Early discovery should be non-destructive: inspect state first; do not generate/download audio until the step explicitly calls for it.
+The runner does not intentionally persist:
+
+- passwords or input values;
+- raw cookies;
+- localStorage/sessionStorage;
+- authorization headers;
+- raw HTML;
+- URL query strings/fragments;
+- obvious bearer/JWT/email values in structured evidence/log messages.
+
+Screenshots can naturally contain whatever is visible on the user's own screen, so they remain local-only.
+
+## Page states / exit codes
+
+- `TTS_READY` / exit `0`: TTS editor surface recognized and evidence captured.
+- `LOGIN_REQUIRED` / exit `10`: a manual login appears required.
+- `ACCESS_BLOCKED` / exit `20`: CAPTCHA/access challenge detected.
+- `UNKNOWN` / exit `30`: page captured but V0.1 does not yet recognize it.
+- `BROWSER_ERROR` / exit `40`: browser/navigation/discovery failure.
+
+A login-required state is expected during first use. The runner never enters credentials automatically.
+
+## Discovery roadmap
+
+- D0: runner foundation — **V0.1**.
+- D1: surface/control map.
+- D2: voice/settings catalog.
+- D3: generation lifecycle.
+- D4: download behavior.
+- D5: limits/error states.
+- D6: freeze sanitized discovery artifacts for the production Voice Engine.
