@@ -8,7 +8,7 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 2
 )
 
-".venv\Scripts\python.exe" -m saydivoice_discovery.cli
+".venv\Scripts\python.exe" -m saydivoice_discovery.cli --login-wait-seconds 180
 set EXIT_CODE=%ERRORLEVEL%
 
 echo.
