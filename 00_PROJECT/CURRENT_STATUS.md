@@ -4,31 +4,51 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Project initialized. Current phase: Phase 0 — SaydiVoice Discovery.**
+**Phase 0 — SaydiVoice Discovery. V0.1 runner code is implemented and unit/CI verified; first real Windows/SaydiVoice smoke test is the current gate.**
 
 ## Completed
 
-- Repository created and accessible: `magasincoffee/magasin-media-robot`.
-- Project vision documented.
-- High-level architecture documented.
-- Roadmap documented.
-- Development/session continuation protocol documented.
-- QA strategy documented.
-- SaydiVoice discovery workstream defined as the first implementation target.
+- Repository/project architecture and durable continuation records established.
+- SaydiVoice Discovery Runner V0.1 implemented on PR #1.
+- Python package and CLI created.
+- Playwright persistent-profile browser runner created; browser is visible by default.
+- Local runtime policy implemented under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice`.
+- Basic states implemented: `TTS_READY`, `LOGIN_REQUIRED`, `ACCESS_BLOCKED`, `UNKNOWN`, plus `BROWSER_ERROR` run status.
+- Manual login support added: `RUN_DISCOVERY.bat` waits up to 180 seconds when login is required so the user can authenticate in the robot browser; credentials are not automated or committed.
+- Local screenshot, sanitized DOM inventory, structured discovery report, JSONL logs, and explicit exit codes implemented.
+- Privacy safeguards implemented for editor values, URLs/query strings, token-like text, emails, cookies/storage/auth-header boundaries.
+- Windows setup/run scripts implemented.
+- Regression tests implemented: 16 local tests PASS.
+- GitHub Actions Windows CI run `35130561175`: PASS on head `06d39030f08b1de635122c4edd1c0875001a5458` before documentation-log commits.
+- Five defects discovered during self-test/review were fixed and recorded in `BUG_LOG.md`.
+
+## Pending before D0 field verification
+
+- Run `SETUP_DISCOVERY.bat` once on the target Windows laptop.
+- Run `RUN_DISCOVERY.bat` against the real SaydiVoice Studio page.
+- If login is required, complete login manually inside the Chromium window opened by the runner; the local profile will be reused.
+- Review the generated local `discovery_report_*.json`, `dom_inventory.json`, screenshot, and log.
+- Confirm the page is classified correctly and that the evidence is sufficient to begin D1 surface mapping.
 
 ## Not yet implemented
 
-- No production Python package yet.
-- No SaydiVoice Discovery Runner yet.
-- No persistent Playwright profile implementation yet.
-- No discovery JSON/report schema implementation yet.
-- No automated tests/CI yet.
-- No voice engine, media analyzer, scene planner, subtitle engine, render engine, desktop UI, diagnostics runtime, or installer yet.
+- D1 complete surface/locator map.
+- D2 voice/settings catalog.
+- D3 generation lifecycle automation/observation.
+- D4 audio download discovery.
+- D5 controlled limits/error characterization.
+- D6 frozen discovery contracts.
+- Production Voice Engine.
+- Media Analyzer, Scene Planner, Subtitle Engine, Render Engine, Desktop UI, full diagnostics/resume runtime, and installer.
 
-## Current known risk
+## Known environment limitation
 
-At repository initialization, GitHub reported repository visibility as **public**. No credentials, tokens, browser sessions, or private media are being committed. If this repository is intended to be private, visibility should be changed in GitHub settings before any sensitive implementation data could ever be added.
+The coding sandbox used for V0.1 blocks Chromium navigation by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`), including local/data navigation. For that reason the actual SaydiVoice browser smoke cannot be truthfully claimed as completed there; it must be run on the target Windows laptop. Pure logic, orchestration behavior, package compilation/import, and Windows CI are verified.
+
+## Repository visibility risk
+
+GitHub metadata still reports the repository as **public**. No passwords, cookies, tokens, browser profiles, private media, or generated private artifacts have been committed. If the project is intended to remain private, change repository visibility in GitHub settings before any sensitive material is ever added.
 
 ## Current active objective
 
-Implement the first SaydiVoice Discovery Runner skeleton with safe local runtime directories, structured logs, screenshots/reports, Playwright persistent-profile support, and a first non-destructive discovery pass against the TTS page.
+Field-verify SaydiVoice Discovery Runner V0.1 on the target Windows laptop, then use the first real discovery evidence to implement D1 — Surface Map.
