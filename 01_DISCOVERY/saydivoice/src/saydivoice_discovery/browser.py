@@ -50,6 +50,10 @@ DOM_PROBE_SCRIPT = r"""
 """
 
 
+def probe_page(page: Any) -> dict[str, Any]:
+    return page.evaluate(DOM_PROBE_SCRIPT)
+
+
 def open_and_probe(config: DiscoveryConfig, paths: RuntimePaths) -> tuple[dict[str, Any], Any, Any]:
     """Open SaydiVoice and return probe data plus context/page for evidence capture.
 
@@ -75,9 +79,16 @@ def open_and_probe(config: DiscoveryConfig, paths: RuntimePaths) -> tuple[dict[s
         playwright.stop()
         raise
 
-    context.set_default_timeout(config.navigation_timeout_ms)
-    page = context.pages[0] if context.pages else context.new_page()
-    page.goto(config.tts_url, wait_until="domcontentloaded", timeout=config.navigation_timeout_ms)
-    page.wait_for_timeout(config.settle_ms)
-    probe = page.evaluate(DOM_PROBE_SCRIPT)
-    return probe, (playwright, context), page
+    try:
+        context.set_default_timeout(config.navigation_timeout_ms)
+        page = context.pages[0] if context.pages else context.new_page()
+        page.goto(config.tts_url, wait_until="domcontentloaded", timeout=config.navigation_timeout_ms)
+        page.wait_for_timeout(config.settle_ms)
+        probe = probe_page(page)
+        return probe, (playwright, context), page
+    except Exception:
+        try:
+            context.close()
+        finally:
+            playwright.stop()
+        raise
