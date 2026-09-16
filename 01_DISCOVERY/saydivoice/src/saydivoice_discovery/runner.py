@@ -4,7 +4,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from .browser import open_and_probe
+from .browser import open_and_probe, probe_page
 from .classifier import classify_page_state
 from .evidence import make_page_signals, sanitize_inventory, write_dom_inventory
 from .logging_utils import configure_logging
@@ -59,6 +59,28 @@ def run_discovery(
         raw_probe, browser_bundle, page = open_and_probe(cfg, runtime)
         signals = make_page_signals(raw_probe)
         state = classify_page_state(signals)
+
+        if state == "LOGIN_REQUIRED" and cfg.login_wait_seconds > 0 and not cfg.headless:
+            logger.info(
+                f"Manual login may be completed in the open browser; waiting up to {cfg.login_wait_seconds}s",
+                extra={"event": "login_wait_started"},
+            )
+            remaining_ms = cfg.login_wait_seconds * 1000
+            poll_ms = max(500, cfg.login_poll_ms)
+            while remaining_ms > 0:
+                wait_ms = min(poll_ms, remaining_ms)
+                page.wait_for_timeout(wait_ms)
+                remaining_ms -= wait_ms
+                raw_probe = probe_page(page)
+                signals = make_page_signals(raw_probe)
+                state = classify_page_state(signals)
+                if state != "LOGIN_REQUIRED":
+                    logger.info(
+                        f"Page state changed after manual login wait: {state}",
+                        extra={"event": "login_wait_state_changed"},
+                    )
+                    break
+
         elements = sanitize_inventory(raw_probe.get("elements", []))
 
         page.screenshot(path=str(screenshot_path), full_page=True)
