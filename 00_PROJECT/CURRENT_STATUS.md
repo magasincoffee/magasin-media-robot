@@ -4,12 +4,13 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. V0.1 runner code is implemented and unit/CI verified; first real Windows/SaydiVoice smoke test is the current gate.**
+**Phase 0 — SaydiVoice Discovery. V0.1 runner is merged to `main` and unit/CI verified; first real Windows/SaydiVoice smoke test is the current gate.**
 
 ## Completed
 
 - Repository/project architecture and durable continuation records established.
-- SaydiVoice Discovery Runner V0.1 implemented on PR #1.
+- SaydiVoice Discovery Runner V0.1 merged through PR #1.
+- Main implementation merge commit: `f5d35eb157b26ca0425267979be2d32e359b7f55`.
 - Python package and CLI created.
 - Playwright persistent-profile browser runner created; browser is visible by default.
 - Local runtime policy implemented under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice`.
@@ -19,7 +20,8 @@ Last updated: 2026-09-17
 - Privacy safeguards implemented for editor values, URLs/query strings, token-like text, emails, cookies/storage/auth-header boundaries.
 - Windows setup/run scripts implemented.
 - Regression tests implemented: 16 local tests PASS.
-- GitHub Actions Windows CI run `35130561175`: PASS on head `06d39030f08b1de635122c4edd1c0875001a5458` before documentation-log commits.
+- PR Windows CI run `35130561175`: PASS.
+- Post-merge `main` Windows CI run `35130819104`: PASS for merge commit `f5d35eb157b26ca0425267979be2d32e359b7f55`.
 - Five defects discovered during self-test/review were fixed and recorded in `BUG_LOG.md`.
 
 ## Pending before D0 field verification
@@ -43,7 +45,7 @@ Last updated: 2026-09-17
 
 ## Known environment limitation
 
-The coding sandbox used for V0.1 blocks Chromium navigation by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`), including local/data navigation. For that reason the actual SaydiVoice browser smoke cannot be truthfully claimed as completed there; it must be run on the target Windows laptop. Pure logic, orchestration behavior, package compilation/import, and Windows CI are verified.
+The coding sandbox used for V0.1 blocks Chromium navigation by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`), including local/data navigation. For that reason the actual SaydiVoice browser smoke cannot be truthfully claimed as completed there; it must be run on the target Windows laptop. Pure logic, orchestration behavior, package compilation/import, PR CI, and post-merge `main` CI are verified.
 
 ## Repository visibility risk
 
