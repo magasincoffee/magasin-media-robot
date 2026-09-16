@@ -1,40 +1,41 @@
 # Next Step
 
-## Immediate next step — Field-verify SaydiVoice Discovery Runner V0.1
+## Immediate next step — Review real V0.1 artifacts and verify session reuse
 
-Run the V0.1 discovery runner on the target Windows laptop against the real SaydiVoice Studio page before expanding automation.
+The first Windows field run succeeded at the process/classification level:
+
+- bundled tests: `16 passed`;
+- run ID: `20260917_011521_dcb358a9`;
+- final page state: `TTS_READY`;
+- run status: `CAPTURED`;
+- process status: `0`.
 
 ### Operator sequence
 
-1. Obtain the merged/current project files on the laptop.
-2. In `01_DISCOVERY\saydivoice`, run `SETUP_DISCOVERY.bat` once.
-3. Confirm setup completes its bundled unit tests successfully.
-4. Run `RUN_DISCOVERY.bat`.
-5. If SaydiVoice requires authentication, log in manually inside the Chromium window opened by the runner. The default run allows up to 180 seconds and stores only the browser session in the local persistent profile.
-6. Do not click Generate or download audio during this V0.1 pass.
-7. Let the runner finish and inspect the local runtime root:
-   `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\`
-8. Review/return the newest:
-   - `reports\discovery_report_*.json`
-   - `runs\<run-id>\dom_inventory.json`
-   - `screenshots\saydivoice_<run-id>.png`
-   - `logs\discovery_<run-id>.jsonl`
+1. In `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\`, collect the files from run `20260917_011521_dcb358a9`:
+   - `reports\discovery_report_20260917_011521_dcb358a9.json`
+   - `runs\20260917_011521_dcb358a9\dom_inventory.json`
+   - `screenshots\saydivoice_20260917_011521_dcb358a9.png`
+   - `logs\discovery_20260917_011521_dcb358a9.jsonl`
+2. The easiest handoff is to ZIP the whole local `saydivoice` runtime folder and upload it, or upload those four files directly.
+3. Run `RUN_DISCOVERY.bat` one more time while the SaydiVoice session is still valid.
+4. Confirm the rerun reaches `TTS_READY` / `CAPTURED` without requiring a new login.
+5. Return the rerun report/log as well if the session-reuse behavior needs verification.
 
-### Field acceptance gate
+### D0 field acceptance gate
 
-V0.1/D0 is field-verified only when:
+D0 is fully field-verified when:
 
-- the Windows setup succeeds;
-- Playwright Chromium opens the real SaydiVoice target;
-- first-use manual login can populate/reuse the local profile when needed;
-- the runner reaches a sensible final classification, preferably `TTS_READY` after login;
-- the report, sanitized DOM inventory, screenshot, and JSONL log are created;
-- evidence contains no intentionally captured password/input values, raw cookies, storage, authorization headers, or URL query/fragment secrets;
-- rerunning the runner does not require login again while the SaydiVoice session remains valid.
+- Windows setup succeeds — **observed PASS**;
+- real Playwright Chromium opens SaydiVoice — **observed PASS**;
+- runner reaches a sensible final classification — **observed `TTS_READY` / `CAPTURED`**;
+- report/inventory/screenshot/log exist — report path is observed; full artifact set still needs review;
+- artifacts are reviewed for privacy boundaries;
+- a second run reuses the persistent browser session while valid.
 
 ## After the field gate — D1 Surface Map
 
-Use the real V0.1 evidence to implement D1:
+Use the real V0.1 artifacts to implement D1:
 
 - enumerate the main TTS editor landmarks and visible interactive controls;
 - generate ranked locator candidates using role/label/accessibility name first, stable text/data attributes second, CSS fallback last;
