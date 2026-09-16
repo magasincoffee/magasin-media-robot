@@ -4,7 +4,7 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. V0.1 runner is merged to `main` and unit/CI verified; first real Windows/SaydiVoice smoke test is the current gate.**
+**Phase 0 — SaydiVoice Discovery. V0.1 runner is merged, unit/CI verified, and the first real Windows/SaydiVoice field run reached `TTS_READY` / `CAPTURED`. Artifact review and a session-reuse rerun remain before D0 is fully closed.**
 
 ## Completed
 
@@ -23,14 +23,19 @@ Last updated: 2026-09-17
 - PR Windows CI run `35130561175`: PASS.
 - Post-merge `main` Windows CI run `35130819104`: PASS for merge commit `f5d35eb157b26ca0425267979be2d32e359b7f55`.
 - Five defects discovered during self-test/review were fixed and recorded in `BUG_LOG.md`.
+- First real Windows field run observed from operator screenshot: Playwright Chromium installed, bundled tests `16 passed`, run ID `20260917_011521_dcb358a9`, final `State: TTS_READY`, `Status: CAPTURED`, process status `0`.
+- Field report path shown by runner: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\reports\discovery_report_20260917_011521_dcb358a9.json`.
 
-## Pending before D0 field verification
+## Pending before D0 field verification is fully closed
 
-- Run `SETUP_DISCOVERY.bat` once on the target Windows laptop.
-- Run `RUN_DISCOVERY.bat` against the real SaydiVoice Studio page.
-- If login is required, complete login manually inside the Chromium window opened by the runner; the local profile will be reused.
-- Review the generated local `discovery_report_*.json`, `dom_inventory.json`, screenshot, and log.
-- Confirm the page is classified correctly and that the evidence is sufficient to begin D1 surface mapping.
+- Review the generated local artifacts for run `20260917_011521_dcb358a9`:
+  - `reports\discovery_report_20260917_011521_dcb358a9.json`
+  - `runs\20260917_011521_dcb358a9\dom_inventory.json`
+  - `screenshots\saydivoice_20260917_011521_dcb358a9.png`
+  - `logs\discovery_20260917_011521_dcb358a9.jsonl`
+- Confirm the evidence contains no intentionally captured password/input values, raw cookies/storage/auth headers, or query/fragment secrets.
+- Run `RUN_DISCOVERY.bat` once more while the current SaydiVoice session remains valid and confirm it reaches `TTS_READY` without requiring a new login.
+- Once those checks pass, mark D0 field verification complete and begin D1 Surface Map.
 
 ## Not yet implemented
 
@@ -45,7 +50,7 @@ Last updated: 2026-09-17
 
 ## Known environment limitation
 
-The coding sandbox used for V0.1 blocks Chromium navigation by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`), including local/data navigation. For that reason the actual SaydiVoice browser smoke cannot be truthfully claimed as completed there; it must be run on the target Windows laptop. Pure logic, orchestration behavior, package compilation/import, PR CI, and post-merge `main` CI are verified.
+The coding sandbox used for V0.1 blocks Chromium navigation by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`). The first real-browser field evidence therefore comes from the target Windows laptop. Pure logic, orchestration behavior, package compilation/import, PR CI, post-merge `main` CI, and one successful real Windows run are now verified.
 
 ## Repository visibility risk
 
@@ -53,4 +58,4 @@ GitHub metadata still reports the repository as **public**. No passwords, cookie
 
 ## Current active objective
 
-Field-verify SaydiVoice Discovery Runner V0.1 on the target Windows laptop, then use the first real discovery evidence to implement D1 — Surface Map.
+Review the first real local discovery artifact set and verify persistent-session reuse, then implement D1 — Surface Map from the real SaydiVoice evidence.
