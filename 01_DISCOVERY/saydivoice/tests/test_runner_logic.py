@@ -78,3 +78,57 @@ def test_runner_orchestrates_capture_and_cleanup(monkeypatch, tmp_path: Path):
     assert "private script" not in Path(report.dom_inventory_path).read_text(encoding="utf-8")
     assert context.closed is True
     assert playwright.stopped is True
+
+
+def test_runner_reprobes_during_manual_login_wait(monkeypatch, tmp_path: Path):
+    from saydivoice_discovery import runner
+    from saydivoice_discovery.models import DiscoveryConfig
+    from saydivoice_discovery.runtime import build_runtime_paths
+
+    class FakePage:
+        def wait_for_timeout(self, ms: int):
+            pass
+
+        def screenshot(self, path: str, full_page: bool = False):
+            Path(path).write_bytes(b"fake-png")
+
+    class FakeContext:
+        def close(self):
+            pass
+
+    class FakePlaywright:
+        def stop(self):
+            pass
+
+    login_probe = {
+        "url": "https://voice.saydi.ai/vi/studio/tts/",
+        "title": "Login",
+        "visible_text": "Đăng nhập",
+        "has_password_input": True,
+        "has_textarea": False,
+        "has_contenteditable": False,
+        "button_texts": ["Đăng nhập"],
+        "link_texts": [],
+        "elements": [],
+    }
+    ready_probe = {
+        "url": "https://voice.saydi.ai/vi/studio/tts/",
+        "title": "SaydiVoice",
+        "visible_text": "TTS Tạo giọng",
+        "has_password_input": False,
+        "has_textarea": True,
+        "has_contenteditable": False,
+        "button_texts": ["Tạo giọng"],
+        "link_texts": [],
+        "elements": [{"tag": "textarea", "placeholder": "Nhập nội dung"}],
+    }
+    page = FakePage()
+    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (login_probe, (FakePlaywright(), FakeContext()), page))
+    monkeypatch.setattr(runner, "probe_page", lambda p: ready_probe)
+
+    report = runner.run_discovery(
+        DiscoveryConfig(login_wait_seconds=2, login_poll_ms=500),
+        build_runtime_paths(tmp_path),
+    )
+    assert report.page_state == "TTS_READY"
+    assert report.run_status == "CAPTURED"
