@@ -59,7 +59,7 @@ Screenshots can naturally contain whatever is visible on the user's own screen, 
 - `UNKNOWN` / exit `30`: page captured but V0.1 does not yet recognize it.
 - `BROWSER_ERROR` / exit `40`: browser/navigation/discovery failure.
 
-A login-required state is expected during first use. The runner never enters credentials automatically.
+A login-required state is expected during first use. `RUN_DISCOVERY.bat` keeps the visible browser open for up to 180 seconds so the user can log in manually; the runner never enters credentials automatically. The persistent profile is then reused locally.
 
 ## Discovery roadmap
 
