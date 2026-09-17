@@ -1,44 +1,53 @@
 # Next Step
 
-## Immediate next step — authenticated Saydi live session through GitHub Actions
+## Immediate next step — D5 controlled limits/error characterization
 
-Anonymous Saydi testing is no longer useful as the primary path. The latest controlled diagnostics established a repeatable session-bootstrap block before generation:
+Authenticated live discovery is now working on the Windows self-hosted runner and D1–D4 are field-verified. The next phase is not another authentication/browser bootstrap. It is a bounded characterization of Saydi provider limits and failure modes.
 
-- `/api/session/start` returns 403 with `Verification failed. Please retry.`;
-- `/api/samples` returns 401 with `Invalid or missing credentials.`;
-- the anonymous voice catalog exposes only `Tự động`;
-- V0.4.3 correctly stops at `PREFLIGHT_BLOCKED` before Generate.
+## Current validated baseline
 
-The next bounded step is therefore to reuse one authenticated persistent browser profile on a Windows self-hosted GitHub Actions runner.
+- Runner: `MAGASIN-PC` (`self-hosted`, `Windows`, `X64`).
+- Browser: installed Google Chrome controlled by Playwright.
+- Persistent profile: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile`.
+- Session: `TTS_READY` + `AUTHENTICATED_OR_HIDDEN`.
+- D3: one authenticated Generate succeeds and yields a real download-ready result.
+- D4: one authenticated Download succeeds; metadata can be captured and the temporary audio deleted before evidence upload.
+- Normal live-session workflow remains non-destructive by default.
 
-## Operator sequence
+## D5 objectives
 
-1. Configure the target Windows laptop as a self-hosted runner for `magasincoffee/magasin-media-robot`.
-2. Start the runner interactively with `run.cmd` under the Windows account that will own the browser profile.
-3. Check out PR #9 / branch `feat/saydi-github-live-profile` on that machine.
-4. Run `01_DISCOVERY\saydivoice\SETUP_LIVE_PROFILE.bat` once.
-5. Chromium opens. Log in to SaydiVoice manually; complete Google/OTP/CAPTCHA yourself if requested.
-6. Return to the terminal and press Enter only after the TTS page is back and the login control is gone.
-7. Setup must report `PASS`.
-8. In GitHub, run **Actions → SaydiVoice Live Session Check → Run workflow**.
-9. Do not upload or commit the browser profile.
+Characterize only limits/errors that materially affect a production Voice Engine. Do not stress-test the provider and do not bypass provider restrictions.
 
-## Live-session acceptance gate
+Priority checks:
 
-The first workflow is deliberately non-destructive and must pass before any GitHub Action is allowed to click Generate:
+1. **Text boundary behavior**
+   - verify accepted lengths near practical/advertised limits using the minimum number of requests;
+   - record validation messages/statuses without repeatedly probing the same boundary.
+2. **Unsupported/invalid input behavior**
+   - empty or whitespace-only input where the UI permits observation without generation;
+   - clearly over-limit input only if it can be rejected before provider generation work.
+3. **Session expiry/re-auth behavior**
+   - observe naturally when encountered; do not intentionally invalidate credentials unless required for a bounded test.
+4. **Quota/rate-limit behavior**
+   - prefer passive observation from normal runs;
+   - do not intentionally exhaust free/paid quota or generate rapid repeated requests.
+5. **Format/settings failure behavior**
+   - only test combinations exposed by the UI and avoid combinatorial sweeps.
 
-- `TTS_READY`;
-- `AUTHENTICATED_OR_HIDDEN`;
-- D1/D2 observation completes;
-- no provider login/session failure is surfaced;
-- no Generate/download occurs;
-- only latest privacy-safe evidence/report/log is uploaded.
+## D5 acceptance gate
 
-## After the session gate passes
+D5 is sufficient when the project has documented, reproducible handling for the production-relevant provider errors encountered or safely observable, including:
 
-1. Synchronize/enable the controlled D3 V0.4.x lifecycle implementation in the repository.
-2. Run exactly one authorized D3 generation on the same persistent authenticated profile.
-3. Require a real success signal before proceeding.
-4. Implement D4 result/download metadata capture only after D3 passes.
+- user-facing error/validation signal;
+- relevant HTTP status/endpoint metadata where privacy-safe;
+- whether a request consumed generation quota;
+- retryability classification (`retry`, `re-auth`, `fix input`, or `do not retry`);
+- bounded timeout/cancellation behavior.
 
-The operator should not need to download a new diagnostic ZIP for every iteration once the self-hosted GitHub Actions path is active.
+## After D5
+
+1. Freeze D6 discovery contracts: selectors, session requirements, generation lifecycle, download lifecycle, errors/timeouts, privacy boundaries.
+2. Build the production SaydiVoice provider adapter against those frozen contracts.
+3. Keep browser profile/auth state local; never place it in GitHub artifacts or repository files.
+
+No operator ZIP round-trip is required for ordinary D5 iterations while the self-hosted runner is online.
