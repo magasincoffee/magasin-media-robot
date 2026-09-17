@@ -4,54 +4,68 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 has passed its real Windows/SaydiVoice field gate and is ready to merge. The next implementation phase is D2 — Voice/Settings Catalog.**
+**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 is field-accepted and merged through PR #2. D2 Voice/Settings Catalog V0.3 is implemented, locally self-tested, Windows CI verified, packaged for Windows, and now waits for one real SaydiVoice field run.**
 
 ## Completed
 
 - Repository/project architecture and durable continuation records established.
-- SaydiVoice Discovery Runner V0.1 merged through PR #1.
-- First real Windows V0.1 run succeeded: `20260917_011521_dcb358a9`, `TTS_READY`, `CAPTURED`, exit code `0`.
-- V0.1 artifacts reviewed and real anonymous-ready behavior documented.
-- Field privacy defect `BUG-20260917-006` and locator semantic defect `BUG-20260917-007` found, fixed, and regression-tested.
-- D1/V0.2 implemented on branch `feat/saydivoice-d1-surface-map`:
-  - page readiness separated from authentication state;
-  - contenteditable editor text suppressed;
-  - semantic surface map generated as `saydi_map.json`;
-  - ranked locator candidates generated as `selectors.json`;
-  - Windows helpers and one-click packaging added.
-- D1 branch Windows Actions passed; distribution self-test passed.
-- Real V0.2 field run `20260917_110310_7bf1810a` reviewed:
+- V0.1 Discovery Runner merged through PR #1.
+- First real V0.1 Windows run succeeded: `20260917_011521_dcb358a9`, `TTS_READY`, `CAPTURED`, exit `0`.
+- Field privacy defect `BUG-20260917-006` and locator semantic defect `BUG-20260917-007` were found and fixed.
+- D1/V0.2 real Windows run `20260917_110310_7bf1810a` passed:
   - runner `0.2.0`;
   - `TTS_READY` / `ANONYMOUS` / `CAPTURED`;
-  - exit/error state clean;
-  - 38 visible interactive elements captured;
-  - script editor element index 18 persisted with `contenteditable: true` and no script text;
-  - `saydi_map.json` and `selectors.json` generated successfully;
-  - login controls and standalone History tab classified correctly;
-  - MP3 selected; WAV/MP3/FLAC/OGG format tabs mapped;
-  - language, voice selector, generate, settings/history, pause, editor utility controls, and assistant chat mapped.
-- Visible stability/expression/speed controls are present on screen but do not expose stable interactive nodes in this D1 capture. D1 intentionally does not invent selectors for them; D2 will inspect these settings live.
+  - 38 interactive elements;
+  - contenteditable editor text absent from structured evidence;
+  - `saydi_map.json` and `selectors.json` generated;
+  - login and History semantics separated correctly.
+- D1 PR #2 merged to `main` as `51869ab54dac1e5f0202455cf1f9b40f48dde0b0`.
+- D2 branch created: `feat/saydivoice-d2-catalog`.
+- D2/V0.3 implementation added:
+  - `voice_catalog.json` output;
+  - `settings_catalog.json` output;
+  - safe trigger whitelist for voice (`Tự động`), language (`VI`), pause (`Đang tắt`), and reserved Settings observation;
+  - non-destructive menu-open capture with Escape cleanup;
+  - visible settings-context probing for stability, expression, speed, pause, and output format;
+  - capture of accessible role/name/value/range evidence and bounded structural hints;
+  - editor/input privacy suppression retained;
+  - Generate/download/delete/login/clone actions remain outside the trigger whitelist.
+- D2 package version: `0.3.0`.
+- Local V0.3 distribution verification:
+  - compile: PASS;
+  - pytest: **37 tests PASS**;
+  - version import: PASS (`0.3.0`).
+- Windows GitHub Actions latest D2 run `35185941236`: PASS.
+- Operator ZIP built: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.zip`.
 
-## D1 acceptance result
+## Current live gate
 
-**PASS.** No new blocking defect was found in the uploaded V0.2 report, DOM inventory, surface map, selectors, screenshot, or lifecycle log. The V0.1 privacy leak is verified fixed on the real provider page.
+Run the packaged V0.3 build on the target Windows laptop. The runner itself will open the allowed Voice / Language / Pause selector surfaces, capture evidence, and close them. The operator should **not click `Tạo giọng nói` or download audio**.
 
-The current field state is anonymous, so authenticated session-reuse behavior is not a D1 blocker. Persistent browser-profile support remains implemented and will be exercised when a later phase requires account authentication.
+Return the newest eight artifacts from the same run ID:
 
-## Next phase
+- `reports\discovery_report_*.json`
+- `runs\<run-id>\dom_inventory.json`
+- `runs\<run-id>\saydi_map.json`
+- `runs\<run-id>\selectors.json`
+- `runs\<run-id>\voice_catalog.json`
+- `runs\<run-id>\settings_catalog.json`
+- `screenshots\saydivoice_<run-id>.png`
+- `logs\discovery_<run-id>.jsonl`
 
-D2 — Voice/Settings Catalog:
+## D2 acceptance target
 
-- non-destructively open the current voice selector and settings surfaces;
-- catalog available voice/language choices that can be observed safely;
-- capture real setting controls and current values/ranges for stability, expression, speed, pause behavior, and output format;
-- improve locator evidence for sliders/custom controls without guessing;
-- emit structured catalog outputs and tests;
-- do not click Generate or download audio yet.
+D2 may be merged only when the real provider pass confirms:
+
+- `TTS_READY` / `CAPTURED` without a new blocking error;
+- voice selector options are captured or a provider-specific reason is clearly documented;
+- language and pause surfaces are captured or explicitly reported unavailable;
+- stability/expression/speed controls expose enough evidence to define real contracts, or unresolved provider behavior is explicitly documented without guessed selectors;
+- script/editor content remains absent from structured outputs;
+- no Generate/download action was invoked.
 
 ## Not yet implemented
 
-- D2 complete voice/settings catalog.
 - D3 generation lifecycle automation/observation.
 - D4 audio download discovery.
 - D5 controlled limits/error characterization.
@@ -65,4 +79,4 @@ GitHub metadata has reported the repository as public. Never commit passwords, c
 
 ## Current active objective
 
-Merge D1/V0.2, create the D2 branch, implement/test D2 Voice/Settings Catalog, and stop only when a new real SaydiVoice interaction is required from the operator.
+Complete one real V0.3/D2 Windows field pass, review the eight artifacts, fix/test any provider-specific issue, then merge D2 and continue automatically into D3 until another operator-side action is required.
