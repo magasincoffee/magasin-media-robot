@@ -1,48 +1,48 @@
 # Next Step
 
-## Immediate next step — Review real V0.1 artifacts and verify session reuse
+## Immediate next step — Live-verify D1 / SaydiVoice Discovery V0.2
 
-The first Windows field run succeeded at the process/classification level:
+The first real V0.1 artifact set has been reviewed and D1 Surface Map is implemented on branch `feat/saydivoice-d1-surface-map`.
 
-- bundled tests: `16 passed`;
-- run ID: `20260917_011521_dcb358a9`;
-- final page state: `TTS_READY`;
-- run status: `CAPTURED`;
-- process status: `0`.
+### What V0.2 changes
+
+- suppresses text from every contenteditable script editor before structured evidence is persisted;
+- distinguishes `TTS_READY` from authentication state;
+- produces `saydi_map.json` and `selectors.json`;
+- maps semantic controls and ranked locator candidates;
+- keeps unresolved sliders/settings visible as explicit follow-up items instead of guessing selectors.
 
 ### Operator sequence
 
-1. In `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\`, collect the files from run `20260917_011521_dcb358a9`:
-   - `reports\discovery_report_20260917_011521_dcb358a9.json`
-   - `runs\20260917_011521_dcb358a9\dom_inventory.json`
-   - `screenshots\saydivoice_20260917_011521_dcb358a9.png`
-   - `logs\discovery_20260917_011521_dcb358a9.jsonl`
-2. The easiest handoff is to ZIP the whole local `saydivoice` runtime folder and upload it, or upload those four files directly.
-3. Run `RUN_DISCOVERY.bat` one more time while the SaydiVoice session is still valid.
-4. Confirm the rerun reaches `TTS_READY` / `CAPTURED` without requiring a new login.
-5. Return the rerun report/log as well if the session-reuse behavior needs verification.
+1. Use the newly packaged D1/V0.2 build on the target Windows laptop.
+2. Run setup/update if the package requests it, then run discovery.
+3. Do not click Generate or download audio yet.
+4. Let the runner complete on the real SaydiVoice TTS page.
+5. Return the newest:
+   - `reports\discovery_report_*.json`
+   - `runs\<run-id>\dom_inventory.json`
+   - `runs\<run-id>\saydi_map.json`
+   - `runs\<run-id>\selectors.json`
+   - `screenshots\saydivoice_<run-id>.png`
+   - `logs\discovery_<run-id>.jsonl`
+6. Run discovery once more while the same SaydiVoice/browser session remains valid and confirm normal reuse behavior.
 
-### D0 field acceptance gate
+### Acceptance gate
 
-D0 is fully field-verified when:
+D1 can be merged when:
 
-- Windows setup succeeds — **observed PASS**;
-- real Playwright Chromium opens SaydiVoice — **observed PASS**;
-- runner reaches a sensible final classification — **observed `TTS_READY` / `CAPTURED`**;
-- report/inventory/screenshot/log exist — report path is observed; full artifact set still needs review;
-- artifacts are reviewed for privacy boundaries;
-- a second run reuses the persistent browser session while valid.
+- real V0.2 run reaches `TTS_READY` / `CAPTURED`;
+- script/editor text is absent from `dom_inventory.json` and other structured discovery outputs;
+- `saydi_map.json` and `selectors.json` are generated;
+- Generate, Settings, History, voice selector, language selector, pause selector, format tabs, and other observed controls map correctly;
+- unresolved sliders/settings are documented rather than assigned guessed selectors;
+- second run confirms persistent-profile reuse behavior where applicable;
+- no new blocking bug is found.
 
-## After the field gate — D1 Surface Map
+## After D1 — D2 Voice/Settings Catalog
 
-Use the real V0.1 artifacts to implement D1:
+Open relevant selectors/settings non-destructively and catalog the real current UI options: voices, languages, speed, stability/expression, pause behavior, output formats, and other exposed settings. Add schemas/tests before any automatic generation or download workflow.
 
-- enumerate the main TTS editor landmarks and visible interactive controls;
-- generate ranked locator candidates using role/label/accessibility name first, stable text/data attributes second, CSS fallback last;
-- identify dialogs, tabs, selectors, sliders, cookie/popup surfaces, and login/session states;
-- add tests and structured `saydi_map.json` / `selectors.json` outputs;
-- record failures/fixes/tests and update project status before advancing to D2.
+## Still out of scope
 
-## Still out of scope until later stages
-
-Do not yet automate voice generation, click Generate, download audio, stress text limits, or implement the production Voice Engine. D3/D4 follow only after the real D1/D2 surface/settings contracts are verified.
+Do not yet automate Generate, audio download, text-limit stress tests, or the production Voice Engine. Those belong to D3/D4 and later phases.
