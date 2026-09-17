@@ -1,0 +1,4 @@
+Authorized by user in chat on 2026-09-17 for exactly one authenticated Generate attempt.
+No automatic retry. No download.
+Expected voice: Adam — Giọng hot tiktok
+Expected format: MP3
