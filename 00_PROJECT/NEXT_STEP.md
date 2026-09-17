@@ -1,29 +1,31 @@
 # Next Step
 
-## Immediate next step — D3 Generation Lifecycle V0.4.0 field run
+## Immediate next step — D3 Generation Lifecycle V0.4.1 recovery field run
 
-D2 is complete and merged. D3 is now the active gate.
+The first real V0.4.0 D3 run reached processing, then SaydiVoice returned `Không tải được giọng. Vui lòng tải lại trang.` with quota unchanged. D3 therefore needs one controlled reload-recovery run before merge.
 
-### What D3 V0.4.0 does
+### What V0.4.1 changes
 
-- requires explicit `--allow-generate` authorization;
-- opens a disposable tab in the same SaydiVoice session;
-- inserts one fixed short non-sensitive test sentence;
-- clicks `Tạo giọng nói` exactly once;
-- observes Generate busy/disabled state, quota text, audio/result controls, and new alert/toast messages;
-- saves only structural lifecycle evidence plus fixed-sample length/SHA-256;
-- does **not** click any download control;
-- closes the disposable tab after observation.
+- detects `Hủy/Cancel` or Generate disappearance as a processing signal;
+- waits best-effort for network idle before each attempt;
+- attempt 1 remains a fixed short non-sensitive test sentence;
+- when and only when attempt 1 returns a provider error explicitly asking to reload, the robot reloads the disposable same-session page and makes exactly one second attempt;
+- a second attempt never occurs for unrelated errors;
+- saves per-attempt traces/screenshots plus the final lifecycle analysis;
+- never clicks a download control;
+- never persists editor content, only fixed-sample length/SHA-256.
 
 ### Operator sequence
 
-1. Extract `MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0.zip` to a new folder.
+1. Extract `MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.1.zip` to a new folder.
 2. Run `CAI_DAT_VA_CHAY_D3.bat`.
-3. Read the warning that the test may consume one provider generation/quota unit.
-4. Press `Y` to authorize one controlled generation.
+3. Read the warning: this run may use up to two generation attempts; attempt 2 occurs only after the reload-page error.
+4. Press `Y` to authorize the controlled recovery test.
 5. Do not interact with the SaydiVoice window while the robot runs.
-6. When it finishes, return five same-run artifacts:
+6. Return the newest same-run artifacts:
    - `runs\<run-id>\generation_lifecycle.json`
+   - all `runs\<run-id>\d3_attempt*_before.png`
+   - all `runs\<run-id>\d3_attempt*_after.png`
    - `runs\<run-id>\d3_before_generate.png`
    - `runs\<run-id>\d3_after_generate.png`
    - `reports\discovery_report_<run-id>.json`
@@ -33,14 +35,14 @@ D2 is complete and merged. D3 is now the active gate.
 ### D3 acceptance gate
 
 Merge PR #8 when:
-- exactly one controlled Generate action occurred;
-- trace records processing or another concrete lifecycle transition;
-- terminal evidence is classified as success signal, provider error, or explicit timeout/no-signal rather than guessed;
-- a pre-existing provider toast is not treated as a new generation error;
-- no audio download action occurred;
-- no script/editor content is persisted in structured evidence;
-- original D1/D2 evidence remains valid.
+- processing is correctly recognized;
+- retry occurs only after the explicit reload-page error;
+- preferably attempt 2 reaches a concrete success signal (quota decrement, new result control, or new audio evidence);
+- if the same provider error repeats after reload, the evidence is sufficient to classify generation as provider/login availability blocked rather than an automation-lifecycle ambiguity;
+- no download occurs;
+- no script/editor content is persisted;
+- D1/D2 evidence remains valid.
 
 ## After D3 — D4 Audio Download Lifecycle
 
-After D3 merge, characterize the real result-player/download control, browser download event, file naming, output extension, completion/error behavior, and safe destination handling. D4 may download exactly one audio result only after its own explicit operator gate.
+D4 starts only after a successful generated result exists. It will characterize the real result-player/download control, browser download event, filename/extension, completion/error behavior, and safe destination handling. D4 will require its own explicit operator authorization for one audio download.
