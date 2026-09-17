@@ -1,42 +1,51 @@
 # Next Step
 
-## Immediate next step — Merge D1 and implement D2 Voice/Settings Catalog
+## Immediate next step — Live-verify D2 / SaydiVoice Discovery V0.3
 
-D1/V0.2 passed its real provider field gate on Windows run `20260917_110310_7bf1810a`.
+D1/V0.2 is merged. D2/V0.3 code and Windows CI are now complete on branch `feat/saydivoice-d2-voice-settings-catalog`.
 
-Verified:
+### What V0.3 does
 
-- `TTS_READY` / `ANONYMOUS` / `CAPTURED`;
-- real report/log clean;
-- contenteditable script text no longer appears in structured evidence;
-- `saydi_map.json` and `selectors.json` generated;
-- semantic controls map correctly, including login vs History;
-- no guessed selectors were assigned to visual slider controls that lacked stable interactive DOM nodes.
+- retains all D1 privacy/surface-map behavior;
+- opens the voice selector, language selector, and pause selector for observation only;
+- captures visible option text/roles/selected state when the provider exposes them;
+- closes observed menus without intentionally changing selections;
+- probes Stability / Expression / Speed / Pause / Output format surfaces for real current values, ranges, ARIA metadata, and locator hints;
+- writes `voice_catalog.json` and `settings_catalog.json`;
+- never clicks Generate and never downloads audio;
+- falls back gracefully to D1 evidence if a provider-specific D2 probe fails.
 
-## D2 implementation scope
+### Operator sequence
 
-Build a non-destructive Voice/Settings Catalog pass that can safely inspect current provider UI without generating audio.
+1. Use the packaged `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.zip` on the target Windows laptop.
+2. Extract to a new folder.
+3. Run `CAI_DAT_VA_CHAY.bat` once.
+4. Do not click or change anything in the SaydiVoice window while discovery is running.
+5. Let the robot open/close observation surfaces and finish by itself.
+6. Return the newest eight artifacts from one run ID:
+   - `reports\discovery_report_<run-id>.json`
+   - `runs\<run-id>\dom_inventory.json`
+   - `runs\<run-id>\saydi_map.json`
+   - `runs\<run-id>\selectors.json`
+   - `runs\<run-id>\voice_catalog.json`
+   - `runs\<run-id>\settings_catalog.json`
+   - `screenshots\saydivoice_<run-id>.png`
+   - `logs\discovery_<run-id>.jsonl`
+7. Do not send `browser_profile`.
 
-The D2 pass should:
+### D2 acceptance gate
 
-1. open the voice selector and capture its visible options/metadata;
-2. inspect language selection if the UI exposes options safely;
-3. inspect settings and discover real interactive nodes for:
-   - voice stability;
-   - expression;
-   - reading speed;
-   - pause behavior;
-   - output format;
-4. capture accessible names, roles, values/ranges, labels, option text, and stable attributes without persisting user script content;
-5. close any opened menus/dialogs where practical so the page remains unchanged;
-6. emit structured outputs such as `voice_catalog.json` and `settings_catalog.json`;
-7. add unit/regression tests and Windows CI coverage;
-8. package a one-click Windows D2 field build.
+D2 may be merged when:
 
-## D2 field acceptance target
+- run remains `TTS_READY` / `CAPTURED`;
+- `voice_catalog.json` and `settings_catalog.json` are generated, or an explicit non-blocking warning accurately explains a provider surface that could not be cataloged;
+- voice/language/pause observations do not change a selection;
+- stability/expression/speed evidence reflects real DOM/current UI rather than guessed selectors;
+- output format remains unchanged;
+- no Generate/download action occurs;
+- no script/editor content appears in structured outputs;
+- no new blocking defect is found.
 
-After code/CI passes, the operator will run one real D2 discovery pass and return the generated catalog artifacts. Only then should D2 be frozen and D3 generation lifecycle discovery begin.
+## After D2 — D3 Generation Lifecycle
 
-## Still out of scope
-
-Do not yet click `Tạo giọng nói`, download audio, stress text limits, or implement the production Voice Engine. D3/D4 follow after D2 is field-verified.
+Only after D2 field acceptance: characterize the real Generate lifecycle using a minimal controlled text sample, including start/processing/success/error states. Do not begin download automation until D4.
