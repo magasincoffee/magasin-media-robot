@@ -1,37 +1,46 @@
 # Next Step
 
-## Immediate next step — Final D2 field gate with V0.3.2
+## Immediate next step — D3 Generation Lifecycle V0.4.0 field run
 
-Real V0.3.1 run `20260917_142133_bd48aed7` verified that pause restoration and visible setting-value capture now work, but two custom-provider surfaces are still under-captured in structured JSON:
+D2 is complete and merged. D3 is now the active gate.
 
-- the language dropdown visibly shows language labels, while `language.options` is empty;
-- the voice modal visibly shows one automatic voice card, while the catalog counts navigation tabs as voice options.
+### What D3 V0.4.0 does
 
-V0.3.2 adds a second privacy-safe visible-leaf delta pass specifically for custom SaydiVoice surfaces. It excludes input/contenteditable text, filters modal navigation/generic controls, captures visible language labels, and recognizes the current automatic voice card without changing a selection.
+- requires explicit `--allow-generate` authorization;
+- opens a disposable tab in the same SaydiVoice session;
+- inserts one fixed short non-sensitive test sentence;
+- clicks `Tạo giọng nói` exactly once;
+- observes Generate busy/disabled state, quota text, audio/result controls, and new alert/toast messages;
+- saves only structural lifecycle evidence plus fixed-sample length/SHA-256;
+- does **not** click any download control;
+- closes the disposable tab after observation.
 
-## Operator sequence
+### Operator sequence
 
-1. Use `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2.zip` on the target Windows laptop.
-2. Extract to a new folder.
-3. Run `CAI_DAT_VA_CHAY.bat`.
-4. Do not manually change voice, language, pause, sliders, output format, or script while discovery is running.
-5. Do not click `Tạo giọng nói`.
-6. Let the robot finish by itself.
-7. Return the newest same-run artifacts, especially `voice_catalog.json`, `settings_catalog.json`, `d2_voice_surface.png`, `d2_language_surface.png`, and `d2_pause_surface.png`.
-8. Never send `browser_profile`.
+1. Extract `MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0.zip` to a new folder.
+2. Run `CAI_DAT_VA_CHAY_D3.bat`.
+3. Read the warning that the test may consume one provider generation/quota unit.
+4. Press `Y` to authorize one controlled generation.
+5. Do not interact with the SaydiVoice window while the robot runs.
+6. When it finishes, return five same-run artifacts:
+   - `runs\<run-id>\generation_lifecycle.json`
+   - `runs\<run-id>\d3_before_generate.png`
+   - `runs\<run-id>\d3_after_generate.png`
+   - `reports\discovery_report_<run-id>.json`
+   - `logs\discovery_<run-id>.jsonl`
+7. Never send `browser_profile`.
 
-## D2 acceptance gate
+### D3 acceptance gate
 
-Merge PR #7 when:
+Merge PR #8 when:
+- exactly one controlled Generate action occurred;
+- trace records processing or another concrete lifecycle transition;
+- terminal evidence is classified as success signal, provider error, or explicit timeout/no-signal rather than guessed;
+- a pre-existing provider toast is not treated as a new generation error;
+- no audio download action occurred;
+- no script/editor content is persisted in structured evidence;
+- original D1/D2 evidence remains valid.
 
-- voice catalog identifies `Tự động — Hệ thống tự chọn giọng` or equivalent semantic automatic-card evidence rather than modal navigation tabs;
-- language catalog includes visible choices such as English/Tiếng Việt instead of an empty list;
-- pause reports restored/closed after observation;
-- display values remain `2.8`, `Ổn định`, `1.00×` for the current page state;
-- MP3 remains selected and no provider setting changed;
-- no Generate/download occurs;
-- structured evidence contains no script/editor text.
+## After D3 — D4 Audio Download Lifecycle
 
-## After D2 — D3 Generation Lifecycle
-
-After D2 field acceptance and merge: use a minimal controlled text sample to characterize Generate start, processing, completion, error, quota behavior, result-player controls, and lifecycle timing. D3 may trigger one real generation only after the operator package explicitly marks that action as controlled. Audio download remains D4.
+After D3 merge, characterize the real result-player/download control, browser download event, file naming, output extension, completion/error behavior, and safe destination handling. D4 may download exactly one audio result only after its own explicit operator gate.
