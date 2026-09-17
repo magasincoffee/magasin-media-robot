@@ -68,7 +68,13 @@ SURFACE_SNAPSHOT = r"""
       };
     });
   const dialogs = Array.from(document.querySelectorAll('[role="dialog"]')).filter(visible).map(el => text(el).slice(0,5000));
-  return {leaf, controls, dialogs};
+  const selects = Array.from(document.querySelectorAll('select')).map(el => ({
+    value:el.value,
+    aria_label:el.getAttribute('aria-label'),
+    name:el.getAttribute('name'),
+    options:Array.from(el.options || []).map(o => ({text:(o.textContent||'').replace(/\s+/g,' ').trim(), value:o.value, selected:o.selected, disabled:o.disabled}))
+  }));
+  return {leaf, controls, dialogs, selects};
 }
 """
 
@@ -134,43 +140,41 @@ def _pick_voice_button(page: Any) -> str | None:
     candidates = page.evaluate(VOICE_BUTTON_CANDIDATES) or []
     excluded = {
         "tạo giọng nói", "thêm người nói", "nhập kịch bản", "phụ đề thành giọng nói", "cài ứng dụng",
-        "đăng nhập", "đang tắt", "đang bật", "wav", "mp3", "flac", "ogg",
+        "đăng nhập", "đang tắt", "đang bật", "wav", "mp3", "flac", "ogg", "vi", "en",
+        "english", "tiếng việt", "中文", "日本語", "한국어",
     }
     plausible = []
     for c in candidates:
         t = str(c.get("text") or "").strip()
         n = _norm(t)
+        x = float(c.get("x") or 0)
+        y = float(c.get("y") or 9999)
         if not t or n in excluded or len(t) > 100:
             continue
-        if float(c.get("y") or 9999) > 260:
+        if not (55 <= y <= 190):
             continue
-        if float(c.get("x") or 0) < 180:
+        if not (180 <= x <= 900):
             continue
         plausible.append(c)
-    plausible.sort(key=lambda x: (float(x.get("y") or 9999), float(x.get("x") or 9999), len(str(x.get("text") or ""))))
+    plausible.sort(key=lambda x: (abs(float(x.get("y") or 9999) - 100), float(x.get("x") or 9999), len(str(x.get("text") or ""))))
     return str(plausible[0].get("text")) if plausible else None
 
 
-def _open_filter_capture(page: Any, label: str) -> list[dict[str, Any]]:
-    before = page.evaluate(SURFACE_SNAPSHOT) or {}
-    try:
-        btn = page.get_by_role("button", name=label, exact=True)
-        if btn.count() < 1:
-            btn = page.get_by_text(label, exact=True)
-        if btn.count() < 1:
-            return []
-        btn.first.click(timeout=3000)
-        page.wait_for_timeout(500)
-        after = page.evaluate(SURFACE_SNAPSHOT) or {}
-        before_keys = {(x.get('text'), x.get('tag'), x.get('role')) for x in before.get('leaf', [])}
-        delta = [x for x in after.get('leaf', []) if (x.get('text'), x.get('tag'), x.get('role')) not in before_keys]
-        return _dedupe_text(delta)
-    finally:
-        try:
-            page.keyboard.press("Escape")
-            page.wait_for_timeout(200)
-        except Exception:
-            pass
+def _filter_options_from_selects(selects: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    out: dict[str, list[dict[str, Any]]] = {}
+    for item in selects:
+        options = list(item.get("options") or [])
+        labels = [_norm(str(o.get("text") or "")) for o in options]
+        key = None
+        if any("tất cả ngôn ngữ" in x for x in labels):
+            key = "language"
+        elif any("tất cả giới tính" in x for x in labels):
+            key = "gender"
+        elif any("tất cả mục đích" in x for x in labels):
+            key = "purpose"
+        if key:
+            out[key] = options
+    return out
 
 
 def run_d5a(page: Any, *, evidence_dir: Path) -> Path:
@@ -196,24 +200,25 @@ def run_d5a(page: Any, *, evidence_dir: Path) -> Path:
         if voice_current:
             loc = test_page.get_by_role("button", name=voice_current, exact=True)
             if loc.count() < 1:
-                loc = test_page.locator("button").filter(has_text=voice_current)
+                loc = test_page.locator("button:visible").filter(has_text=voice_current)
             if loc.count() > 0:
                 loc.first.click(timeout=4000)
                 test_page.wait_for_timeout(800)
-                voice_opened = True
                 snap1 = test_page.evaluate(SURFACE_SNAPSHOT) or {}
+                voice_opened = bool(snap1.get("dialogs")) and any("chọn giọng" in _norm(x) for x in snap1.get("dialogs", []))
                 surface_labels.extend(snap1.get("leaf", []))
                 modal_text = (snap1.get("dialogs") or [None])[0]
+                filter_options.update(_filter_options_from_selects(snap1.get("selects") or []))
                 test_page.screenshot(path=str(evidence_dir / "d5a_voice_modal_top.png"), full_page=True)
 
-                for label in ("Tất cả ngôn ngữ", "Tất cả giới tính", "Tất cả mục đích"):
-                    filter_options[label] = _open_filter_capture(test_page, label)
-
-                scroll_info = test_page.evaluate(SCROLL_DIALOG) or {}
-                test_page.wait_for_timeout(650)
-                snap2 = test_page.evaluate(SURFACE_SNAPSHOT) or {}
-                surface_labels.extend(snap2.get("leaf", []))
-                test_page.screenshot(path=str(evidence_dir / "d5a_voice_modal_bottom.png"), full_page=True)
+                if voice_opened:
+                    scroll_info = test_page.evaluate(SCROLL_DIALOG) or {}
+                    test_page.wait_for_timeout(650)
+                    snap2 = test_page.evaluate(SURFACE_SNAPSHOT) or {}
+                    surface_labels.extend(snap2.get("leaf", []))
+                    for key, value in _filter_options_from_selects(snap2.get("selects") or []).items():
+                        filter_options.setdefault(key, value)
+                    test_page.screenshot(path=str(evidence_dir / "d5a_voice_modal_bottom.png"), full_page=True)
                 test_page.keyboard.press("Escape")
                 test_page.wait_for_timeout(250)
 
@@ -239,7 +244,7 @@ def run_d5a(page: Any, *, evidence_dir: Path) -> Path:
         events = recorder.since(network_mark)
         tts_requests = [e for e in events if _is_tts_request(e)]
         payload = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "mode": "D5A_READONLY_VOICE_STYLE_DISCOVERY",
             "captured_at": datetime.now(timezone.utc).isoformat(),
             "voice_current": voice_current,
@@ -256,7 +261,8 @@ def run_d5a(page: Any, *, evidence_dir: Path) -> Path:
             "privacy_note": "No editor/script values, cookies, authorization headers, request bodies, response bodies, storage, or credentials are persisted.",
             "notes": [
                 "D5A is read-only: it opens and scrolls selector/settings surfaces but never selects a voice, changes a setting, clicks Generate, or clicks Download.",
-                "A PASS requires an authenticated TTS page, an observable voice selector/settings surface, and zero /api/tts requests.",
+                "Filter option lists are read from existing select DOM without choosing an option.",
+                "A PASS requires an authenticated TTS page, a real voice dialog/settings surface, and zero /api/tts requests.",
             ],
         }
         out = evidence_dir / "d5a_voice_style.json"
@@ -299,6 +305,7 @@ def main(argv: list[str] | None = None) -> int:
             "evidence":str(out),
             "voice_current":payload.get("voice_current"),
             "voice_surface_candidate_count":payload.get("voice_surface_candidate_count"),
+            "filter_groups":sorted((payload.get("filter_options") or {}).keys()),
             "style_keywords_observed":payload.get("style_keywords_observed"),
             "explicit_emotion_control_confirmed":payload.get("explicit_emotion_control_confirmed"),
             "tts_request_count":payload.get("tts_request_count"),
