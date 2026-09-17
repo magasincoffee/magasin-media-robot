@@ -2,6 +2,45 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 010 — D3 V0.4.0 field error → V0.4.1 reload recovery
+
+### Workbox
+
+Started around 15:37 ICT under the 28-minute maximum-task rule. Stopped early at the next real-provider operator gate after field review, corrective implementation, regression updates, CI/package preparation, and durable logging.
+
+### Real D3 evidence reviewed
+
+Run `20260917_153149_2bb6c109`:
+- controlled sample length 52; structured lifecycle stores only length/SHA-256;
+- Generate available initially;
+- after click, Generate disappeared and `Hủy` appeared, proving processing;
+- provider then returned `Không tải được giọng. Vui lòng tải lại trang.`;
+- terminal state ERROR;
+- free quota stayed 3 → 3;
+- audio element count stayed 5 → 5;
+- no new result/download control;
+- `download_clicked: false`;
+- D1/D2 evidence remained privacy-safe.
+
+Recorded `BUG-20260917-009`. V0.4.0 correctly captured the provider error, but its processing classifier missed the `Hủy`/Generate-disappearance state and no successful generation was characterized.
+
+### V0.4.1 corrective work
+
+- processing now recognizes `Hủy/Cancel` and Generate disappearance;
+- best-effort network-idle settling added before controlled attempts;
+- explicit `--retry-after-reload-error` added, off by default;
+- only the exact reload-page error authorizes one page reload and one second attempt;
+- D3 BAT warns that at most two provider generation attempts may be used and requires Y confirmation;
+- per-attempt trace/screenshots added;
+- audio download remains disabled;
+- editor text remains excluded from structured evidence;
+- package/runner bumped to V0.4.1; lifecycle schema 1.1; report schema 1.4;
+- regression coverage added for cancel-state processing and reload-only retry eligibility.
+
+### Next gate
+
+Run V0.4.1 once. If reload recovery produces a success signal, verify `BUG-20260917-009`, merge PR #8, and begin D4. If the same reload error repeats, classify the blocker as provider/login/session availability and investigate that before attempting D4.
+
 ## 2026-09-17 — Session 009 — D2 accepted → D3 Generation Lifecycle V0.4.0
 
 ### Workbox
@@ -24,8 +63,6 @@ PASS:
 
 `BUG-20260917-008` VERIFIED. PR #7 merged to `main` as `ec7ee7c0b18e488a3bc43361e8e38ca4e88ce54b`.
 
-Provider observation: final UI showed `Không tải được giọng. Vui lòng tải lại trang.` after voice-surface observation. D3 explicitly records alerts present before Generate as baseline, so an existing toast cannot be misclassified as a new generation failure.
-
 ### D3 work completed
 
 - Created branch `feat/saydivoice-d3-generation-lifecycle`; PR #8.
@@ -45,11 +82,6 @@ Provider observation: final UI showed `Không tải được giọng. Vui lòng 
 - Operator artifact `MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0`: generated.
 - Extracted ZIP compile: PASS.
 - Extracted ZIP pytest: **46 tests PASS**.
-- ZIP privacy/structure: 38 files; D3 runner included; no `.venv`, `browser_profile`, cookie/token/secret path.
-
-### Next gate
-
-Operator runs `CAI_DAT_VA_CHAY_D3.bat`, confirms Y, and returns `generation_lifecycle.json`, D3 before/after screenshots, report JSON, and JSONL log from the same run ID. This is the first discovery stage that intentionally triggers one Generate action; D4 download remains disabled.
 
 ## 2026-09-17 — Session 008 — V0.3.1 field review → V0.3.2 final D2 corrective build
 
