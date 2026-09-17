@@ -15,8 +15,12 @@ Scope: implement and regression-test non-destructive D2 voice/settings observati
 - Added graceful-fallback test proving a provider-specific D2 probe failure does not destroy the D1 capture.
 - Local distribution-derived compile: PASS.
 - Local distribution-derived pytest: **38 tests PASS**.
+- Package version import: PASS (`0.3.0`).
+- Operator ZIP: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.zip`.
+- ZIP structure/privacy validation: PASS — 40 packaged files; no `.venv`, `browser_profile`, cookie/token/secret file detected.
 - GitHub Actions push run `35189216611`: PASS.
 - GitHub Actions push run `35189339655`: PASS after runner integration/fallback coverage.
+- PR #7 Windows Actions run `35189814339`: PASS — checkout, Python setup, dependency install, compile, unit tests all successful.
 - Real SaydiVoice D2 navigation/option capture: PENDING target-laptop V0.3 run.
 
 ## 2026-09-17 — V0.2 Windows distribution packaging self-test
