@@ -5,13 +5,14 @@ import uuid
 from datetime import datetime, timezone
 
 from .browser import open_and_probe, probe_page
-from .classifier import classify_page_state
+from .classifier import classify_auth_state, classify_page_state
 from .evidence import make_page_signals, sanitize_inventory, write_dom_inventory
 from .logging_utils import configure_logging
 from .models import DiscoveryConfig, DiscoveryReport, RunStatus, RuntimePaths
 from .runtime import build_runtime_paths, sanitize_error_message, sanitize_url
+from .surface import write_surface_outputs
 
-RUNNER_VERSION = "0.1.0"
+RUNNER_VERSION = "0.2.0"
 
 
 def _now() -> str:
@@ -81,13 +82,15 @@ def run_discovery(
                     )
                     break
 
+        auth_state = classify_auth_state(signals, state)
         elements = sanitize_inventory(raw_probe.get("elements", []))
 
         page.screenshot(path=str(screenshot_path), full_page=True)
         write_dom_inventory(inventory_path, elements)
+        surface_map_path, selectors_path = write_surface_outputs(run_dir, signals, elements, auth_state)
 
         report = DiscoveryReport(
-            schema_version="1.0",
+            schema_version="1.1",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,
@@ -100,17 +103,24 @@ def run_discovery(
             screenshot_path=str(screenshot_path),
             dom_inventory_path=str(inventory_path),
             element_count=len(elements),
+            auth_state=auth_state,
+            surface_map_path=str(surface_map_path),
+            selectors_path=str(selectors_path),
             notes=[
                 "Discovery is read-only: no credentials were entered and no Generate/download action was invoked.",
-                "DOM inventory excludes input values, cookies, storage, authorization headers, and raw HTML.",
+                "DOM inventory excludes input/editor values, cookies, storage, authorization headers, and raw HTML.",
+                "D1 surface map and ranked selector candidates were generated from current visible controls.",
             ],
         )
         report_path.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
-        logger.info(f"Discovery captured with state={state}; report={report_path}", extra={"event": "run_completed"})
+        logger.info(
+            f"Discovery captured with state={state}, auth_state={auth_state}; report={report_path}",
+            extra={"event": "run_completed"},
+        )
         return report
     except Exception as exc:
         report = DiscoveryReport(
-            schema_version="1.0",
+            schema_version="1.1",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,
