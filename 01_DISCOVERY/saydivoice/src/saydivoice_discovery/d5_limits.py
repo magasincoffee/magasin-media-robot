@@ -30,12 +30,19 @@ def parse_counter(text: str | None) -> tuple[int | None, int | None]:
     return _to_int(match.group("current")), _to_int(match.group("limit"))
 
 
-def classify_input_state(length: int, limit: int | None, generate_enabled: bool) -> str:
-    if length == 0 and not generate_enabled:
+def classify_input_state(
+    target_length: int,
+    actual_length: int | None,
+    limit: int | None,
+    generate_actionable: bool,
+) -> str:
+    if target_length == 0 and not generate_actionable:
         return "EMPTY_BLOCKED_UI"
-    if limit is not None and length > limit and not generate_enabled:
-        return "OVER_LIMIT_BLOCKED_UI"
-    if (limit is None or length <= limit) and generate_enabled:
+    if limit is not None and target_length > limit and actual_length is not None and actual_length <= limit:
+        return "OVER_LIMIT_CLAMPED_UI"
+    if limit is not None and target_length == limit:
+        return "LIMIT_ACCEPTED_UI" if generate_actionable else "LIMIT_BLOCKED_UI"
+    if (limit is None or target_length < limit) and generate_actionable:
         return "ACCEPTED_UI"
     return "AMBIGUOUS"
 
@@ -67,15 +74,32 @@ D5_SNAPSHOT_SCRIPT = r"""
     .map(textOf)
     .filter(t => t && t.length <= 180 && /(tối đa|vượt|ký tự|character|bắt buộc|không được để trống|nhập văn bản)/i.test(t))
     .slice(0, 12);
+  const gs = generate ? getComputedStyle(generate) : null;
   return {
     editor_length: editor ? textOf(editor).length : null,
     counter_text: counter,
     generate_present: !!generate,
-    generate_enabled: !!generate && !(generate.disabled === true || generate.getAttribute('aria-disabled') === 'true'),
+    generate_disabled_property: !!generate && generate.disabled === true,
+    generate_aria_disabled: generate?.getAttribute('aria-disabled') || null,
+    generate_pointer_events: gs?.pointerEvents || null,
+    generate_opacity: gs?.opacity || null,
     validation_messages: [...new Set(candidates)],
   };
 }
 """
+
+
+def _generate_actionable(page: Any) -> bool:
+    control = page.get_by_role("button", name="Tạo giọng nói", exact=True).first
+    if control.count() < 1:
+        control = page.get_by_text("Tạo giọng nói", exact=True).first
+    if control.count() < 1:
+        return False
+    try:
+        control.click(trial=True, timeout=1_200)
+        return True
+    except Exception:
+        return False
 
 
 def _snapshot(page: Any) -> dict[str, Any]:
@@ -87,7 +111,11 @@ def _snapshot(page: Any) -> dict[str, Any]:
         "counter_current": current,
         "counter_limit": limit,
         "generate_present": bool(raw.get("generate_present")),
-        "generate_enabled": bool(raw.get("generate_enabled")),
+        "generate_actionable_trial": _generate_actionable(page),
+        "generate_disabled_property": bool(raw.get("generate_disabled_property")),
+        "generate_aria_disabled": raw.get("generate_aria_disabled"),
+        "generate_pointer_events": raw.get("generate_pointer_events"),
+        "generate_opacity": raw.get("generate_opacity"),
         "validation_messages": list(raw.get("validation_messages") or []),
     }
 
@@ -110,31 +138,43 @@ def run_d5_input_limits(page: Any, *, evidence_dir: Path, settle_ms: int = 450) 
         initial = _snapshot(test_page)
         limit = initial.get("counter_limit") or 20_000
         limit_source = "observed_counter" if initial.get("counter_limit") else "fallback_20000"
-        cases = [0, 1, int(limit), int(limit) + 1]
+        cases = [0, 1, max(1, int(limit) - 1), int(limit), int(limit) + 1]
         observations: list[dict[str, Any]] = []
 
         network_mark = recorder.mark()
-        for length in cases:
-            editor.fill("A" * length)
+        for target_length in cases:
+            editor.fill("A" * target_length)
             test_page.wait_for_timeout(max(200, settle_ms))
             snap = _snapshot(test_page)
+            actual_length = snap.get("editor_length")
+            actionable = bool(snap.get("generate_actionable_trial"))
             observations.append({
-                "target_length": length,
+                "target_length": target_length,
+                "actual_editor_length": actual_length,
                 "counter_text": snap.get("counter_text"),
                 "counter_current": snap.get("counter_current"),
                 "counter_limit": snap.get("counter_limit"),
                 "generate_present": snap.get("generate_present"),
-                "generate_enabled": snap.get("generate_enabled"),
-                "classification": classify_input_state(length, int(limit), bool(snap.get("generate_enabled"))),
+                "generate_actionable_trial": actionable,
+                "generate_disabled_property": snap.get("generate_disabled_property"),
+                "generate_aria_disabled": snap.get("generate_aria_disabled"),
+                "generate_pointer_events": snap.get("generate_pointer_events"),
+                "generate_opacity": snap.get("generate_opacity"),
+                "classification": classify_input_state(
+                    target_length,
+                    int(actual_length) if actual_length is not None else None,
+                    int(limit),
+                    actionable,
+                ),
                 "validation_messages": snap.get("validation_messages") or [],
             })
 
-        test_page.screenshot(path=str(evidence_dir / "d5_over_limit_state.png"), full_page=True)
+        test_page.screenshot(path=str(evidence_dir / "d5_boundary_state.png"), full_page=True)
         recorder.finalize_error_details()
         events = recorder.since(network_mark)
         tts_requests = [e for e in events if _is_tts_request(e)]
         payload = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "mode": "D5_READONLY_INPUT_LIMITS",
             "advertised_limit": int(limit),
             "limit_source": limit_source,
@@ -145,6 +185,7 @@ def run_d5_input_limits(page: Any, *, evidence_dir: Path, settle_ms: int = 450) 
             "privacy_note": "Synthetic A-only test payloads are used. The original editor text is kept only in memory for restoration and is never written to evidence.",
             "notes": [
                 "No Generate or Download control is clicked in D5 read-only input-limit characterization.",
+                "Playwright click(trial=True) is used only for actionability checking and does not dispatch the Generate click.",
                 "The original editor content is restored before the disposable test tab closes.",
                 "A D5 PASS requires zero /api/tts requests during these client-side validation checks.",
             ],
@@ -199,11 +240,13 @@ def main(argv: list[str] | None = None) -> int:
         payload = json.loads(out.read_text(encoding="utf-8"))
         observations = payload.get("observations") or []
         classifications = {str(item.get("classification")) for item in observations}
+        has_limit_characterization = bool({"LIMIT_ACCEPTED_UI", "LIMIT_BLOCKED_UI"} & classifications)
         pass_gate = (
             int(payload.get("tts_request_count") or 0) == 0
             and "EMPTY_BLOCKED_UI" in classifications
-            and "OVER_LIMIT_BLOCKED_UI" in classifications
+            and "OVER_LIMIT_CLAMPED_UI" in classifications
             and "ACCEPTED_UI" in classifications
+            and has_limit_characterization
         )
         print(json.dumps({
             "gate": "PASS" if pass_gate else "REVIEW",
