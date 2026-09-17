@@ -56,7 +56,7 @@ jobs:
 
       - name: Run read-only input boundary characterization
         run: |
-          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.d5_limits --chromium-executable "$env:SAYDI_CHROME" --settle-ms 450
+          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.d5c_limits --chromium-executable "$env:SAYDI_CHROME" --settle-ms 450
           if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
 
       - name: Stage privacy-safe evidence
