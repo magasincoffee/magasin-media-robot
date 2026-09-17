@@ -2,72 +2,88 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 008 — V0.3.1 field review → V0.3.2 final D2 corrective build
+
+### Workbox
+
+Started at approximately 14:25 ICT under the 28-minute maximum task rule. The engineering work reached the next real-provider operator gate well before the 28-minute limit.
+
+### Field evidence reviewed
+
+Real V0.3.1 run evidence path identifies run `20260917_142133_bd48aed7`.
+
+PASS:
+- structured JSON does not contain the editor phrase visible in the screenshot;
+- stability `2.8`, expression `Ổn định`, speed `1.00×` captured;
+- MP3 selected and WAV/MP3/FLAC/OGG cataloged;
+- pause checkbox/rows/default control captured;
+- pause reports closed after observation.
+
+Remaining gap:
+- language screenshot shows English, Tiếng Việt, 中文, 日本語, 한국어, Deutsch, Español, Français, but structured language options are empty;
+- voice screenshot shows one automatic voice card (`Tự động / Hệ thống tự chọn giọng`), but the structured catalog counts modal navigation tabs as voice options.
+
+### Corrective work completed
+
+- Advanced runner/package to V0.3.2.
+- Added `enhanced_catalog.py` with privacy-safe visible-leaf before/after capture.
+- Excludes inputs, textareas, contenteditable/textbox surfaces.
+- Added multilingual language-label extraction.
+- Added filtering for modal navigation/generic controls.
+- Added recognition of the automatic voice card from the current label + provider descriptor.
+- Enhanced options replace weak base-catalog options only when meaningful evidence exists.
+- Added regression tests for visible delta, multilingual labels, auto-card parsing, navigation filtering, and runner override behavior.
+- Updated bug/status/next-step/test logs.
+
+### Verification
+
+- Windows PR/Actions run `35195143308`: PASS.
+- GitHub artifact `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2`: produced successfully.
+- Extracted operator ZIP compile: PASS.
+- Extracted operator ZIP pytest: **40 tests PASS**.
+
+### Next gate
+
+Operator runs V0.3.2 once. If language options and automatic voice card are captured correctly while privacy/settings remain unchanged, verify `BUG-20260917-008`, merge PR #7, then start D3 Generation Lifecycle.
+
+## 2026-09-17 — Session 007 — D2 V0.3 field review → V0.3.1 corrective build
+
+- Reviewed real run `20260917_135249_9534c523`.
+- Found `BUG-20260917-008`: generic voice option, empty language options, custom slider semantics incomplete, pause left expanded.
+- Built V0.3.1 with display-value parsing, pause-panel capture/restoration, visible-control deltas, and per-surface evidence.
+- Windows CI/packaging PASS; packaged pytest 35 tests PASS.
+- Next gate was one V0.3.1 real-provider rerun.
+
+## 2026-09-17 — Session 006 — D2 Voice/Settings Catalog V0.3
+
+- Created D2 branch and voice/settings catalog pipeline.
+- Added `voice_catalog.json` and `settings_catalog.json`.
+- Added non-destructive voice/language/pause observation, current settings evidence, graceful fallback, privacy tests.
+- Distribution-derived local pytest: 38 tests PASS.
+- Windows Actions runs `35189216611` and `35189339655`: PASS.
+
 ## 2026-09-17 — Session 005 — Package D1/V0.2 for live Windows verification
 
-### Goal
-
-Finish everything possible without operator interaction and hand off one ZIP for the real V0.2 SaydiVoice field gate.
-
-### Work completed
-
-- Rechecked the real V0.1 report, DOM inventory, screenshot evidence, and JSONL lifecycle.
-- Built the V0.2 operator distribution `MAGASIN_SAYDIVOICE_DISCOVERY_V0.2.zip`.
-- Added one-click `CAI_DAT_VA_CHAY.bat` and `CHAY_LAI_DISCOVERY.bat` helpers.
-- Distribution preserves the existing runtime/browser profile under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice` rather than bundling session data.
-- V0.2 keeps Generate/download actions out of scope and read-only.
-- Added D1 outputs `saydi_map.json` and `selectors.json` to the operator handoff contract.
-- Replayed a sanitized structural fixture derived from the first real field inventory to check semantic mappings.
-- Confirmed the V0.1 leaked script text does not survive V0.2 structured inventory sanitization.
-- Updated project status, test log, next step, and Windows helper files on branch `feat/saydivoice-d1-surface-map`.
-
-### Test result
-
-- Compile: PASS.
-- Distribution pytest: PASS — 29 tests.
-- Version check: PASS (`0.2.0`).
-- Field-fixture semantic replay: PASS.
-- Real V0.2 provider run: PENDING operator execution on Windows.
-
-### Next step
-
-Operator downloads/extracts the V0.2 ZIP, runs `CAI_DAT_VA_CHAY.bat`, and returns the six newest artifacts from the same run ID. If those pass the live gate, merge D1 and start D2 Voice/Settings Catalog.
+- Built one-click V0.2 distribution.
+- Compile PASS; pytest 29 PASS; version 0.2.0 PASS.
+- Real V0.2 provider run was the next gate.
 
 ## 2026-09-17 — Session 004 — Artifact review + D1 Surface Map
 
-### Goal
-
-Review the first real SaydiVoice artifact set and turn the observed real UI into a safer D1 Surface Map implementation.
-
-### Work completed
-
-- Reviewed uploaded `discovery_report`, DOM inventory, screenshot, and JSONL log from run `20260917_011521_dcb358a9`.
-- Confirmed `TTS_READY` / `CAPTURED`, no runtime error, and 37 interactive elements in the V0.1 inventory.
-- Confirmed the observed page is anonymous-ready: login controls are visible while the TTS editor is still usable.
-- Identified visible controls for language, voice mode, script editor, add speaker, import script, subtitle-to-voice, Generate, Settings/History, pause, WAV/MP3/FLAC/OGG, and assistant chat.
-- Found privacy defect `BUG-20260917-006`: V0.1 persisted contenteditable script text in structured DOM evidence.
-- Fixed contenteditable text capture in D1/V0.2 and added regression coverage.
-- Fixed semantic locator bug `BUG-20260917-007` so login explanatory copy is not misclassified as History.
-- Implemented D1 semantic surface mapping and ranked locator candidates.
-- Added per-run `saydi_map.json` and `selectors.json` outputs.
-- D1/V0.2 code is on branch `feat/saydivoice-d1-surface-map`.
-- Windows Actions run `35172844321`: PASS; D1 suite 23 tests.
-
-### Current gate
-
-D1 code is not merged yet. It requires a real V0.2 rerun on the target Windows laptop.
+- Reviewed first real V0.1 artifacts.
+- Found/fixed contenteditable privacy defect and login-vs-History semantic defect.
+- Implemented `saydi_map.json` and `selectors.json`.
+- D1 Windows Actions PASS; suite 23 tests.
 
 ## 2026-09-17 — Session 003 — First real Windows/SaydiVoice field run
 
 - Playwright Chromium installed successfully.
-- Bundled tests completed: `16 passed in 0.29s`.
-- Discovery run ID: `20260917_011521_dcb358a9`.
-- Real page classified as `TTS_READY` / `CAPTURED`, exit `0`.
+- Run `20260917_011521_dcb358a9`: `TTS_READY` / `CAPTURED`, exit `0`.
 
 ## 2026-09-17 — Session 002 — SaydiVoice Discovery Runner V0.1
 
 - V0.1 implemented and merged through PR #1.
-- 16 local tests PASS.
-- PR and post-merge Windows CI PASS.
+- 16 local tests PASS; PR and post-merge Windows CI PASS.
 
 ## 2026-09-17 — Session 001 — Repository foundation
 

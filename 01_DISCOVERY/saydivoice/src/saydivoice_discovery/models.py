@@ -95,6 +95,8 @@ class DiscoveryReport:
     auth_state: AuthState = "UNKNOWN"
     surface_map_path: str | None = None
     selectors_path: str | None = None
+    voice_catalog_path: str | None = None
+    settings_catalog_path: str | None = None
     notes: list[str] = field(default_factory=list)
     error: str | None = None
 
