@@ -23,6 +23,12 @@ def raw_fixture():
                 "locator_hints": [{"strategy": "role", "role": "slider"}],
             },
             {
+                "label": "Biểu cảm",
+                "found": True,
+                "text_hint": "Biểu cảm Ổn định",
+                "current": {},
+            },
+            {
                 "label": "Tốc độ đọc",
                 "found": True,
                 "text_hint": "Tốc độ đọc 1.00×",
@@ -37,6 +43,12 @@ def raw_fixture():
                 },
                 "locator_hints": [{"strategy": "role", "role": "slider"}],
             },
+            {
+                "label": "Định dạng tệp",
+                "found": True,
+                "text_hint": "Định dạng tệp WAV MP3 FLAC OGG",
+                "current": {"tag": "button", "type": "button", "value": None},
+            },
         ],
         "format_options": [
             {"text": "WAV", "role": "tab", "aria_selected": "false"},
@@ -46,14 +58,28 @@ def raw_fixture():
         ],
         "voice_current": "Tự động",
         "voice_opened": True,
+        "voice_closed": True,
         "voice_options": [
             {"text": "Giọng A", "role": "option", "aria_selected": "false"},
             {"text": "Giọng B", "role": "option", "aria_selected": "false"},
         ],
         "language_current": "VI",
         "language_opened": True,
-        "language_options": [{"text": "VI", "role": "option", "aria_selected": "true"}],
-        "pause_options": [{"text": "Đang tắt", "role": "option", "aria_selected": "true"}],
+        "language_closed": True,
+        "language_options": [{"text": "Tiếng Việt", "role": "option", "aria_selected": "true"}],
+        "pause_current": "Đang tắt",
+        "pause_opened": True,
+        "pause_closed": True,
+        "pause_options": [],
+        "pause_panel": {
+            "automatic_checkbox_present": True,
+            "automatic_checkbox_checked": False,
+            "rows": [
+                {"label": "Dấu chấm", "found": True, "text": "Dấu chấm 0.45s"},
+                {"label": "Dấu phẩy", "found": True, "text": "Dấu phẩy 0.25s"},
+            ],
+            "default_button_present": True,
+        },
         "warnings": [],
     }
 
@@ -63,21 +89,26 @@ def test_build_catalog_records_slider_values_and_ranges():
     stability = settings["settings"]["stability"]
     speed = settings["settings"]["speed"]
     assert stability["value"] == "2.8"
+    assert stability["display_value"] == "2.8"
     assert stability["aria_valuemin"] == "0"
     assert stability["aria_valuemax"] == "5"
     assert speed["aria_valuenow"] == "1"
+    assert speed["display_value"] == "1.00×"
+    assert settings["settings"]["expression"]["display_value"] == "Ổn định"
 
 
-def test_build_catalog_records_selected_output_format():
+def test_build_catalog_records_selected_output_format_even_when_nearby_button_was_probed():
     _, settings = build_catalog(raw_fixture())
     output = settings["settings"]["output_format"]
     assert output["value"] == "MP3"
+    assert output["display_value"] == "MP3"
     assert output["options"] == ["WAV", "MP3", "FLAC", "OGG"]
 
 
 def test_voice_catalog_is_observation_only():
     voice, _ = build_catalog(raw_fixture())
     assert voice["opened"] is True
+    assert voice["closed_after_observation"] is True
     assert voice["option_count"] == 2
     assert [x["text"] for x in voice["options"]] == ["Giọng A", "Giọng B"]
     assert any("no voice was selected" in note for note in voice["notes"])
@@ -88,6 +119,31 @@ def test_catalog_deduplicates_overlay_options():
     raw["voice_options"].append(dict(raw["voice_options"][0]))
     voice, _ = build_catalog(raw)
     assert voice["option_count"] == 2
+
+
+def test_generic_clear_control_is_not_counted_as_voice_option():
+    raw = raw_fixture()
+    raw["voice_options"] = [{"text": "Xoá", "role": None}]
+    voice, settings = build_catalog(raw)
+    assert voice["option_count"] == 0
+    assert any("no meaningful voice options" in warning for warning in settings["warnings"])
+
+
+def test_pause_panel_structure_is_preserved_without_changing_settings():
+    _, settings = build_catalog(raw_fixture())
+    pause = settings["pause"]
+    assert pause["opened"] is True
+    assert pause["closed_after_observation"] is True
+    assert pause["current_label"] == "Đang tắt"
+    assert pause["panel"]["automatic_checkbox_checked"] is False
+    assert pause["panel"]["rows"][0]["text"] == "Dấu chấm 0.45s"
+
+
+def test_unrestored_pause_surface_emits_warning():
+    raw = raw_fixture()
+    raw["pause_closed"] = False
+    _, settings = build_catalog(raw)
+    assert any("did not restore" in warning for warning in settings["warnings"])
 
 
 def test_catalog_does_not_copy_unrelated_script_field():
