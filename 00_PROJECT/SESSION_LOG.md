@@ -2,6 +2,36 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 005 — Package D1/V0.2 for live Windows verification
+
+### Goal
+
+Finish everything possible without operator interaction and hand off one ZIP for the real V0.2 SaydiVoice field gate.
+
+### Work completed
+
+- Rechecked the real V0.1 report, DOM inventory, screenshot evidence, and JSONL lifecycle.
+- Built the V0.2 operator distribution `MAGASIN_SAYDIVOICE_DISCOVERY_V0.2.zip`.
+- Added one-click `CAI_DAT_VA_CHAY.bat` and `CHAY_LAI_DISCOVERY.bat` helpers.
+- Distribution preserves the existing runtime/browser profile under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice` rather than bundling session data.
+- V0.2 keeps Generate/download actions out of scope and read-only.
+- Added D1 outputs `saydi_map.json` and `selectors.json` to the operator handoff contract.
+- Replayed a sanitized structural fixture derived from the first real field inventory to check semantic mappings.
+- Confirmed the V0.1 leaked script text does not survive V0.2 structured inventory sanitization.
+- Updated project status, test log, next step, and Windows helper files on branch `feat/saydivoice-d1-surface-map`.
+
+### Test result
+
+- Compile: PASS.
+- Distribution pytest: PASS — 29 tests.
+- Version check: PASS (`0.2.0`).
+- Field-fixture semantic replay: PASS.
+- Real V0.2 provider run: PENDING operator execution on Windows.
+
+### Next step
+
+Operator downloads/extracts the V0.2 ZIP, runs `CAI_DAT_VA_CHAY.bat`, and returns the six newest artifacts from the same run ID. If those pass the live gate, merge D1 and start D2 Voice/Settings Catalog.
+
 ## 2026-09-17 — Session 004 — Artifact review + D1 Surface Map
 
 ### Goal
@@ -20,58 +50,25 @@ Review the first real SaydiVoice artifact set and turn the observed real UI into
 - Implemented D1 semantic surface mapping and ranked locator candidates.
 - Added per-run `saydi_map.json` and `selectors.json` outputs.
 - D1/V0.2 code is on branch `feat/saydivoice-d1-surface-map`.
-- Windows Actions run `35172844321`: PASS; compile and unit-test steps successful; D1 suite 23 tests.
+- Windows Actions run `35172844321`: PASS; D1 suite 23 tests.
 
 ### Current gate
 
-D1 code is not merged yet. It requires a real V0.2 rerun on the target Windows laptop to confirm the contenteditable privacy fix, inspect the new surface outputs, resolve any provider-specific sliders/settings, and confirm persistent-profile reuse on a second run.
-
-### Next step
-
-Package D1/V0.2 for the operator, run it on the target laptop, review `discovery_report`, `dom_inventory`, `saydi_map`, `selectors`, screenshot, and log, then merge D1 if the live gate passes and continue to D2 Voice/Settings Catalog.
+D1 code is not merged yet. It requires a real V0.2 rerun on the target Windows laptop.
 
 ## 2026-09-17 — Session 003 — First real Windows/SaydiVoice field run
-
-### Goal
-
-Verify SaydiVoice Discovery Runner V0.1 on the target Windows laptop against the real SaydiVoice page.
-
-### Evidence observed
 
 - Playwright Chromium installed successfully.
 - Bundled tests completed: `16 passed in 0.29s`.
 - Discovery run ID: `20260917_011521_dcb358a9`.
-- Real page classified as `TTS_READY`.
-- Run status: `CAPTURED`.
-- Process status: `0`.
-
-### Result
-
-First real Windows/SaydiVoice execution: PASS at setup, browser navigation, classification, and capture level.
-
-### Next step
-
-Review the real artifacts and verify session reuse before D1.
+- Real page classified as `TTS_READY` / `CAPTURED`, exit `0`.
 
 ## 2026-09-17 — Session 002 — SaydiVoice Discovery Runner V0.1
 
-### Goal
-
-Implement and self-test the D0 SaydiVoice Discovery Runner foundation.
-
-### Result
-
 - V0.1 implemented and merged through PR #1.
 - 16 local tests PASS.
-- PR Windows CI PASS.
-- Post-merge Windows CI PASS.
+- PR and post-merge Windows CI PASS.
 
 ## 2026-09-17 — Session 001 — Repository foundation
-
-### Goal
-
-Create durable project memory before writing SaydiVoice Discovery code.
-
-### Result
 
 Repository/document scaffold: PASS.
