@@ -1,5 +1,24 @@
 # Test Log
 
+## 2026-09-17 — D2 Voice/Settings Catalog V0.3 automated verification
+
+Scope: implement and regression-test non-destructive D2 voice/settings observation before real-provider field execution.
+
+- Branch: `feat/saydivoice-d2-voice-settings-catalog`.
+- Runner/package version: `0.3.0`.
+- Report schema: `1.2`.
+- Added `voice_catalog.json` and `settings_catalog.json` outputs.
+- Added catalog privacy regression: unrelated script/editor values are not promoted into D2 outputs.
+- Added voice option deduplication and selected output-format tests.
+- Added stability/speed current-value/range parsing tests from provider-exposed range/ARIA evidence.
+- Added runner integration test proving catalog paths are written when D2 succeeds.
+- Added graceful-fallback test proving a provider-specific D2 probe failure does not destroy the D1 capture.
+- Local distribution-derived compile: PASS.
+- Local distribution-derived pytest: **38 tests PASS**.
+- GitHub Actions push run `35189216611`: PASS.
+- GitHub Actions push run `35189339655`: PASS after runner integration/fallback coverage.
+- Real SaydiVoice D2 navigation/option capture: PENDING target-laptop V0.3 run.
+
 ## 2026-09-17 — V0.2 Windows distribution packaging self-test
 
 Scope: final operator ZIP for the D1 live gate.
