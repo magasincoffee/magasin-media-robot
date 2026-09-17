@@ -17,6 +17,9 @@ jobs:
   live-session-check:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 20
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
     defaults:
       run:
         working-directory: 01_DISCOVERY/saydivoice
@@ -89,7 +92,7 @@ jobs:
 
       - name: Run non-destructive live discovery with installed Chrome
         run: |
-          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.cli --chromium-executable "$env:SAYDI_CHROME" --timeout-ms 60000 --settle-ms 2500 --json
+          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.cli --chromium-executable "$env:SAYDI_CHROME" --timeout-ms 60000 --settle-ms 2500
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Require authenticated Saydi session
