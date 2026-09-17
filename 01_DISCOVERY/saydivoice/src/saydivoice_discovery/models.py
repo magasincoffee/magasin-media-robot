@@ -43,6 +43,9 @@ class DiscoveryConfig:
     chromium_executable_path: str | None = None
     login_wait_seconds: int = 0
     login_poll_ms: int = 2_000
+    allow_generate: bool = False
+    generation_timeout_ms: int = 60_000
+    generation_poll_ms: int = 500
 
 
 @dataclass(frozen=True)
@@ -97,6 +100,7 @@ class DiscoveryReport:
     selectors_path: str | None = None
     voice_catalog_path: str | None = None
     settings_catalog_path: str | None = None
+    generation_lifecycle_path: str | None = None
     notes: list[str] = field(default_factory=list)
     error: str | None = None
 
