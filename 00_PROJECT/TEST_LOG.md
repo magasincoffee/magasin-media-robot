@@ -17,7 +17,7 @@
 - V0.4.0 classifier gap: `processing_observed` was false because it only recognized disabled/aria-busy Generate controls, not `Hủy` or Generate disappearance.
 - Defect recorded as `BUG-20260917-009`.
 
-### V0.4.1 corrective implementation
+### V0.4.1 corrective implementation and verification
 
 - Added processing detection for visible `Hủy/Cancel` and Generate disappearance after click.
 - Added best-effort network-idle settling before controlled attempts.
@@ -27,6 +27,10 @@
 - Added per-attempt traces/screenshots while preserving `d3_before_generate.png` / `d3_after_generate.png` compatibility.
 - Lifecycle schema advanced to 1.1; runner/package to 0.4.1; report schema to 1.4.
 - Added regressions for `Hủy` processing and reload-only retry eligibility.
+- Windows Actions run `35201169611`: **PASS**.
+- Operator artifact `MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.1`: produced successfully.
+- Downloaded/extracted V0.4.1 ZIP compile: **PASS**.
+- Downloaded/extracted V0.4.1 pytest: **48 tests PASS**.
 - Real V0.4.1 provider verification: PENDING.
 
 ## 2026-09-17 — D3 Generation Lifecycle V0.4.0 automated verification
@@ -38,12 +42,10 @@
 - Added structural lifecycle trace for Generate busy/disabled state, audio/result controls, quota text, and alert/toast changes.
 - Added pre-existing-alert baseline handling so an old provider toast is not mislabeled as a generation failure.
 - Added fixed sample privacy contract: structured output stores sample length/SHA-256, not editor text.
-- Added tests for success by quota decrease, success by audio appearance, new error classification, processing timeout, no-signal, and runner opt-in behavior.
 - Windows Actions run `35199227801`: **PASS**.
 - Operator artifact `MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0`: produced successfully.
 - Downloaded/extracted operator ZIP compile: **PASS**.
 - Downloaded/extracted operator ZIP pytest: **46 tests PASS**.
-- ZIP structure/privacy check: 38 packaged files; D3 BAT/generation module/tests present; no `.venv`, `browser_profile`, cookie/token/secret path detected.
 
 ## 2026-09-17 — D2 V0.3.2 final field acceptance
 
