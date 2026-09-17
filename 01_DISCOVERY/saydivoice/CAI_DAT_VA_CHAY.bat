@@ -1,11 +1,11 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-title MAGASIN - SaydiVoice Discovery V0.2
+title MAGASIN - SaydiVoice Discovery V0.3
 
 echo ============================================================
-echo   MAGASIN SAYDIVOICE DISCOVERY V0.2 - D1 SURFACE MAP
-echo   Cai dat + tu test + mo SaydiVoice + thu thap artifact
+echo   MAGASIN SAYDIVOICE DISCOVERY V0.3 - D2 VOICE + SETTINGS CATALOG
+echo   Cai dat + tu test + mo SaydiVoice + thu thap D2 catalog artifacts
 echo ============================================================
 echo.
 
@@ -33,18 +33,18 @@ if not exist ".venv\Scripts\python.exe" (
   %PY_CMD% -m venv .venv || goto :fail
 )
 
-echo [2/5] Cap nhat Discovery V0.2...
+echo [2/5] Cap nhat Discovery V0.3...
 ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check --upgrade pip || goto :fail
 ".venv\Scripts\python.exe" -m pip install -e ".[dev]" || goto :fail
 
 echo [3/5] Kiem tra Chromium cua robot...
 ".venv\Scripts\python.exe" -m playwright install chromium || goto :fail
 
-echo [4/5] Tu test V0.2 truoc khi chay...
+echo [4/5] Tu test V0.3 truoc khi chay...
 ".venv\Scripts\python.exe" -m pytest || goto :fail
 
-echo [5/5] Mo SaydiVoice Discovery V0.2...
-echo Khong bam Tao giong noi. Robot chi quan sat giao dien.
+echo [5/5] Mo SaydiVoice Discovery V0.3...
+echo Khong bam Tao giong noi. Robot se tu mo cac menu Giong / Ngon ngu / Ngat nghi de quan sat, sau do dong lai.
 echo Neu hien man hinh dang nhap rieng, co the dang nhap trong Chromium robot.
 echo.
 ".venv\Scripts\python.exe" -m saydivoice_discovery.cli --login-wait-seconds 180
@@ -52,10 +52,17 @@ set "RC=%ERRORLEVEL%"
 
 echo.
 echo ============================================================
-echo Discovery V0.2 ket thuc. Ma trang thai: %RC%
+echo Discovery V0.3 ket thuc. Ma trang thai: %RC%
 echo Du lieu: %LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice
-echo Gui lai 6 file moi nhat: report, dom_inventory, saydi_map,
-echo selectors, screenshot, va JSONL log.
+echo Can gui lai ChatGPT cac file moi nhat:
+echo   1. reports\discovery_report_*.json
+echo   2. runs\RUN_ID\dom_inventory.json
+echo   3. runs\RUN_ID\saydi_map.json
+echo   4. runs\RUN_ID\selectors.json
+echo   5. runs\RUN_ID\voice_catalog.json
+echo   6. runs\RUN_ID\settings_catalog.json
+echo   7. screenshots\saydivoice_*.png
+echo   8. logs\discovery_*.jsonl
 echo ============================================================
 if exist "%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice" start "" explorer "%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice"
 pause

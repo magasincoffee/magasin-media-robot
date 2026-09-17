@@ -1,42 +1,52 @@
 # Next Step
 
-## Immediate next step — Merge D1 and implement D2 Voice/Settings Catalog
+## Immediate next step — Run SaydiVoice Discovery V0.3 / D2 on Windows
 
-D1/V0.2 passed its real provider field gate on Windows run `20260917_110310_7bf1810a`.
+D1 is merged and D2 Voice/Settings Catalog V0.3 is implemented, unit-tested, Windows-CI verified, and packaged.
 
-Verified:
+### Operator sequence
 
-- `TTS_READY` / `ANONYMOUS` / `CAPTURED`;
-- real report/log clean;
-- contenteditable script text no longer appears in structured evidence;
-- `saydi_map.json` and `selectors.json` generated;
-- semantic controls map correctly, including login vs History;
-- no guessed selectors were assigned to visual slider controls that lacked stable interactive DOM nodes.
+1. Download `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.zip`.
+2. Extract it to a new folder.
+3. Double-click `CAI_DAT_VA_CHAY.bat`.
+4. Wait for bundled self-tests to pass and for Chromium to open SaydiVoice.
+5. Do **not** manually click `Tạo giọng nói` and do not download audio.
+6. D2 will itself open only whitelisted read-only selector surfaces for Voice, Language, and Pause, observe them, and close them with Escape.
+7. Let the runner finish; the local runtime folder opens automatically.
+8. Return the newest eight files from the **same run ID**:
+   - `reports\discovery_report_*.json`
+   - `runs\<run-id>\dom_inventory.json`
+   - `runs\<run-id>\saydi_map.json`
+   - `runs\<run-id>\selectors.json`
+   - `runs\<run-id>\voice_catalog.json`
+   - `runs\<run-id>\settings_catalog.json`
+   - `screenshots\saydivoice_<run-id>.png`
+   - `logs\discovery_<run-id>.jsonl`
+9. Do **not** upload `browser_profile`.
 
-## D2 implementation scope
+## D2 acceptance gate
 
-Build a non-destructive Voice/Settings Catalog pass that can safely inspect current provider UI without generating audio.
+The implementation session will verify:
 
-The D2 pass should:
+- runner `0.3.0` reaches `TTS_READY` / `CAPTURED`;
+- voice catalog contains real current provider options, or a precise provider-specific capture limitation is identified;
+- language/pause menu evidence is captured without changing the selected value;
+- stability/expression/speed setting evidence is sufficient to identify the real interactive mechanism or remains explicitly unresolved rather than guessed;
+- editor/script text remains suppressed from structured evidence;
+- logs show no Generate/download action;
+- no new blocking defect.
 
-1. open the voice selector and capture its visible options/metadata;
-2. inspect language selection if the UI exposes options safely;
-3. inspect settings and discover real interactive nodes for:
-   - voice stability;
-   - expression;
-   - reading speed;
-   - pause behavior;
-   - output format;
-4. capture accessible names, roles, values/ranges, labels, option text, and stable attributes without persisting user script content;
-5. close any opened menus/dialogs where practical so the page remains unchanged;
-6. emit structured outputs such as `voice_catalog.json` and `settings_catalog.json`;
-7. add unit/regression tests and Windows CI coverage;
-8. package a one-click Windows D2 field build.
+If a provider-specific issue is found, record it in `BUG_LOG.md`, fix it, run regression tests/CI, and package a corrected field build before asking the operator to rerun.
 
-## D2 field acceptance target
+## After D2
 
-After code/CI passes, the operator will run one real D2 discovery pass and return the generated catalog artifacts. Only then should D2 be frozen and D3 generation lifecycle discovery begin.
+When the D2 field gate passes:
 
-## Still out of scope
+1. merge D2;
+2. begin D3 Generation Lifecycle discovery;
+3. design a tightly controlled test that observes `Tạo giọng nói` state transitions using harmless test text and no limit bypassing;
+4. add tests/logging/recovery before requesting the next provider-side run.
 
-Do not yet click `Tạo giọng nói`, download audio, stress text limits, or implement the production Voice Engine. D3/D4 follow after D2 is field-verified.
+## Still out of scope for V0.3
+
+No automatic Generate, audio download, stress testing of text limits, provider-limit bypassing, or production Voice Engine behavior.

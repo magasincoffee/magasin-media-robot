@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 
 from .browser import open_and_probe, probe_page
+from .catalog import run_catalog_discovery
 from .classifier import classify_auth_state, classify_page_state
 from .evidence import make_page_signals, sanitize_inventory, write_dom_inventory
 from .logging_utils import configure_logging
@@ -12,7 +13,7 @@ from .models import DiscoveryConfig, DiscoveryReport, RunStatus, RuntimePaths
 from .runtime import build_runtime_paths, sanitize_error_message, sanitize_url
 from .surface import write_surface_outputs
 
-RUNNER_VERSION = "0.2.0"
+RUNNER_VERSION = "0.3.0"
 
 
 def _now() -> str:
@@ -54,7 +55,7 @@ def run_discovery(
     inventory_path = run_dir / "dom_inventory.json"
     report_path = runtime.reports_dir / f"discovery_report_{run_id}.json"
 
-    logger.info("Starting non-destructive SaydiVoice discovery", extra={"event": "run_started"})
+    logger.info("Starting non-destructive SaydiVoice discovery V0.3 / D2 catalog", extra={"event": "run_started"})
     browser_bundle = None
     try:
         raw_probe, browser_bundle, page = open_and_probe(cfg, runtime)
@@ -89,8 +90,28 @@ def run_discovery(
         write_dom_inventory(inventory_path, elements)
         surface_map_path, selectors_path = write_surface_outputs(run_dir, signals, elements, auth_state)
 
+        voice_catalog_path = None
+        settings_catalog_path = None
+        catalog_summary: dict[str, object] = {}
+        if state == "TTS_READY":
+            try:
+                voice_catalog_path, settings_catalog_path, catalog_summary = run_catalog_discovery(page, run_dir)
+                logger.info(
+                    f"D2 catalog captured: {catalog_summary}",
+                    extra={"event": "catalog_completed"},
+                )
+            except Exception as catalog_exc:
+                catalog_summary = {
+                    "status": "PARTIAL_ERROR",
+                    "error": sanitize_error_message(f"{type(catalog_exc).__name__}: {catalog_exc}"),
+                }
+                logger.warning(
+                    f"D2 catalog partial failure: {catalog_summary['error']}",
+                    extra={"event": "catalog_partial_error"},
+                )
+
         report = DiscoveryReport(
-            schema_version="1.1",
+            schema_version="1.2",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,
@@ -106,10 +127,14 @@ def run_discovery(
             auth_state=auth_state,
             surface_map_path=str(surface_map_path),
             selectors_path=str(selectors_path),
+            voice_catalog_path=str(voice_catalog_path) if voice_catalog_path else None,
+            settings_catalog_path=str(settings_catalog_path) if settings_catalog_path else None,
+            catalog_summary=dict(catalog_summary),
             notes=[
                 "Discovery is read-only: no credentials were entered and no Generate/download action was invoked.",
-                "DOM inventory excludes input/editor values, cookies, storage, authorization headers, and raw HTML.",
+                "Structured evidence suppresses input and contenteditable editor text.",
                 "D1 surface map and ranked selector candidates were generated from current visible controls.",
+                "D2 opens only whitelisted selector surfaces (voice/language/pause), records visible evidence, then closes them with Escape.",
             ],
         )
         report_path.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -120,7 +145,7 @@ def run_discovery(
         return report
     except Exception as exc:
         report = DiscoveryReport(
-            schema_version="1.1",
+            schema_version="1.2",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,

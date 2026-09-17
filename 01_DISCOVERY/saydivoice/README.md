@@ -4,33 +4,27 @@ This workstream learns the real behavior of SaydiVoice Studio before production 
 
 Target: `https://voice.saydi.ai/vi/studio/tts/`
 
-## Current status — V0.2 / D1
+## Current status — V0.3 / D2
 
-V0.1 established the non-destructive discovery runner and passed its first real Windows field run. The field evidence showed that the TTS editor can be ready while login controls are still visible, so **page readiness and authentication state are now tracked separately**.
+D0 established the browser runner. D1 Surface Map/V0.2 passed its real Windows field gate on run `20260917_110310_7bf1810a` and was merged through PR #2.
 
-V0.2 adds the first D1 surface map. It still does **not** generate or download audio.
+V0.3 implements D2 Voice/Settings Catalog. It remains non-destructive: **it does not click Generate and does not download audio**.
 
-V0.2:
+V0.3 retains all D1 evidence and additionally:
 
-- opens a visible Playwright Chromium window with the persistent local profile;
-- classifies page state (`TTS_READY`, login required, blocked, unknown);
-- classifies auth surface (`ANONYMOUS`, `AUTHENTICATED_OR_HIDDEN`, `UNKNOWN`) without claiming account identity;
-- captures a local screenshot;
-- writes a sanitized interactive-control inventory;
-- suppresses all input/contenteditable editor text from structured evidence;
-- generates `saydi_map.json` with semantic control keys;
-- generates `selectors.json` with ranked locator candidates;
-- exports a structured discovery report and JSONL logs.
+- opens only whitelisted read-only selector surfaces for voice, language, and pause;
+- records newly visible controls/options after each selector opens;
+- closes opened selector surfaces with Escape;
+- probes the visible settings groups for stability, expression, reading speed, pause, and output format;
+- records roles, accessible values/ranges, range values, stable attributes, and bounded structural hints when the provider exposes them;
+- writes `voice_catalog.json` and `settings_catalog.json`;
+- keeps editor/input privacy suppression in place.
 
 ## Windows setup
 
-1. Install Python 3.11+ if it is not already available.
-2. Run `SETUP_DISCOVERY.bat` once.
-3. Run `RUN_DISCOVERY.bat`.
-
-`SETUP_DISCOVERY.bat` creates a local `.venv`, installs pinned dependencies, installs Playwright Chromium, installs the discovery package, and runs unit tests before declaring setup complete.
-
-If the package has already been set up from V0.1 and the project files are replaced by V0.2, run `SETUP_DISCOVERY.bat` again so the editable package/test environment is refreshed before the next discovery pass.
+1. Install Python 3.11+ if not already available.
+2. Run `CAI_DAT_VA_CHAY.bat` for the one-click setup/test/run path.
+3. Or run `SETUP_DISCOVERY.bat` once, then `CHAY_LAI_DISCOVERY.bat` for later passes.
 
 ## Local runtime root
 
@@ -46,57 +40,50 @@ saydivoice/
   reports/               discovery_report_<run-id>.json
   downloads/             reserved for later download discovery
   runs/<run-id>/
-    dom_inventory.json   sanitized visible interactive controls
-    saydi_map.json       D1 semantic surface map
-    selectors.json       ranked locator candidates
+    dom_inventory.json
+    saydi_map.json
+    selectors.json
+    voice_catalog.json
+    settings_catalog.json
 ```
 
 Runtime artifacts are local and must not be committed.
 
+## D2 safe-interaction policy
+
+The D2 catalog code contains an explicit whitelist. Current allowed trigger labels are only:
+
+- voice selector: `Tự động`;
+- language selector: `VI`;
+- pause selector: `Đang tắt`;
+- settings tab: `Cài đặt` (reserved/observational).
+
+`Tạo giọng nói`, `Xoá tất cả`, login, download, clone, and other mutating or production actions are not in the D2 trigger whitelist.
+
+If a current provider label changes, the catalog records `TRIGGER_NOT_FOUND` instead of guessing or clicking an arbitrary control.
+
 ## Privacy boundary
 
-The runner does not intentionally persist:
+Structured discovery evidence does not intentionally persist:
 
-- passwords or input/editor values;
-- raw cookies;
-- localStorage/sessionStorage;
-- authorization headers;
+- script/editor values;
+- passwords;
+- text/email/password input values;
+- cookies, localStorage, sessionStorage, authorization headers;
 - raw HTML;
 - URL query strings/fragments;
-- obvious bearer/JWT/email values in structured evidence/log messages.
+- obvious bearer/JWT/email secrets.
 
-Screenshots can naturally contain whatever is visible on the user's own screen, so they remain local-only.
+Numeric range values that are explicitly identified as setting sliders may be recorded because they are provider settings, not user script content.
 
-The first real V0.1 artifact exposed one privacy bug: a contenteditable editor `div` was treated as ordinary text and its script text entered the DOM inventory. That exact script is not reproduced in Git. V0.2 fixes the root cause and adds a regression test.
-
-## Page states / exit codes
-
-- `TTS_READY` / exit `0`: TTS editor surface recognized and evidence captured.
-- `LOGIN_REQUIRED` / exit `10`: the current page is a login surface rather than a usable TTS editor.
-- `ACCESS_BLOCKED` / exit `20`: CAPTCHA/access challenge detected.
-- `UNKNOWN` / exit `30`: page captured but not recognized.
-- `BROWSER_ERROR` / exit `40`: browser/navigation/discovery failure.
-
-A login button can be visible while the editor is still usable anonymously. That is recorded as `TTS_READY` + `ANONYMOUS`, not `LOGIN_REQUIRED`.
-
-## Locator policy
-
-D1 ranks locator candidates in this order where available:
-
-1. stable provider test IDs;
-2. role + accessible name;
-3. aria-label / placeholder;
-4. narrow CSS fallback;
-5. exact visible text fallback.
-
-Selectors are never derived from the user's script/editor text.
+Screenshots remain local-only and can naturally show whatever is visible on the user's own screen.
 
 ## Discovery roadmap
 
-- D0: runner foundation — **V0.1 complete / field-verified for opening and capture**.
-- D1: surface/control map — **V0.2 in verification**.
-- D2: voice/settings catalog.
+- D0: runner foundation — complete.
+- D1: surface/control map — complete and field-accepted.
+- D2: voice/settings catalog — **V0.3 code/CI phase**.
 - D3: generation lifecycle.
 - D4: download behavior.
 - D5: limits/error states.
-- D6: freeze sanitized discovery artifacts for the production Voice Engine.
+- D6: freeze sanitized discovery contracts for the production Voice Engine.
