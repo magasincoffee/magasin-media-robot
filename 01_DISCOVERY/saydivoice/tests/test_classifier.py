@@ -1,4 +1,4 @@
-from saydivoice_discovery.classifier import classify_page_state
+from saydivoice_discovery.classifier import classify_auth_state, classify_page_state
 from saydivoice_discovery.models import PageSignals
 
 
@@ -39,3 +39,13 @@ def test_blocked_has_priority():
 
 def test_unknown_when_evidence_is_insufficient():
     assert classify_page_state(signals(visible_text="SaydiVoice Studio")) == "UNKNOWN"
+
+
+def test_auth_state_anonymous_when_ready_and_login_visible():
+    s = signals(has_contenteditable=True, button_texts=("Tạo giọng nói", "Đăng nhập"))
+    assert classify_auth_state(s, "TTS_READY") == "ANONYMOUS"
+
+
+def test_auth_state_does_not_claim_identity_when_login_hidden():
+    s = signals(has_contenteditable=True, button_texts=("Tạo giọng nói",))
+    assert classify_auth_state(s, "TTS_READY") == "AUTHENTICATED_OR_HIDDEN"
