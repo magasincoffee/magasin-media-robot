@@ -7,8 +7,8 @@ from typing import Any, Iterable
 from .models import InteractiveElement, PageSignals
 from .runtime import sanitize_text, sanitize_url
 
-MAX_VISIBLE_TEXT = 4_000
-MAX_ELEMENTS = 300
+MAX_VISIBLE_TEXT = 6_000
+MAX_ELEMENTS = 400
 
 
 def make_page_signals(raw: dict[str, Any]) -> PageSignals:
@@ -19,8 +19,8 @@ def make_page_signals(raw: dict[str, Any]) -> PageSignals:
         has_password_input=bool(raw.get("has_password_input", False)),
         has_textarea=bool(raw.get("has_textarea", False)),
         has_contenteditable=bool(raw.get("has_contenteditable", False)),
-        button_texts=tuple(sanitize_text(str(x), 160) or "" for x in raw.get("button_texts", [])[:80]),
-        link_texts=tuple(sanitize_text(str(x), 160) or "" for x in raw.get("link_texts", [])[:80]),
+        button_texts=tuple(sanitize_text(str(x), 160) or "" for x in raw.get("button_texts", [])[:100]),
+        link_texts=tuple(sanitize_text(str(x), 160) or "" for x in raw.get("link_texts", [])[:100]),
     )
 
 
@@ -32,7 +32,8 @@ def sanitize_inventory(raw_elements: Iterable[dict[str, Any]]) -> list[Interacti
         input_type = sanitize_text(item.get("type"), 40)
         tag = sanitize_text(item.get("tag"), 40) or "unknown"
         role = sanitize_text(item.get("role"), 80)
-        is_editor = tag in {"input", "textarea", "select"} or role == "textbox"
+        contenteditable = bool(item.get("contenteditable", False))
+        is_editor = tag in {"input", "textarea", "select"} or role == "textbox" or contenteditable
         safe_text = None if is_editor else sanitize_text(item.get("text"), 180)
         clean.append(
             InteractiveElement(
@@ -45,6 +46,13 @@ def sanitize_inventory(raw_elements: Iterable[dict[str, Any]]) -> list[Interacti
                 placeholder=sanitize_text(item.get("placeholder"), 160),
                 aria_label=sanitize_text(item.get("aria_label"), 160),
                 test_id=sanitize_text(item.get("test_id"), 120),
+                contenteditable=contenteditable,
+                disabled=bool(item.get("disabled", False)),
+                aria_selected=sanitize_text(item.get("aria_selected"), 16),
+                aria_checked=sanitize_text(item.get("aria_checked"), 16),
+                aria_valuenow=sanitize_text(item.get("aria_valuenow"), 40),
+                aria_valuemin=sanitize_text(item.get("aria_valuemin"), 40),
+                aria_valuemax=sanitize_text(item.get("aria_valuemax"), 40),
             )
         )
     return clean
@@ -52,8 +60,8 @@ def sanitize_inventory(raw_elements: Iterable[dict[str, Any]]) -> list[Interacti
 
 def write_dom_inventory(path: Path, elements: list[InteractiveElement]) -> None:
     payload = {
-        "schema_version": "1.0",
-        "privacy_note": "No input values, cookies, localStorage, sessionStorage, authorization headers, or raw HTML are captured.",
+        "schema_version": "1.1",
+        "privacy_note": "No input/editor values, cookies, localStorage, sessionStorage, authorization headers, or raw HTML are captured.",
         "elements": [element.__dict__ for element in elements],
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
