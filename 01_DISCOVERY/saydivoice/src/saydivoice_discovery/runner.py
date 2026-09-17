@@ -7,13 +7,14 @@ from datetime import datetime, timezone
 from .browser import open_and_probe, probe_page
 from .catalog import capture_d2_catalog, write_catalog_outputs
 from .classifier import classify_auth_state, classify_page_state
+from .enhanced_catalog import capture_d2_enhancements
 from .evidence import make_page_signals, sanitize_inventory, write_dom_inventory
 from .logging_utils import configure_logging
 from .models import DiscoveryConfig, DiscoveryReport, RunStatus, RuntimePaths
 from .runtime import build_runtime_paths, sanitize_error_message, sanitize_url
 from .surface import write_surface_outputs
 
-RUNNER_VERSION = "0.3.1"
+RUNNER_VERSION = "0.3.2"
 
 
 def _now() -> str:
@@ -55,7 +56,7 @@ def run_discovery(
     inventory_path = run_dir / "dom_inventory.json"
     report_path = runtime.reports_dir / f"discovery_report_{run_id}.json"
 
-    logger.info("Starting non-destructive SaydiVoice discovery V0.3.1", extra={"event": "run_started"})
+    logger.info("Starting non-destructive SaydiVoice discovery V0.3.2", extra={"event": "run_started"})
     browser_bundle = None
     try:
         raw_probe, browser_bundle, page = open_and_probe(cfg, runtime)
@@ -100,6 +101,27 @@ def run_discovery(
         if state == "TTS_READY":
             try:
                 catalog_raw = capture_d2_catalog(page, evidence_dir=run_dir)
+                try:
+                    enhancements = capture_d2_enhancements(
+                        page,
+                        voice_current=catalog_raw.get("voice_current"),
+                        language_current=catalog_raw.get("language_current"),
+                    )
+                    if enhancements.get("voice_options"):
+                        catalog_raw["voice_options"] = enhancements["voice_options"]
+                    if enhancements.get("language_options"):
+                        catalog_raw["language_options"] = enhancements["language_options"]
+                    if enhancements.get("enhancement_warnings"):
+                        catalog_raw.setdefault("warnings", []).extend(enhancements["enhancement_warnings"])
+                    notes.append("D2.1 custom-surface pass captured privacy-safe visible leaf labels for provider controls that expose no conventional option roles.")
+                except Exception as enhanced_exc:
+                    safe_enhanced_error = sanitize_error_message(f"{type(enhanced_exc).__name__}: {enhanced_exc}")
+                    catalog_raw.setdefault("warnings", []).append(f"Enhanced custom-surface capture incomplete: {safe_enhanced_error}")
+                    logger.warning(
+                        f"D2 enhanced surface capture incomplete: {safe_enhanced_error}",
+                        extra={"event": "d2_enhanced_incomplete"},
+                    )
+
                 voice_catalog_path, settings_catalog_path = write_catalog_outputs(run_dir, catalog_raw)
                 notes.append(
                     "D2 opened voice/language/pause surfaces only for observation, attempted to restore each surface to its original state, and captured current settings evidence plus per-surface screenshots."
