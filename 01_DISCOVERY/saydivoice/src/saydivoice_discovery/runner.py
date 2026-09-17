@@ -13,7 +13,7 @@ from .models import DiscoveryConfig, DiscoveryReport, RunStatus, RuntimePaths
 from .runtime import build_runtime_paths, sanitize_error_message, sanitize_url
 from .surface import write_surface_outputs
 
-RUNNER_VERSION = "0.3.0"
+RUNNER_VERSION = "0.3.1"
 
 
 def _now() -> str:
@@ -55,7 +55,7 @@ def run_discovery(
     inventory_path = run_dir / "dom_inventory.json"
     report_path = runtime.reports_dir / f"discovery_report_{run_id}.json"
 
-    logger.info("Starting non-destructive SaydiVoice discovery V0.3", extra={"event": "run_started"})
+    logger.info("Starting non-destructive SaydiVoice discovery V0.3.1", extra={"event": "run_started"})
     browser_bundle = None
     try:
         raw_probe, browser_bundle, page = open_and_probe(cfg, runtime)
@@ -99,10 +99,10 @@ def run_discovery(
 
         if state == "TTS_READY":
             try:
-                catalog_raw = capture_d2_catalog(page)
+                catalog_raw = capture_d2_catalog(page, evidence_dir=run_dir)
                 voice_catalog_path, settings_catalog_path = write_catalog_outputs(run_dir, catalog_raw)
                 notes.append(
-                    "D2 opened voice/language/pause selectors only for observation, closed them without changing selections, and captured current settings evidence."
+                    "D2 opened voice/language/pause surfaces only for observation, attempted to restore each surface to its original state, and captured current settings evidence plus per-surface screenshots."
                 )
                 logger.info(
                     "D2 voice/settings catalogs captured without Generate/download actions",
