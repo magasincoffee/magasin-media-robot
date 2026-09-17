@@ -1,51 +1,37 @@
 # Next Step
 
-## Immediate next step — Live-verify D2 / SaydiVoice Discovery V0.3
+## Immediate next step — Final D2 field gate with V0.3.2
 
-D1/V0.2 is merged. D2/V0.3 code and Windows CI are now complete on branch `feat/saydivoice-d2-voice-settings-catalog`.
+Real V0.3.1 run `20260917_142133_bd48aed7` verified that pause restoration and visible setting-value capture now work, but two custom-provider surfaces are still under-captured in structured JSON:
 
-### What V0.3 does
+- the language dropdown visibly shows language labels, while `language.options` is empty;
+- the voice modal visibly shows one automatic voice card, while the catalog counts navigation tabs as voice options.
 
-- retains all D1 privacy/surface-map behavior;
-- opens the voice selector, language selector, and pause selector for observation only;
-- captures visible option text/roles/selected state when the provider exposes them;
-- closes observed menus without intentionally changing selections;
-- probes Stability / Expression / Speed / Pause / Output format surfaces for real current values, ranges, ARIA metadata, and locator hints;
-- writes `voice_catalog.json` and `settings_catalog.json`;
-- never clicks Generate and never downloads audio;
-- falls back gracefully to D1 evidence if a provider-specific D2 probe fails.
+V0.3.2 adds a second privacy-safe visible-leaf delta pass specifically for custom SaydiVoice surfaces. It excludes input/contenteditable text, filters modal navigation/generic controls, captures visible language labels, and recognizes the current automatic voice card without changing a selection.
 
-### Operator sequence
+## Operator sequence
 
-1. Use the packaged `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.zip` on the target Windows laptop.
+1. Use `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2.zip` on the target Windows laptop.
 2. Extract to a new folder.
-3. Run `CAI_DAT_VA_CHAY.bat` once.
-4. Do not click or change anything in the SaydiVoice window while discovery is running.
-5. Let the robot open/close observation surfaces and finish by itself.
-6. Return the newest eight artifacts from one run ID:
-   - `reports\discovery_report_<run-id>.json`
-   - `runs\<run-id>\dom_inventory.json`
-   - `runs\<run-id>\saydi_map.json`
-   - `runs\<run-id>\selectors.json`
-   - `runs\<run-id>\voice_catalog.json`
-   - `runs\<run-id>\settings_catalog.json`
-   - `screenshots\saydivoice_<run-id>.png`
-   - `logs\discovery_<run-id>.jsonl`
-7. Do not send `browser_profile`.
+3. Run `CAI_DAT_VA_CHAY.bat`.
+4. Do not manually change voice, language, pause, sliders, output format, or script while discovery is running.
+5. Do not click `Tạo giọng nói`.
+6. Let the robot finish by itself.
+7. Return the newest same-run artifacts, especially `voice_catalog.json`, `settings_catalog.json`, `d2_voice_surface.png`, `d2_language_surface.png`, and `d2_pause_surface.png`.
+8. Never send `browser_profile`.
 
-### D2 acceptance gate
+## D2 acceptance gate
 
-D2 may be merged when:
+Merge PR #7 when:
 
-- run remains `TTS_READY` / `CAPTURED`;
-- `voice_catalog.json` and `settings_catalog.json` are generated, or an explicit non-blocking warning accurately explains a provider surface that could not be cataloged;
-- voice/language/pause observations do not change a selection;
-- stability/expression/speed evidence reflects real DOM/current UI rather than guessed selectors;
-- output format remains unchanged;
-- no Generate/download action occurs;
-- no script/editor content appears in structured outputs;
-- no new blocking defect is found.
+- voice catalog identifies `Tự động — Hệ thống tự chọn giọng` or equivalent semantic automatic-card evidence rather than modal navigation tabs;
+- language catalog includes visible choices such as English/Tiếng Việt instead of an empty list;
+- pause reports restored/closed after observation;
+- display values remain `2.8`, `Ổn định`, `1.00×` for the current page state;
+- MP3 remains selected and no provider setting changed;
+- no Generate/download occurs;
+- structured evidence contains no script/editor text.
 
 ## After D2 — D3 Generation Lifecycle
 
-Only after D2 field acceptance: characterize the real Generate lifecycle using a minimal controlled text sample, including start/processing/success/error states. Do not begin download automation until D4.
+After D2 field acceptance and merge: use a minimal controlled text sample to characterize Generate start, processing, completion, error, quota behavior, result-player controls, and lifecycle timing. D3 may trigger one real generation only after the operator package explicitly marks that action as controlled. Audio download remains D4.
