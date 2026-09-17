@@ -31,7 +31,7 @@ Scope: stop repeated manual ZIP round-trips, isolate the real D3 blocker, and pr
 - V0.4.3 pytest: **53 tests PASS**.
 - New `profile_setup.py` and `ci_gate.py` compile in the V0.4.3 source tree: PASS.
 - New live workflow is intentionally non-destructive until authenticated-session reuse is verified.
-- Exact PR #9 Windows CI: PENDING GitHub Actions result.
+- PR #9 exact Windows Discovery Tests run `35210394785`: **PASS**.
 - Live provider check: PENDING one-time self-hosted runner + profile bootstrap.
 
 ### GitHub live-profile design verification
@@ -42,6 +42,8 @@ Scope: stop repeated manual ZIP round-trips, isolate the real D3 blocker, and pr
 - Workflow uploads latest evidence/report/log only; it does not stage `browser_profile`.
 - First workflow does not pass any Generate flag and therefore cannot consume provider generation quota through the discovery runner.
 - Acceptance gate requires `TTS_READY` and `AUTHENTICATED_OR_HIDDEN` before D3 enablement.
+- Initial workflow validation run `35210309047` failed before job creation because top-level concurrency incorrectly referenced the unavailable `runner` context; fixed in `BUG-20260917-010` by switching to `${{ github.repository }}`.
+- Subsequent PR CI validates the branch source successfully.
 
 ## 2026-09-17 — D2 V0.3.1 field review + V0.3.2 corrective build
 
