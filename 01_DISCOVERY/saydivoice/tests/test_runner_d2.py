@@ -40,21 +40,27 @@ def test_runner_writes_d2_catalog_paths_when_catalog_capture_succeeds(monkeypatc
         "format_options": [{"text": "MP3", "role": "tab", "aria_selected": "true"}],
         "voice_current": "Tự động",
         "voice_opened": True,
+        "voice_closed": True,
         "voice_options": [{"text": "Voice A", "role": "option"}],
         "language_current": "VI",
         "language_opened": True,
-        "language_options": [{"text": "VI", "role": "option"}],
+        "language_closed": True,
+        "language_options": [{"text": "Tiếng Việt", "role": "option"}],
+        "pause_current": "Đang tắt",
+        "pause_opened": True,
+        "pause_closed": True,
         "pause_options": [],
+        "pause_panel": {},
         "warnings": [],
     }
 
     monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), (FakePlaywright(), FakeContext()), FakePage()))
-    monkeypatch.setattr(runner, "capture_d2_catalog", lambda page: fake_raw_catalog)
+    monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: fake_raw_catalog)
 
     report = runner.run_discovery(DiscoveryConfig(), build_runtime_paths(tmp_path))
 
     assert report.run_status == "CAPTURED"
-    assert report.runner_version == "0.3.0"
+    assert report.runner_version == "0.3.1"
     assert report.voice_catalog_path is not None
     assert report.settings_catalog_path is not None
     assert Path(report.voice_catalog_path).exists()
@@ -75,7 +81,7 @@ def test_runner_keeps_d1_capture_when_d2_catalog_probe_fails(monkeypatch, tmp_pa
         def stop(self): pass
 
     monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), (FakePlaywright(), FakeContext()), FakePage()))
-    monkeypatch.setattr(runner, "capture_d2_catalog", lambda page: (_ for _ in ()).throw(RuntimeError("provider changed")))
+    monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: (_ for _ in ()).throw(RuntimeError("provider changed")))
 
     report = runner.run_discovery(DiscoveryConfig(), build_runtime_paths(tmp_path))
 
