@@ -24,10 +24,19 @@ python -m pip install -r requirements-dev.txt
 if errorlevel 1 goto :fail
 python -m pip install -e .
 if errorlevel 1 goto :fail
-python -m playwright install chromium
-if errorlevel 1 goto :fail
 
-python -m saydivoice_discovery.profile_setup
+set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+if not exist "%CHROME%" set "CHROME=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+if not exist "%CHROME%" (
+  echo ERROR - Khong tim thay Google Chrome da cai tren Windows.
+  goto :fail
+)
+
+echo Dung Google Chrome that de tao/xac minh profile:
+echo %CHROME%
+echo.
+
+python -m saydivoice_discovery.profile_setup --chromium-executable "%CHROME%"
 set EXITCODE=%ERRORLEVEL%
 if not "%EXITCODE%"=="0" goto :fail_code
 
