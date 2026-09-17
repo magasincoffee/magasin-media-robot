@@ -4,49 +4,50 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 is merged to `main`. D2 Voice/Settings Catalog V0.3 completed its first real Windows/SaydiVoice run, exposed provider-specific catalog gaps, and has been revised as V0.3.1 on branch `feat/saydivoice-d2-voice-settings-catalog`. One V0.3.1 field rerun is now required before D2 merge.**
+**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 is merged to `main`. D2 Voice/Settings Catalog has now completed real field runs on V0.3 and V0.3.1. V0.3.1 fixed pause restoration and visible setting-value capture, but still under-captured custom voice/language option text. V0.3.2 is implemented and awaiting one final D2 field rerun before PR #7 can merge.**
 
 ## Completed
 
 - D0 / Discovery Runner V0.1 completed and merged.
 - D1 / Surface Map V0.2 completed, field-verified, and merged through PR #6 as `79bb057f4adc7ba010645bc63461564fa037e7a8`.
 - Real V0.2 field run `20260917_110310_7bf1810a` confirmed `TTS_READY` / `ANONYMOUS` / `CAPTURED`, 38 interactive elements, correct D1 outputs, and the V0.1 contenteditable privacy leak fixed on the real provider page.
-- D2 / V0.3 implementation is on branch `feat/saydivoice-d2-voice-settings-catalog` and PR #7.
-- Real D2 V0.3 field run `20260917_135249_9534c523` completed cleanly at the runner level: `0.3.0`, schema `1.2`, `TTS_READY` / `ANONYMOUS` / `CAPTURED`, no runtime exception, 38 captured interactive elements.
-- V0.3 correctly preserved D1 outputs and output-format evidence (WAV/MP3/FLAC/OGG with MP3 selected) and did not invoke Generate/download actions.
-- V0.3 field review found `BUG-20260917-008`: custom provider surfaces were under-captured. Voice options collapsed to generic `Xoá`, language options were empty, custom slider values were visible but not represented as stable slider nodes, and the pause panel remained expanded in the final screenshot.
-- V0.3.1 fixes are implemented on the same branch:
-  - privacy-safe before/after visible-control delta for custom selector surfaces;
-  - generic Clear/Delete/+/- filtering;
-  - visible display-value parsing for stability/expression/speed/pause when ARIA/range values are absent;
-  - pause-panel structure capture without changing values;
-  - Escape + opener-toggle restoration logic;
-  - per-surface screenshots for voice/language/pause;
-  - explicit `closed_after_observation` and warnings;
-  - runner/version update to `0.3.1`.
-- Automated V0.3.1 Windows Actions run `35192735044`: PASS.
+- D2 is on branch `feat/saydivoice-d2-voice-settings-catalog`, PR #7.
+- Real V0.3 run `20260917_135249_9534c523` exposed `BUG-20260917-008` around custom provider surfaces.
+- Real V0.3.1 run `20260917_142133_bd48aed7` field evidence reviewed:
+  - script phrase visible in the browser screenshot is absent from uploaded DOM/map/selectors/settings/voice JSON evidence;
+  - stability display value captured as `2.8`;
+  - expression captured as `Ổn định`;
+  - speed captured as `1.00×`;
+  - output formats captured as WAV/MP3/FLAC/OGG with MP3 selected;
+  - pause panel structure captured: checkbox off, period `0.45s`, comma `0.25s`, semicolon `0.3s`, newline `0.6s`, default button present;
+  - pause surface reports `closed_after_observation: true`;
+  - language surface visibly contains English, Tiếng Việt, 中文, 日本語, 한국어, Deutsch, Español, Français, but `language.options` remained empty;
+  - voice surface visibly contains one `Tự động / Hệ thống tự chọn giọng` card, but catalog incorrectly promoted modal navigation tabs as four voice options.
+- V0.3.2 implemented to address the remaining D2 gap:
+  - second privacy-safe visible-leaf delta pass for custom surfaces;
+  - editable/input content excluded at the browser probe boundary;
+  - language labels extracted from newly visible leaf nodes;
+  - voice modal navigation/generic controls filtered;
+  - current automatic voice card recognized as `Tự động — Hệ thống tự chọn giọng` when exposed;
+  - enhanced results override weak V0.3.1 option results only when meaningful data is found;
+  - runner bumped to `0.3.2` and regression coverage added.
 
 ## Current live gate
 
-Run the V0.3.1 operator build once on the target Windows laptop. Return these outputs from the same run ID:
+Run V0.3.2 once on the target Windows laptop. D2 can merge if:
 
-- `reports\discovery_report_<run-id>.json`
-- `runs\<run-id>\dom_inventory.json`
-- `runs\<run-id>\saydi_map.json`
-- `runs\<run-id>\selectors.json`
-- `runs\<run-id>\voice_catalog.json`
-- `runs\<run-id>\settings_catalog.json`
-- `runs\<run-id>\d2_voice_surface.png`
-- `runs\<run-id>\d2_language_surface.png`
-- `runs\<run-id>\d2_pause_surface.png`
-- `screenshots\saydivoice_<run-id>.png`
-- `logs\discovery_<run-id>.jsonl`
-
-Acceptance requires: no setting selection/value change; no Generate/download; script/editor values absent from structured evidence; meaningful voice/language surface evidence or explicit warnings; visible display values captured; pause panel restored when practical; D1 evidence remains valid.
+- voice catalog identifies the automatic voice card instead of modal navigation tabs;
+- language catalog contains the visible language choices instead of an empty list;
+- pause remains restored after observation;
+- stability/expression/speed/output-format evidence remains correct;
+- no setting is changed;
+- no Generate/download action occurs;
+- no script/editor value appears in structured outputs;
+- D1 evidence remains valid.
 
 ## Not yet implemented
 
-- D2 V0.3.1 real-provider verification and merge.
+- D2 V0.3.2 field verification and merge.
 - D3 generation lifecycle observation/automation.
 - D4 audio download discovery.
 - D5 controlled limits/error characterization.
@@ -60,4 +61,4 @@ GitHub metadata has reported the repository as public. Never commit passwords, c
 
 ## Current active objective
 
-Finish V0.3.1 packaging/CI, perform one real Windows/SaydiVoice rerun, review the eleven outputs above, then either verify `BUG-20260917-008` and merge PR #7 or fix any remaining provider-specific defect before starting D3.
+Finish V0.3.2 Windows CI/package, perform one final D2 field rerun, merge PR #7 if accepted, then begin D3 Generation Lifecycle.
