@@ -45,10 +45,11 @@ def current_voice(page: Any) -> str | None:
 
 def selected_format(page: Any) -> str | None:
     vals=page.evaluate(r"""
-() => Array.from(document.querySelectorAll('.fmt-tab,[role="tab"]')).map(el=>({t:(el.innerText||el.textContent||'').trim(),c:String(el.className||''),s:el.getAttribute('aria-selected')}))
+() => Array.from(document.querySelectorAll('.fmt-tab')).map(el=>({t:(el.innerText||el.textContent||'').trim(),c:String(el.className||''),s:el.getAttribute('aria-selected')}))
 """) or []
     for x in vals:
-        if x.get('s')=='true' or 'active' in x.get('c','').split():return x.get('t')
+        if x.get('s')=='true' or 'active' in x.get('c','').split():
+            return x.get('t')
     return None
 
 
@@ -72,9 +73,15 @@ def section_text(page: Any, label: str) -> str:
 
 
 def quota_text(page: Any) -> str | None:
-    body=clean(page.locator('body').inner_text())
-    m=re.search(r"Còn\s+\d+\s+lượt\s+tạo\s+miễn\s+phí[^\n]*",body,re.I)
-    return m.group(0) if m else None
+    body = page.locator('body').inner_text()
+    for pattern in [
+        r"Còn\s+\d+\s+lượt\s+tạo\s+miễn\s+phí[^\r\n]*",
+        r"\d[\d,\.]*\s*/\s*20,?000[^\r\n]*",
+    ]:
+        m = re.search(pattern, body, re.I)
+        if m:
+            return clean(m.group(0))
+    return None
 
 
 def run(page: Any,out_dir: Path)->Path:
@@ -84,8 +91,9 @@ def run(page: Any,out_dir: Path)->Path:
     editor=page.locator('[contenteditable="true"]')
     fmt=selected_format(page)
     sliders=slider_state(page)
+    formats_present=[x for x in ['WAV','MP3','FLAC','OGG'] if page.locator('.fmt-tab').filter(has_text=re.compile(rf'^{re.escape(x)}$')).count()]
     data={
-      'schema_version':'1.0','mode':'D6_AUTHENTICATED_GENERATION_PREFLIGHT','started_at':now(),
+      'schema_version':'1.1','mode':'D6_AUTHENTICATED_GENERATION_PREFLIGHT','started_at':now(),
       'generate_clicked':False,'download_clicked':False,
       'voice':current_voice(page),
       'generate_present':generate.count()>0,
@@ -95,9 +103,10 @@ def run(page: Any,out_dir: Path)->Path:
       'stability_section':section_text(page,'Độ ổn định giọng'),
       'speed_section':section_text(page,'Tốc độ đọc'),
       'format':fmt,
-      'formats_present':[x for x in ['WAV','MP3','FLAC','OGG'] if text_exact(page,x)],
+      'formats_present':formats_present,
       'pause_present':text_exact(page,'Ngắt nghỉ'),
       'quota_text':quota_text(page),
+      'quota_visibility':'VISIBLE' if quota_text(page) else 'NOT_VISIBLE_AUTH_SESSION',
       'button_sample':buttons[:25],
     }
     data['checks']={
@@ -105,9 +114,8 @@ def run(page: Any,out_dir: Path)->Path:
       'generate':bool(data['generate_present'] and data['generate_enabled']),
       'editor':bool(data['editor_present']),
       'sliders':len(sliders)>=2,
-      'format':fmt in {'WAV','MP3','FLAC','OGG'},
+      'format':fmt in {'WAV','MP3','FLAC','OGG'} and len(formats_present)>=4,
       'pause':bool(data['pause_present']),
-      'quota':bool(data['quota_text']),
     }
     data['pass']=all(data['checks'].values())
     data['finished_at']=now()
@@ -126,7 +134,7 @@ def main(argv=None)->int:
         if state!='TTS_READY' or auth!='AUTHENTICATED_OR_HIDDEN':
             print(json.dumps({'gate':'FAIL_SESSION','state':state,'auth':auth},ensure_ascii=False));return 20
         out=run(page,rt.runs_dir/'d6_preflight_latest');d=json.loads(out.read_text(encoding='utf-8'))
-        print(json.dumps({'gate':'PASS' if d['pass'] else 'FAIL_D6','checks':d['checks'],'voice':d['voice'],'format':d['format'],'quota_text':d['quota_text'],'generate_clicked':False,'download_clicked':False,'evidence':str(out)},ensure_ascii=False,indent=2))
+        print(json.dumps({'gate':'PASS' if d['pass'] else 'FAIL_D6','checks':d['checks'],'voice':d['voice'],'format':d['format'],'formats_present':d['formats_present'],'quota_visibility':d['quota_visibility'],'quota_text':d['quota_text'],'generate_clicked':False,'download_clicked':False,'evidence':str(out)},ensure_ascii=False,indent=2))
         return 0 if d['pass'] else 25
     except Exception as exc:
         print(json.dumps({'gate':'FAIL','error':sanitize_error_message(f'{type(exc).__name__}: {exc}')},ensure_ascii=False));return 1
