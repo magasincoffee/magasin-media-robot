@@ -47,7 +47,7 @@ def test_runner_writes_d2_catalog_paths_when_catalog_capture_succeeds(monkeypatc
     monkeypatch.setattr(runner, "capture_d2_enhancements", lambda page, voice_current=None, language_current=None: {})
     report = runner.run_discovery(DiscoveryConfig(), build_runtime_paths(tmp_path))
     assert report.run_status == "CAPTURED"
-    assert report.runner_version == "0.4.1"
+    assert report.runner_version == "0.4.3"
     assert report.voice_catalog_path is not None
     assert report.settings_catalog_path is not None
     assert report.generation_lifecycle_path is None
