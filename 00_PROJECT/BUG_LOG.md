@@ -4,7 +4,29 @@ Use one entry per significant reproducible defect. Keep unresolved defects visib
 
 ## Open
 
-None in V0.1 code. The real SaydiVoice browser smoke test is still pending on the target Windows laptop because the implementation sandbox blocks Chromium navigation by administrator policy; this is tracked as a test-environment limitation, not a product defect.
+### BUG-20260917-006 — Contenteditable editor text leaked into DOM inventory
+
+Status: OPEN
+
+Detected in: first real Windows field artifact set, run `20260917_011521_dcb358a9`.
+
+Symptom: `dom_inventory.json` element index 17 persisted the full text currently visible in the SaydiVoice editor even though the discovery privacy contract says editor/input values are not intentionally persisted.
+
+Expected: Text entered or displayed inside editable TTS script surfaces must never be written to structured discovery evidence.
+
+Reproduction: Open the SaydiVoice TTS editor with text present, run V0.1, then inspect `runs/<run-id>/dom_inventory.json`; the editable `div` text is recorded because the element is contenteditable but has no `role="textbox"`.
+
+Evidence/log: Field artifact `dom_inventory.json` from run `20260917_011521_dcb358a9` contains the editor sentence at element index 17.
+
+Root cause: The browser probe did not persist a `contenteditable` flag per element, and `sanitize_inventory()` only suppressed text for `input`, `textarea`, `select`, or `role="textbox"`. A contenteditable `div` therefore passed through as ordinary visible text.
+
+Fix: Pending on D1 branch. Add contenteditable metadata to the probe/model and suppress text for every editable element independent of tag/role.
+
+Tests added/run: Pending.
+
+Regression result: Pending.
+
+Commit/PR: `feat/saydivoice-d1-surface-map` / pending PR.
 
 ## Resolved
 
