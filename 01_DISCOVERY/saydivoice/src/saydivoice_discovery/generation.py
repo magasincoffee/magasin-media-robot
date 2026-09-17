@@ -19,6 +19,7 @@ GENERATION_STATE_SCRIPT = r"""
   const textOf = (el) => (el?.innerText || el?.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 220);
   const controls = Array.from(document.querySelectorAll('button, a, [role="button"]')).filter(visible);
   const generate = controls.find(el => textOf(el) === 'Tạo giọng nói') || null;
+  const cancelControls = controls.map(textOf).filter(t => /^(hủy|huỷ|cancel)$/i.test(t));
   const live = Array.from(document.querySelectorAll('[role="alert"], [aria-live], [data-sonner-toast], .toast, .Toastify__toast'))
     .filter(visible)
     .map(textOf)
@@ -33,6 +34,7 @@ GENERATION_STATE_SCRIPT = r"""
       disabled: generate.disabled === true || generate.getAttribute('aria-disabled') === 'true',
       aria_busy: generate.getAttribute('aria-busy'),
     } : null,
+    cancel_controls: [...new Set(cancelControls)],
     audio_count: document.querySelectorAll('audio').length,
     quota_text: quotaMatch ? quotaMatch[0] : null,
     alerts: [...new Set(live)],
@@ -58,6 +60,7 @@ def _snapshot(page: Any) -> dict[str, Any]:
     return {
         "at": _now(),
         "generate": raw.get("generate"),
+        "cancel_controls": list(raw.get("cancel_controls") or []),
         "audio_count": int(raw.get("audio_count") or 0),
         "quota_text": raw.get("quota_text"),
         "alerts": list(raw.get("alerts") or []),
@@ -81,9 +84,12 @@ def analyze_generation_trace(trace: list[dict[str, Any]], baseline_alerts: list[
             if alert not in baseline and alert not in new_alerts:
                 new_alerts.append(alert)
 
+    first_had_generate = trace[0].get("generate") is not None
     processing = any(
         bool((snap.get("generate") or {}).get("disabled"))
         or str((snap.get("generate") or {}).get("aria_busy") or "").lower() == "true"
+        or bool(snap.get("cancel_controls"))
+        or (first_had_generate and snap.get("generate") is None)
         for snap in trace[1:]
     )
     error_terms = ("lỗi", "không tải được", "không thể", "thất bại", "failed", "error", "try again", "tải lại")
@@ -119,6 +125,66 @@ def analyze_generation_trace(trace: list[dict[str, Any]], baseline_alerts: list[
     }
 
 
+def should_retry_after_reload(analysis: dict[str, Any]) -> bool:
+    if analysis.get("terminal_state") != "ERROR":
+        return False
+    text = " ".join(str(x) for x in analysis.get("error_alerts") or []).lower()
+    return "tải lại trang" in text or "reload" in text
+
+
+def _settle_page(page: Any) -> None:
+    try:
+        page.wait_for_load_state("networkidle", timeout=10_000)
+    except Exception:
+        pass
+    page.wait_for_timeout(1_500)
+
+
+def _run_attempt(
+    page: Any,
+    *,
+    evidence_dir: Path,
+    sample_text: str,
+    timeout_ms: int,
+    poll_ms: int,
+    attempt_no: int,
+) -> dict[str, Any]:
+    editor = page.locator('[contenteditable="true"]').first
+    generate = page.get_by_role("button", name="Tạo giọng nói", exact=True).first
+    if editor.count() < 1 or generate.count() < 1:
+        raise RuntimeError("D3 requires a visible contenteditable editor and Generate button")
+
+    before = _snapshot(page)
+    trace = [before]
+    page.screenshot(path=str(evidence_dir / f"d3_attempt{attempt_no}_before.png"), full_page=True)
+    if attempt_no == 1:
+        page.screenshot(path=str(evidence_dir / "d3_before_generate.png"), full_page=True)
+
+    editor.fill(sample_text)
+    page.wait_for_timeout(500)
+    generate.click(timeout=5_000)
+
+    deadline = max(2_000, timeout_ms)
+    elapsed = 0
+    last_fp = None
+    while elapsed <= deadline:
+        snap = _snapshot(page)
+        fp = _fingerprint(snap)
+        if fp != last_fp:
+            trace.append(snap)
+            last_fp = fp
+        analysis = analyze_generation_trace(trace, baseline_alerts=before.get("alerts") or [])
+        if analysis["terminal_state"] in {"SUCCESS_SIGNAL", "ERROR"}:
+            break
+        wait_ms = max(200, poll_ms)
+        page.wait_for_timeout(wait_ms)
+        elapsed += wait_ms
+
+    page.screenshot(path=str(evidence_dir / f"d3_attempt{attempt_no}_after.png"), full_page=True)
+    analysis = analyze_generation_trace(trace, baseline_alerts=before.get("alerts") or [])
+    return {"attempt": attempt_no, "trace": trace, "analysis": analysis}
+
+
 def run_generation_lifecycle(
     page: Any,
     *,
@@ -126,59 +192,63 @@ def run_generation_lifecycle(
     sample_text: str = DEFAULT_D3_SAMPLE,
     timeout_ms: int = 60_000,
     poll_ms: int = 500,
+    retry_after_reload_error: bool = False,
 ) -> Path:
-    """Run one explicitly authorized generation in a disposable same-session tab.
+    """Run an explicitly authorized controlled generation probe in a disposable same-session tab.
 
-    This function intentionally does not download audio. It records only structural lifecycle
-    evidence and the fixed sample's length/hash, never editor text from the provider page.
+    By default there is one generation attempt. When retry_after_reload_error is explicitly
+    enabled, exactly one additional attempt is permitted only after the provider returns a
+    reload-page error. No download control is clicked.
     """
     evidence_dir.mkdir(parents=True, exist_ok=True)
     test_page = page.context.new_page()
-    trace: list[dict[str, Any]] = []
+    attempts: list[dict[str, Any]] = []
+    reload_retry_used = False
     try:
         test_page.goto(page.url, wait_until="domcontentloaded", timeout=45_000)
-        test_page.wait_for_timeout(1_500)
+        _settle_page(test_page)
 
-        editor = test_page.locator('[contenteditable="true"]').first
-        generate = test_page.get_by_role("button", name="Tạo giọng nói", exact=True).first
-        if editor.count() < 1 or generate.count() < 1:
-            raise RuntimeError("D3 requires a visible contenteditable editor and Generate button")
+        first = _run_attempt(
+            test_page,
+            evidence_dir=evidence_dir,
+            sample_text=sample_text,
+            timeout_ms=timeout_ms,
+            poll_ms=poll_ms,
+            attempt_no=1,
+        )
+        attempts.append(first)
 
-        before = _snapshot(test_page)
-        trace.append(before)
-        test_page.screenshot(path=str(evidence_dir / "d3_before_generate.png"), full_page=True)
-
-        editor.fill(sample_text)
-        test_page.wait_for_timeout(300)
-        generate.click(timeout=5_000)
-
-        deadline = max(2_000, timeout_ms)
-        elapsed = 0
-        last_fp = None
-        while elapsed <= deadline:
-            snap = _snapshot(test_page)
-            fp = _fingerprint(snap)
-            if fp != last_fp:
-                trace.append(snap)
-                last_fp = fp
-            analysis = analyze_generation_trace(trace, baseline_alerts=before.get("alerts") or [])
-            if analysis["terminal_state"] in {"SUCCESS_SIGNAL", "ERROR"}:
-                break
-            test_page.wait_for_timeout(max(200, poll_ms))
-            elapsed += max(200, poll_ms)
+        if retry_after_reload_error and should_retry_after_reload(first["analysis"]):
+            reload_retry_used = True
+            test_page.reload(wait_until="domcontentloaded", timeout=45_000)
+            _settle_page(test_page)
+            second = _run_attempt(
+                test_page,
+                evidence_dir=evidence_dir,
+                sample_text=sample_text,
+                timeout_ms=timeout_ms,
+                poll_ms=poll_ms,
+                attempt_no=2,
+            )
+            attempts.append(second)
 
         test_page.screenshot(path=str(evidence_dir / "d3_after_generate.png"), full_page=True)
-        analysis = analyze_generation_trace(trace, baseline_alerts=before.get("alerts") or [])
+        final = attempts[-1]
         payload = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "mode": "D3_CONTROLLED_GENERATION",
             "sample_text_length": len(sample_text),
             "sample_text_sha256": hashlib.sha256(sample_text.encode("utf-8")).hexdigest(),
             "download_clicked": False,
-            "trace": trace,
-            "analysis": analysis,
+            "attempt_count": len(attempts),
+            "reload_retry_authorized": bool(retry_after_reload_error),
+            "reload_retry_used": reload_retry_used,
+            "attempts": attempts,
+            "trace": final["trace"],
+            "analysis": final["analysis"],
             "notes": [
                 "Generation was allowed only by the explicit --allow-generate operator flag.",
+                "A second attempt is allowed only when --retry-after-reload-error is explicitly authorized and the first provider error asks to reload the page.",
                 "The controlled generation runs in a disposable same-session tab and never clicks a download control.",
                 "Editor text is not persisted in generation_lifecycle.json; only fixed-sample length/hash are stored.",
             ],
