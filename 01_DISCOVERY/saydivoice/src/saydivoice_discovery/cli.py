@@ -20,7 +20,7 @@ EXIT_CODES = {
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="MAGASIN SaydiVoice Discovery Runner V0.4.0 (D3 generation lifecycle)."
+        description="MAGASIN SaydiVoice Discovery Runner V0.4.1 (D3 generation lifecycle recovery)."
     )
     parser.add_argument("--headless", action="store_true", help="Run Chromium headless (default is visible).")
     parser.add_argument("--runtime-root", type=Path, help="Override local runtime root for testing/diagnostics.")
@@ -28,8 +28,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--settle-ms", type=int, default=1_500, help="Wait after DOMContentLoaded before probing.")
     parser.add_argument("--chromium-executable", help="Optional Chromium/Chrome executable path for diagnostics.")
     parser.add_argument("--login-wait-seconds", type=int, default=0, help="If login is required in visible mode, keep the browser open and re-check for this many seconds.")
-    parser.add_argument("--allow-generate", action="store_true", help="Explicitly authorize exactly one controlled D3 generation. May consume one provider generation/quota unit.")
-    parser.add_argument("--generation-timeout-ms", type=int, default=60_000, help="Maximum D3 lifecycle observation time after Generate is clicked.")
+    parser.add_argument("--allow-generate", action="store_true", help="Explicitly authorize a controlled D3 generation. May consume provider quota.")
+    parser.add_argument("--retry-after-reload-error", action="store_true", help="If the first provider error explicitly asks to reload the page, authorize exactly one reload + second controlled generation attempt.")
+    parser.add_argument("--generation-timeout-ms", type=int, default=60_000, help="Maximum D3 lifecycle observation time per Generate attempt.")
     parser.add_argument("--generation-poll-ms", type=int, default=500, help="D3 lifecycle polling interval.")
     parser.add_argument("--verbose", action="store_true", help="Enable debug-level local logging.")
     parser.add_argument("--json", action="store_true", help="Print the final report JSON to stdout.")
@@ -47,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         allow_generate=args.allow_generate,
         generation_timeout_ms=max(2_000, args.generation_timeout_ms),
         generation_poll_ms=max(200, args.generation_poll_ms),
+        generation_retry_after_reload_error=bool(args.allow_generate and args.retry_after_reload_error),
     )
     paths = build_runtime_paths(args.runtime_root) if args.runtime_root else build_runtime_paths()
     report = run_discovery(config, paths, verbose=args.verbose)
