@@ -2,6 +2,45 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 007 — D2 V0.3 field review → V0.3.1 corrective build
+
+### Workbox
+
+Started approximately 14:12 ICT under the 28-minute maximum task rule. Stopped before the time limit because a new real-provider operator rerun is now the blocking gate.
+
+### Field evidence reviewed
+
+- Run `20260917_135249_9534c523` completed `TTS_READY` / `ANONYMOUS` / `CAPTURED` with runner `0.3.0` and no runtime error.
+- D1 outputs remained valid and structured evidence stayed privacy-safe.
+- MP3 selection and WAV/MP3/FLAC/OGG enumeration were captured correctly.
+- D2 completeness issue found: voice selector produced only generic `Xoá`; language options were empty; custom slider controls were not semantically exposed; the pause panel remained expanded in the final screenshot.
+- Recorded as `BUG-20260917-008`.
+
+### Corrective work completed
+
+- Advanced D2 to runner/package `0.3.1`.
+- Added privacy-safe before/after visible-control delta capture for custom menus/surfaces.
+- Added generic Clear/Delete/+/- filtering from option semantics.
+- Added visible display-value extraction for stability/expression/speed/pause when provider ARIA/range data are missing.
+- Added pause-panel structure capture without changing values.
+- Added surface-restoration verification: Escape first, then opener toggle when necessary.
+- Added per-surface screenshots: voice, language, pause.
+- Added explicit closed-after-observation/warnings in catalog output.
+- CI now builds a one-click V0.3.1 operator ZIP artifact automatically.
+
+### Verification
+
+- Windows Actions commit `07f43a89297066dbb5641c07dfdac70b0aebae68`: PASS.
+- Packaging workflow run `35193609757`: PASS.
+- Operator artifact generated successfully.
+- Extracted operator ZIP compile: PASS.
+- Extracted operator ZIP pytest: **35 tests PASS**.
+- Version files: `0.3.1` PASS.
+
+### Next gate
+
+Operator runs `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.1.zip` once and returns the report/catalog/D1 files plus the three D2 surface screenshots and final screenshot/log. If `BUG-20260917-008` is verified, merge PR #7 and start D3 Generation Lifecycle.
+
 ## 2026-09-17 — Session 006 — D2 Voice/Settings Catalog V0.3
 
 ### Workbox
