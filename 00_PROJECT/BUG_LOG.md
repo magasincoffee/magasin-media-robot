@@ -4,9 +4,13 @@ Use one entry per significant reproducible defect. Keep unresolved defects visib
 
 ## Open
 
+None currently in D1/V0.2 code. Live V0.2 verification on the target Windows laptop is still required for provider-specific slider/control resolution.
+
+## Resolved
+
 ### BUG-20260917-006 — Contenteditable editor text leaked into DOM inventory
 
-Status: OPEN
+Status: VERIFIED
 
 Detected in: first real Windows field artifact set, run `20260917_011521_dcb358a9`.
 
@@ -16,19 +20,37 @@ Expected: Text entered or displayed inside editable TTS script surfaces must nev
 
 Reproduction: Open the SaydiVoice TTS editor with text present, run V0.1, then inspect `runs/<run-id>/dom_inventory.json`; the editable `div` text is recorded because the element is contenteditable but has no `role="textbox"`.
 
-Evidence/log: Field artifact `dom_inventory.json` from run `20260917_011521_dcb358a9` contains the editor sentence at element index 17.
+Evidence/log: Field artifact `dom_inventory.json` from run `20260917_011521_dcb358a9` contained editor content. The exact user script is intentionally not reproduced in Git.
 
 Root cause: The browser probe did not persist a `contenteditable` flag per element, and `sanitize_inventory()` only suppressed text for `input`, `textarea`, `select`, or `role="textbox"`. A contenteditable `div` therefore passed through as ordinary visible text.
 
-Fix: Pending on D1 branch. Add contenteditable metadata to the probe/model and suppress text for every editable element independent of tag/role.
+Fix: V0.2 records contenteditable state in the raw probe and independently suppresses structured text for every editable element in the serializer. The DOM probe itself also blanks editor text before it leaves the page context.
 
-Tests added/run: Pending.
+Tests added/run: `test_contenteditable_text_is_always_suppressed`, runner privacy regression, local 23-test suite PASS, Windows Actions unit-test step PASS on D1 branch.
 
-Regression result: Pending.
+Regression result: VERIFIED in code/CI; next live V0.2 artifact will confirm field evidence no longer contains editor text.
 
-Commit/PR: `feat/saydivoice-d1-surface-map` / pending PR.
+Commit/PR: branch `feat/saydivoice-d1-surface-map`.
 
-## Resolved
+### BUG-20260917-007 — Login explanatory copy could be misclassified as History control
+
+Status: VERIFIED
+
+Detected in: D1 mapping against the first real V0.1 DOM inventory.
+
+Symptom: The anonymous login button text includes explanatory copy mentioning history, so a loose substring matcher could classify that button as `history_tab`.
+
+Expected: Authentication controls must map to `login`; the actual standalone `Lịch sử` tab must map to `history_tab`.
+
+Root cause: Initial D1 semantic matching used broad substring terms and evaluated history before login semantics.
+
+Fix: Authentication controls are detected first using a login-prefix rule; common controls then use exact normalized labels.
+
+Tests added/run: `test_login_explanatory_copy_is_not_misclassified_as_history`; local D1 suite PASS and Windows Actions unit-test step PASS.
+
+Regression result: VERIFIED.
+
+Commit/PR: branch `feat/saydivoice-d1-surface-map`.
 
 ### BUG-20260917-001 — Editor text could enter DOM inventory
 
