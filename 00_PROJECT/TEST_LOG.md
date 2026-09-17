@@ -1,5 +1,47 @@
 # Test Log
 
+## 2026-09-17 — D2 V0.3.1 field review + V0.3.2 corrective build
+
+Scope: review the operator's V0.3.1 real-provider artifacts, verify which parts of `BUG-20260917-008` are fixed, isolate the remaining custom-surface gap, and build V0.3.2.
+
+### Real V0.3.1 field evidence
+
+- Run ID inferred consistently from catalog evidence paths: `20260917_142133_bd48aed7`.
+- Uploaded structured evidence reviewed: DOM inventory, D1 map/selectors, voice catalog, settings catalog, and three D2 surface screenshots.
+- Privacy regression: PASS — the visible editor phrase from the screenshot is absent from all five uploaded structured JSON artifacts.
+- Current setting-value capture: PASS.
+  - stability: `2.8`;
+  - expression: `Ổn định`;
+  - speed: `1.00×`;
+  - pause state: `Đang tắt`;
+  - output: MP3 selected, WAV/MP3/FLAC/OGG present.
+- Pause structure: PASS.
+  - automatic checkbox present and unchecked;
+  - period `0.45s`;
+  - comma `0.25s`;
+  - semicolon `0.3s`;
+  - newline `0.6s`;
+  - default button present;
+  - catalog reports `closed_after_observation: true`.
+- Language catalog: FAIL/PARTIAL — surface screenshot visibly shows English, Tiếng Việt, 中文, 日本語, 한국어, Deutsch, Español, Français, while structured `language.options` remained empty.
+- Voice catalog: FAIL/PARTIAL — surface screenshot visibly shows one automatic voice card (`Tự động`, `Hệ thống tự chọn giọng`), while structured catalog incorrectly counted modal navigation tabs (`Khám phá`, `Đã chọn`, `Giọng của tôi`, `Yêu thích`) as four voice options.
+
+### V0.3.2 corrective implementation
+
+- Added `enhanced_catalog.py` with a second privacy-safe visible-leaf delta pass for custom provider surfaces.
+- Editable/input/contenteditable nodes are excluded from this pass.
+- Added language option extraction for newly visible leaf labels.
+- Added voice navigation/generic filtering and recognition of the current automatic voice card.
+- Enhanced results override weak base-catalog options only when meaningful data is found.
+- Added pure regression tests for visible delta, multilingual labels, automatic voice card parsing, and modal-navigation filtering.
+- Added runner integration regression verifying enhanced results replace weak results.
+- Runner/package version: `0.3.2`.
+- Windows Actions / PR run `35195143308`: PASS.
+- Operator artifact: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2`.
+- Downloaded/extracted operator ZIP compile: PASS.
+- Downloaded/extracted operator ZIP pytest: **40 tests PASS**.
+- Real V0.3.2 provider verification: PENDING one final operator rerun.
+
 ## 2026-09-17 — D2 V0.3 real-provider review + V0.3.1 corrective build
 
 Scope: review the operator's real SaydiVoice V0.3 artifacts, isolate provider-specific discovery defects, implement V0.3.1 corrective capture, and verify packaging.
@@ -38,7 +80,6 @@ Scope: review the operator's real SaydiVoice V0.3 artifacts, isolate provider-sp
 - Extracted ZIP compile: PASS.
 - Extracted ZIP pytest: **35 tests PASS**.
 - Version check in packaged files: PASS (`0.3.1`).
-- Real V0.3.1 provider verification: PENDING one operator rerun.
 
 ## 2026-09-17 — D2 Voice/Settings Catalog V0.3 automated verification
 
@@ -59,66 +100,38 @@ Scope: implement and regression-test non-destructive D2 voice/settings observati
 - Operator ZIP: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.zip`.
 - ZIP structure/privacy validation: PASS — 40 packaged files; no `.venv`, `browser_profile`, cookie/token/secret file detected.
 - GitHub Actions push run `35189216611`: PASS.
-- GitHub Actions push run `35189339655`: PASS after runner integration/fallback coverage.
+- GitHub Actions push run `35189339655`: PASS after D2 runner integration/fallback coverage.
 - PR #7 Windows Actions run `35189814339`: PASS — checkout, Python setup, dependency install, compile, unit tests all successful.
 
 ## 2026-09-17 — V0.2 Windows distribution packaging self-test
 
-Scope: final operator ZIP for the D1 live gate.
-
 - Distribution: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.2.zip`.
 - Runner version: `0.2.0`.
-- `python -m compileall -q src`: PASS.
-- `PYTHONPATH=src python -m pytest -q`: PASS — **29 tests**.
-- Version import check: PASS (`0.2.0`).
-- Real V0.1 field inventory replayed as a sanitized structural fixture with the editor marked contenteditable: expected D1 controls mapped.
-- Privacy regression replay: PASS — the prior real script text is absent after V0.2 inventory sanitization.
-- Expected selector keys observed in replay include language, voice, script editor, Generate, Settings, History, pause, WAV/MP3/FLAC/OGG, login, toolbar actions, and assistant chat.
+- Compile: PASS.
+- Pytest: PASS — **29 tests**.
+- Version import: PASS (`0.2.0`).
+- Privacy regression replay: PASS.
 
 ## 2026-09-17 — First field artifact review + D1/V0.2 validation
 
-Scope: review uploaded artifacts from real Windows run `20260917_011521_dcb358a9` and validate D1 Surface Map branch.
-
-### Uploaded artifact review
-
-- `discovery_report_20260917_011521_dcb358a9.json`: PASS structurally; runner `0.1.0`, `TTS_READY`, `CAPTURED`, no runtime error.
-- `discovery_20260917_011521_dcb358a9.jsonl`: PASS; clean start/completion lifecycle with no exception.
-- Screenshot: PASS for visible TTS page; anonymous login controls are visible while TTS editor remains usable.
-- `dom_inventory.json`: functional control capture PASS (37 elements), privacy FAIL for V0.1 because a contenteditable script editor persisted its visible text.
-- Privacy defect tracked as `BUG-20260917-006`; fixed in V0.2 with browser-probe and serializer suppression plus regression coverage.
-- Locator semantic defect `BUG-20260917-007` also fixed so login explanatory copy is not confused with the History tab.
-
-### D1/V0.2 branch verification
-
-- Branch: `feat/saydivoice-d1-surface-map`.
-- Version: `0.2.0`.
-- D1 writes `saydi_map.json` and `selectors.json` in the per-run directory.
-- Windows GitHub Actions run `35172844321`: PASS.
-- Environment: `windows-latest`.
-- Dependency install: PASS.
-- Compile package: PASS.
-- Unit-test step: PASS.
-- D1 suite: 23 tests, including contenteditable privacy suppression and locator semantic regression coverage.
+- First real V0.1 artifacts reviewed.
+- Functional control capture PASS; V0.1 contenteditable privacy defect found and fixed in V0.2.
+- D1 Windows Actions run `35172844321`: PASS.
+- D1 suite: 23 tests PASS.
 
 ## 2026-09-17 — Real Windows SaydiVoice field run
 
-- Playwright Chromium download/install: PASS.
-- Bundled regression tests: PASS — 16 tests.
-- Discovery run ID: `20260917_011521_dcb358a9`.
-- Final page classification: `TTS_READY`.
-- Final run status: `CAPTURED`.
-- Process status: `0`.
+- Playwright Chromium install: PASS.
+- Run `20260917_011521_dcb358a9`: `TTS_READY` / `CAPTURED`, process `0`.
 
 ## 2026-09-17 — SaydiVoice Discovery Runner V0.1
 
 - Local compile: PASS.
 - Local pytest: PASS — 16 tests.
-- Package import/version: PASS (`0.1.0`).
-- PR GitHub Actions Windows run `35130561175`: PASS.
-- Post-merge `main` GitHub Actions run `35130819104`: PASS.
+- PR Windows CI and post-merge CI: PASS.
 
 ## 2026-09-17 — Repository initialization checks
 
-- Repository access: PASS (`magasincoffee/magasin-media-robot`, admin/push access available).
+- Repository access: PASS (`magasincoffee/magasin-media-robot`).
 - Default branch: `main`.
 - Documentation/source-of-truth scaffold creation: PASS.
