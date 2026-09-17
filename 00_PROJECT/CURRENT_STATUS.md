@@ -4,55 +4,66 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. D1 and D2 are field-verified. D3 is blocked specifically by anonymous Saydi session verification, not by selector/editor automation. A self-hosted GitHub Actions live-session path is being added so the authenticated persistent browser profile can be reused without repeated operator package downloads.**
+**Phase 0 — SaydiVoice Discovery. D1–D4 are now field-verified on the authenticated Windows self-hosted runner path. The anonymous Saydi flow remains blocked by provider verification/authentication, but the persistent authenticated Chrome profile on `MAGASIN-PC` is stable and reusable through GitHub Actions. The next discovery phase is D5 controlled limits/error characterization, followed by D6 contract freeze.**
 
 ## Completed
 
 - D0 / Discovery Runner V0.1 completed and merged.
 - D1 / Surface Map V0.2 completed and field-verified.
-- D2 / Voice + Settings Catalog field evidence is accepted:
+- D2 / Voice + Settings Catalog field evidence accepted:
   - language catalog captures visible language choices;
-  - current voice surface resolves `Tự động — Hệ thống tự chọn giọng` instead of modal navigation tabs;
+  - authenticated voice surface exposes real voices, including `Adam — Giọng hot tiktok`;
   - stability `2.8`, expression `Ổn định`, speed `1.00×`, pause `Đang tắt`, MP3 + WAV/MP3/FLAC/OGG remain captured;
   - pause panel is observed non-destructively and restored;
   - script/editor values remain excluded from structured evidence.
-- Controlled D3 diagnostics were advanced through operator checkpoint V0.4.3:
-  - V0.4.2 network diagnostics showed `/api/session/start` 403, `/api/samples` 401 and `/api/gpu/eta` 401 in the anonymous session;
-  - V0.4.3 captured safe provider error details: `/api/session/start` → `Verification failed. Please retry.` and `/api/samples` → `Invalid or missing credentials.`;
-  - V0.4.3 stopped at `PREFLIGHT_BLOCKED` with `attempt_count: 0`, so no Generate click and no quota consumption occurred.
-- Independent browser testing reproduced the same anonymous limitation: voice catalog only exposed `Tự động`, and anonymous generation failed.
-- Branch `feat/saydi-github-live-profile`, PR #9, adds:
-  - a one-time interactive local profile bootstrap;
-  - a Windows self-hosted GitHub Actions live session workflow;
-  - an authenticated-session CI gate;
-  - privacy-safe latest evidence upload only;
-  - no browser-profile upload to GitHub.
+- Authenticated live-session path completed:
+  - PR #9 added the Windows self-hosted GitHub Actions path;
+  - PR #10 switched the persistent profile path to installed Google Chrome rather than bundled Playwright Chromium;
+  - live run `35216153839` passed on runner `MAGASIN-PC` with `TTS_READY`, `AUTHENTICATED_OR_HIDDEN`, CI gate PASS, and privacy-safe evidence upload;
+  - browser profile remains local under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile` and is never uploaded.
+- D3 / Controlled Generation completed and merged via PR #11:
+  - live one-shot run `35219033748` used the authenticated persistent profile;
+  - exactly one Generate attempt, no reload retry, no Download click;
+  - processing state was observed (`Hủy` appeared while Generate disappeared);
+  - `POST /api/tts` returned HTTP 200 with `audio/mpeg`;
+  - result control `Tải về` appeared;
+  - history write returned HTTP 201;
+  - generation lifecycle terminal state was `SUCCESS_SIGNAL` with no provider HTTP error.
+- D4 / Controlled Download Discovery completed and merged via PR #12:
+  - live one-shot run `35219638775` completed successfully;
+  - exactly one generation and one Download action;
+  - downloaded file metadata: `.mp3`, 11,853 bytes;
+  - SHA-256: `f0dd8145d6d55a70ebb46ab032d7805741f81d64e1ac06b4b9a08008f1928be4`;
+  - suggested filename: `saydivoice_Toi-Bach_Adam-—-Giọng-hot-tiktok_20260917-191155.mp3`;
+  - audio was hashed/measured locally and deleted before artifact staging;
+  - uploaded D4 artifact contains metadata/screenshots only, with no retained audio/binary payload.
 
-## Current live gate
+## Anonymous-provider limitation
 
-The next provider test must use an authenticated persistent Saydi profile on the same Windows machine/network context used by the self-hosted runner.
+Anonymous diagnostics remain useful only as historical characterization:
 
-Acceptance for the live session gate:
+- `/api/session/start` returned 403 with `Verification failed. Please retry.`;
+- `/api/samples` returned 401 with `Invalid or missing credentials.`;
+- anonymous voice catalog exposed only `Tự động`;
+- V0.4.3 correctly stopped at `PREFLIGHT_BLOCKED` before Generate.
 
-- page state `TTS_READY`;
-- auth state `AUTHENTICATED_OR_HIDDEN`;
-- voice/settings observation completes without login/session errors;
-- no Generate or Download action occurs in the first live-session workflow;
-- `browser_profile` remains local and is never uploaded.
+The production/discovery path should therefore reuse the authenticated persistent Chrome profile rather than depend on anonymous session bootstrap.
 
-## Repository synchronization note
+## Current acceptance baseline
 
-`main` currently contains the V0.3.2 discovery source. The later V0.4.x D3 diagnostic checkpoints were field-run as operator packages during this session. The GitHub live-session infrastructure is being merged first; once authenticated session reuse is proven, the controlled D3 lifecycle implementation will be synchronized/enabled in the repository as the next bounded change.
+- Self-hosted runner: `MAGASIN-PC`, Windows x64.
+- Browser: installed Google Chrome controlled by Playwright.
+- Profile: local persistent Saydi profile; never committed or uploaded.
+- D1/D2: read-only discovery accepted.
+- D3: authenticated generation success accepted.
+- D4: download event/metadata success accepted; raw downloaded audio excluded from GitHub artifacts.
 
 ## Not yet completed
 
-- Authenticated self-hosted live session verification.
-- Repository sync/enablement of controlled D3 generation lifecycle on the authenticated profile.
-- D3 successful generation observation.
-- D4 audio/result download discovery.
 - D5 controlled limits/error characterization.
 - D6 frozen discovery contracts.
-- Production Voice Engine and downstream media pipeline phases.
+- Production Voice Engine/provider adapter based on the frozen contracts.
+- Downstream media pipeline phases.
 
 ## Repository visibility risk
 
@@ -60,4 +71,4 @@ The repository is public. Never commit passwords, cookies, browser profiles, aut
 
 ## Current active objective
 
-Finish PR #9 CI, bootstrap the authenticated local Saydi profile once on the Windows self-hosted runner, pass the non-destructive GitHub Actions live session check, then enable controlled D3 on that same profile.
+Design and execute a bounded D5 plan that characterizes provider limits/errors without abusive load or unnecessary quota consumption. Preserve the validated authenticated Chrome/profile path and do not re-open anonymous verification work unless the provider behavior materially changes.
