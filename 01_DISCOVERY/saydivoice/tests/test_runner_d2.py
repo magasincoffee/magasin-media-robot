@@ -56,7 +56,7 @@ def test_runner_writes_d2_catalog_paths_when_catalog_capture_succeeds(monkeypatc
     report = runner.run_discovery(DiscoveryConfig(), build_runtime_paths(tmp_path))
 
     assert report.run_status == "CAPTURED"
-    assert report.runner_version == "0.4.0"
+    assert report.runner_version == "0.4.1"
     assert report.voice_catalog_path is not None
     assert report.settings_catalog_path is not None
     assert report.generation_lifecycle_path is None
@@ -69,15 +69,18 @@ def test_runner_invokes_d3_only_when_explicitly_allowed(monkeypatch, tmp_path: P
     monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: _raw_catalog())
     monkeypatch.setattr(runner, "capture_d2_enhancements", lambda page, voice_current=None, language_current=None: {})
     calls = []
-    def fake_generation(page, evidence_dir, timeout_ms, poll_ms):
-        calls.append((timeout_ms, poll_ms))
+    def fake_generation(page, evidence_dir, timeout_ms, poll_ms, retry_after_reload_error=False):
+        calls.append((timeout_ms, poll_ms, retry_after_reload_error))
         out = evidence_dir / "generation_lifecycle.json"
         out.write_text("{}", encoding="utf-8")
         return out
     monkeypatch.setattr(runner, "run_generation_lifecycle", fake_generation)
 
-    report = runner.run_discovery(DiscoveryConfig(allow_generate=True), build_runtime_paths(tmp_path))
-    assert calls == [(60_000, 500)]
+    report = runner.run_discovery(
+        DiscoveryConfig(allow_generate=True, generation_retry_after_reload_error=True),
+        build_runtime_paths(tmp_path),
+    )
+    assert calls == [(60_000, 500, True)]
     assert report.generation_lifecycle_path is not None
 
 
