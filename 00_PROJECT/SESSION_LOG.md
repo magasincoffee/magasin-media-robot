@@ -2,6 +2,34 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 004 — Artifact review + D1 Surface Map
+
+### Goal
+
+Review the first real SaydiVoice artifact set and turn the observed real UI into a safer D1 Surface Map implementation.
+
+### Work completed
+
+- Reviewed uploaded `discovery_report`, DOM inventory, screenshot, and JSONL log from run `20260917_011521_dcb358a9`.
+- Confirmed `TTS_READY` / `CAPTURED`, no runtime error, and 37 interactive elements in the V0.1 inventory.
+- Confirmed the observed page is anonymous-ready: login controls are visible while the TTS editor is still usable.
+- Identified visible controls for language, voice mode, script editor, add speaker, import script, subtitle-to-voice, Generate, Settings/History, pause, WAV/MP3/FLAC/OGG, and assistant chat.
+- Found privacy defect `BUG-20260917-006`: V0.1 persisted contenteditable script text in structured DOM evidence.
+- Fixed contenteditable text capture in D1/V0.2 and added regression coverage.
+- Fixed semantic locator bug `BUG-20260917-007` so login explanatory copy is not misclassified as History.
+- Implemented D1 semantic surface mapping and ranked locator candidates.
+- Added per-run `saydi_map.json` and `selectors.json` outputs.
+- D1/V0.2 code is on branch `feat/saydivoice-d1-surface-map`.
+- Windows Actions run `35172844321`: PASS; compile and unit-test steps successful; D1 suite 23 tests.
+
+### Current gate
+
+D1 code is not merged yet. It requires a real V0.2 rerun on the target Windows laptop to confirm the contenteditable privacy fix, inspect the new surface outputs, resolve any provider-specific sliders/settings, and confirm persistent-profile reuse on a second run.
+
+### Next step
+
+Package D1/V0.2 for the operator, run it on the target laptop, review `discovery_report`, `dom_inventory`, `saydi_map`, `selectors`, screenshot, and log, then merge D1 if the live gate passes and continue to D2 Voice/Settings Catalog.
+
 ## 2026-09-17 — Session 003 — First real Windows/SaydiVoice field run
 
 ### Goal
@@ -16,61 +44,27 @@ Verify SaydiVoice Discovery Runner V0.1 on the target Windows laptop against the
 - Real page classified as `TTS_READY`.
 - Run status: `CAPTURED`.
 - Process status: `0`.
-- Runner printed report path under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\reports\`.
 
 ### Result
 
 First real Windows/SaydiVoice execution: PASS at setup, browser navigation, classification, and capture level.
 
-### Remaining gate
-
-- Review the actual `discovery_report`, `dom_inventory`, screenshot, and JSONL log for this run.
-- Run the discovery again while the current session remains valid to confirm persistent-profile session reuse.
-
 ### Next step
 
-Collect/upload the local run artifacts (preferably ZIP the local `saydivoice` runtime folder), review them, verify session reuse, then begin D1 Surface Map.
+Review the real artifacts and verify session reuse before D1.
 
 ## 2026-09-17 — Session 002 — SaydiVoice Discovery Runner V0.1
 
 ### Goal
 
-Implement and self-test the D0 SaydiVoice Discovery Runner foundation without automating credentials, voice generation, or downloads.
+Implement and self-test the D0 SaydiVoice Discovery Runner foundation.
 
-### Work completed
+### Result
 
-- Created branch `feat/saydivoice-discovery-v0.1` and PR #1.
-- Added Python package metadata and pinned Playwright/pytest dependencies.
-- Added local runtime policy under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice`.
-- Implemented visible Playwright Chromium with persistent local profile.
-- Implemented sanitized DOM probe/evidence, screenshot capture, JSON discovery report, JSONL logs, state classifier, and explicit CLI exit codes.
-- Implemented bounded manual-login wait/re-probe so first use can populate the persistent profile without storing credentials in code.
-- Added `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat`.
-- Added Windows GitHub Actions CI.
-- Added/ran regression tests for runtime paths, secret redaction, classifier behavior, evidence privacy, report serialization, orchestration cleanup, and manual-login re-probe.
-- Found and fixed five implementation defects; recorded them in `BUG_LOG.md`.
-- PR #1 was squash-merged to `main` as `f5d35eb157b26ca0425267979be2d32e359b7f55`.
-- Post-merge Windows Actions run `35130819104` completed successfully.
-
-### Test result
-
-- Local compile: PASS.
-- Local pytest: PASS — 16 tests.
-- Package import/version: PASS.
-- PR GitHub Actions Windows run `35130561175`: PASS.
-- Post-merge `main` GitHub Actions run `35130819104`: PASS.
-- Real Chromium/SaydiVoice smoke in the coding sandbox: NOT RUN because browser navigation is blocked by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`).
-
-### Security/privacy result
-
-- No passwords, raw cookies, browser profiles, auth tokens, private media, or generated audio/video committed.
-- Editor/input text is suppressed from structured DOM inventory.
-- URL queries/fragments and obvious bearer/JWT/email values are redacted from persisted error/evidence text.
-- Screenshots and runtime browser/session data remain local-only.
-
-### Next step
-
-Run `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat` on the target Windows laptop, perform manual SaydiVoice login if needed, collect/review the first real report/inventory/screenshot/log, then implement D1 Surface Map from that evidence.
+- V0.1 implemented and merged through PR #1.
+- 16 local tests PASS.
+- PR Windows CI PASS.
+- Post-merge Windows CI PASS.
 
 ## 2026-09-17 — Session 001 — Repository foundation
 
@@ -78,24 +72,6 @@ Run `SETUP_DISCOVERY.bat` and `RUN_DISCOVERY.bat` on the target Windows laptop, 
 
 Create durable project memory before writing SaydiVoice Discovery code.
 
-### Work completed
-
-- Verified repository `magasincoffee/magasin-media-robot` and write/admin access.
-- Initialized root README.
-- Added project vision, architecture, roadmap, repository map, development rules, and QA strategy.
-- Added canonical handoff/state files: `CURRENT_STATUS.md`, `NEXT_STEP.md`, `DECISIONS.md`, `BUG_LOG.md`, `TEST_LOG.md`, `CHANGELOG.md`.
-- Added SaydiVoice Discovery overview and staged discovery plan.
-- Added security-first `.gitignore` for credentials, sessions, runtime data, diagnostics, and generated media.
-- Verified `README.md` can be fetched from branch `main` after writes.
-
-### Test result
+### Result
 
 Repository/document scaffold: PASS.
-
-### Issues
-
-GitHub metadata currently reports repository visibility as `public`, while the intended setup discussed for this project was private. No secrets/private media have been committed.
-
-### Next step
-
-Implement SaydiVoice Discovery Runner V0.1 exactly as defined in `NEXT_STEP.md`.
