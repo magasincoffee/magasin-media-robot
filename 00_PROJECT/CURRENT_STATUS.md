@@ -4,7 +4,7 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery is field-verified through D5. D6 contract freeze is the active branch gate. The authenticated Windows self-hosted runner path is the production/discovery baseline; anonymous Saydi bootstrap remains unsupported for production.**
+**Phase 0 — SaydiVoice Discovery D0–D6 is complete. Contract v1 is frozen and CI-verified. The next phase is `02_VOICE_ENGINE`: a provider-neutral production voice interface with SaydiVoice behind a Playwright adapter.**
 
 ## Completed
 
@@ -33,6 +33,22 @@ Last updated: 2026-09-17
   - no independent mood/emotion selector was observed;
   - input limit characterized in run `35231771503`: 0 blocked, 1 accepted, 20,000 accepted, target 20,001 clamped to 20,000;
   - D5C emitted `0` `/api/tts` requests.
+- D6 / Discovery Contract Freeze completed:
+  - contract: `01_DISCOVERY/saydivoice/contracts/saydivoice_contract_v1.json`;
+  - narrative freeze: `01_DISCOVERY/saydivoice/D6_CONTRACT_FREEZE.md`;
+  - frozen session, locator, controls, input, generation, download, error, retry and privacy contracts;
+  - six contract regression tests added;
+  - Discovery Tests run `35232777609`: PASS after aligning stale D4 tests with the current download-only implementation.
+
+## Production baseline
+
+- Runner for authenticated browser integration: `MAGASIN-PC`, Windows x64.
+- Browser: installed Google Chrome controlled by Playwright.
+- Profile: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile`; local only, never committed/uploaded.
+- Saydi input contract: 1–20,000 characters per provider request.
+- Generate: explicit authorization; one attempt by default; bounded lifecycle observation; no blind retry.
+- Download: separate explicit authorization after a success signal; at most one new controlled download.
+- Raw generated audio and private editor text stay out of GitHub artifacts.
 
 ## Anonymous-provider limitation
 
@@ -42,22 +58,7 @@ Anonymous diagnostics remain historical characterization only:
 - `/api/samples` returned 401 with `Invalid or missing credentials.`;
 - anonymous voice catalog exposed only `Tự động`.
 
-Production/discovery automation must reuse the authenticated persistent Chrome profile rather than depend on anonymous session bootstrap.
-
-## D6 contract freeze
-
-Branch `d6/contract-freeze-20260917` freezes:
-
-- session/auth requirements;
-- locator priority and high-value selectors;
-- voice/settings semantics;
-- 20,000-character input boundary;
-- controlled generation lifecycle and retry policy;
-- download lifecycle;
-- error classification;
-- privacy and artifact boundaries.
-
-Machine-readable contract: `01_DISCOVERY/saydivoice/contracts/saydivoice_contract_v1.json`.
+Production automation must reuse the authenticated persistent Chrome profile rather than depend on anonymous session bootstrap.
 
 ## Repository visibility risk
 
@@ -65,4 +66,4 @@ The repository is public. Never commit or upload passwords, cookies, browser pro
 
 ## Current active objective
 
-Pass D6 contract tests, then build the production SaydiVoice provider adapter against contract v1. Any material Saydi DOM/lifecycle/auth/limit change must increment the contract and trigger only the minimum bounded rediscovery needed for the changed section.
+Start `02_VOICE_ENGINE` with a provider-neutral domain/API layer that consumes the frozen Saydi contract. Keep browser-specific details behind the Saydi adapter and preserve all D6 safety/privacy invariants.
