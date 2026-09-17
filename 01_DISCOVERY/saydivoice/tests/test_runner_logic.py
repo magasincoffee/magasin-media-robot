@@ -14,8 +14,8 @@ def test_status_mapping_is_explicit():
 
 def test_report_serializes_without_non_json_types(tmp_path: Path):
     report = DiscoveryReport(
-        schema_version="1.1",
-        runner_version="0.2.0",
+        schema_version="1.2",
+        runner_version="0.3.0",
         run_id="test",
         started_at="2026-09-17T00:00:00+00:00",
         finished_at="2026-09-17T00:00:01+00:00",
@@ -29,10 +29,18 @@ def test_report_serializes_without_non_json_types(tmp_path: Path):
         element_count=0,
     )
     encoded = json.dumps(report.to_dict(), ensure_ascii=False)
-    assert '"runner_version": "0.2.0"' in encoded
+    assert '"runner_version": "0.3.0"' in encoded
 
 
-def test_runner_orchestrates_capture_surface_and_cleanup(monkeypatch, tmp_path: Path):
+def _fake_catalog(page, run_dir: Path):
+    voice = run_dir / "voice_catalog.json"
+    settings = run_dir / "settings_catalog.json"
+    voice.write_text('{"schema_version":"1.0","options":[]}', encoding="utf-8")
+    settings.write_text('{"schema_version":"1.0","settings":{}}', encoding="utf-8")
+    return voice, settings, {"voice_capture_status": "CAPTURED", "voice_option_count": 0}
+
+
+def test_runner_orchestrates_capture_surface_catalog_and_cleanup(monkeypatch, tmp_path: Path):
     from saydivoice_discovery import runner
     from saydivoice_discovery.models import DiscoveryConfig
     from saydivoice_discovery.runtime import build_runtime_paths
@@ -67,6 +75,7 @@ def test_runner_orchestrates_capture_surface_and_cleanup(monkeypatch, tmp_path: 
     }
 
     monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (raw_probe, (playwright, context), FakePage()))
+    monkeypatch.setattr(runner, "run_catalog_discovery", _fake_catalog)
     paths = build_runtime_paths(tmp_path)
     report = runner.run_discovery(DiscoveryConfig(), paths)
 
@@ -77,6 +86,9 @@ def test_runner_orchestrates_capture_surface_and_cleanup(monkeypatch, tmp_path: 
     assert Path(report.dom_inventory_path).exists()
     assert Path(report.surface_map_path).exists()
     assert Path(report.selectors_path).exists()
+    assert Path(report.voice_catalog_path).exists()
+    assert Path(report.settings_catalog_path).exists()
+    assert report.catalog_summary["voice_capture_status"] == "CAPTURED"
     assert "private script" not in Path(report.dom_inventory_path).read_text(encoding="utf-8")
     assert context.closed is True
     assert playwright.stopped is True
@@ -122,6 +134,7 @@ def test_runner_reprobes_during_manual_login_wait(monkeypatch, tmp_path: Path):
     page = FakePage()
     monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (login_probe, (FakePlaywright(), FakeContext()), page))
     monkeypatch.setattr(runner, "probe_page", lambda p: ready_probe)
+    monkeypatch.setattr(runner, "run_catalog_discovery", _fake_catalog)
 
     report = runner.run_discovery(
         DiscoveryConfig(login_wait_seconds=2, login_poll_ms=500),
@@ -129,3 +142,4 @@ def test_runner_reprobes_during_manual_login_wait(monkeypatch, tmp_path: Path):
     )
     assert report.page_state == "TTS_READY"
     assert report.run_status == "CAPTURED"
+    assert Path(report.voice_catalog_path).exists()
