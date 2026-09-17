@@ -9,12 +9,13 @@ from .catalog import capture_d2_catalog, write_catalog_outputs
 from .classifier import classify_auth_state, classify_page_state
 from .enhanced_catalog import capture_d2_enhancements
 from .evidence import make_page_signals, sanitize_inventory, write_dom_inventory
+from .generation import run_generation_lifecycle
 from .logging_utils import configure_logging
 from .models import DiscoveryConfig, DiscoveryReport, RunStatus, RuntimePaths
 from .runtime import build_runtime_paths, sanitize_error_message, sanitize_url
 from .surface import write_surface_outputs
 
-RUNNER_VERSION = "0.3.2"
+RUNNER_VERSION = "0.4.1"
 
 
 def _now() -> str:
@@ -56,7 +57,7 @@ def run_discovery(
     inventory_path = run_dir / "dom_inventory.json"
     report_path = runtime.reports_dir / f"discovery_report_{run_id}.json"
 
-    logger.info("Starting non-destructive SaydiVoice discovery V0.3.2", extra={"event": "run_started"})
+    logger.info("Starting SaydiVoice discovery V0.4.1", extra={"event": "run_started"})
     browser_bundle = None
     try:
         raw_probe, browser_bundle, page = open_and_probe(cfg, runtime)
@@ -92,8 +93,10 @@ def run_discovery(
 
         voice_catalog_path = None
         settings_catalog_path = None
+        generation_lifecycle_path = None
         notes = [
-            "Discovery does not enter credentials, invoke Generate, or download audio.",
+            "Discovery never enters credentials or downloads audio.",
+            "Generate is never invoked unless the operator explicitly supplies --allow-generate.",
             "DOM inventory excludes input/editor values, cookies, storage, authorization headers, and raw HTML.",
             "D1 surface map and ranked selector candidates were generated from current visible controls.",
         ]
@@ -124,7 +127,7 @@ def run_discovery(
 
                 voice_catalog_path, settings_catalog_path = write_catalog_outputs(run_dir, catalog_raw)
                 notes.append(
-                    "D2 opened voice/language/pause surfaces only for observation, attempted to restore each surface to its original state, and captured current settings evidence plus per-surface screenshots."
+                    "D2 opened voice/language/pause surfaces only for observation, restored them when practical, and captured current settings evidence plus per-surface screenshots."
                 )
                 logger.info(
                     "D2 voice/settings catalogs captured without Generate/download actions",
@@ -138,10 +141,35 @@ def run_discovery(
                     extra={"event": "d2_catalog_incomplete"},
                 )
 
+            if cfg.allow_generate:
+                try:
+                    generation_lifecycle_path = run_generation_lifecycle(
+                        page,
+                        evidence_dir=run_dir,
+                        timeout_ms=cfg.generation_timeout_ms,
+                        poll_ms=cfg.generation_poll_ms,
+                        retry_after_reload_error=cfg.generation_retry_after_reload_error,
+                    )
+                    if cfg.generation_retry_after_reload_error:
+                        notes.append("D3 allowed one initial controlled generation and at most one reload retry only when the provider explicitly returned a reload-page error; no download was clicked.")
+                    else:
+                        notes.append("D3 performed one explicitly authorized controlled generation; no download control was clicked.")
+                    logger.info(
+                        "D3 controlled generation lifecycle captured",
+                        extra={"event": "d3_generation_captured"},
+                    )
+                except Exception as generation_exc:
+                    safe_generation_error = sanitize_error_message(f"{type(generation_exc).__name__}: {generation_exc}")
+                    notes.append(f"D3 controlled generation capture was incomplete: {safe_generation_error}")
+                    logger.warning(
+                        f"D3 controlled generation incomplete: {safe_generation_error}",
+                        extra={"event": "d3_generation_incomplete"},
+                    )
+
         page.screenshot(path=str(screenshot_path), full_page=True)
 
         report = DiscoveryReport(
-            schema_version="1.2",
+            schema_version="1.4",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,
@@ -159,6 +187,7 @@ def run_discovery(
             selectors_path=str(selectors_path),
             voice_catalog_path=str(voice_catalog_path) if voice_catalog_path else None,
             settings_catalog_path=str(settings_catalog_path) if settings_catalog_path else None,
+            generation_lifecycle_path=str(generation_lifecycle_path) if generation_lifecycle_path else None,
             notes=notes,
         )
         report_path.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -169,7 +198,7 @@ def run_discovery(
         return report
     except Exception as exc:
         report = DiscoveryReport(
-            schema_version="1.2",
+            schema_version="1.4",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,

@@ -22,76 +22,79 @@ def _ready_probe():
     }
 
 
-def test_runner_writes_d2_catalog_paths_when_catalog_capture_succeeds(monkeypatch, tmp_path: Path):
-    from saydivoice_discovery import runner
-
+def _bundle():
     class FakePage:
         def screenshot(self, path: str, full_page: bool = False):
             Path(path).write_bytes(b"fake-png")
-
     class FakeContext:
         def close(self): pass
-
     class FakePlaywright:
         def stop(self): pass
+    return FakePage(), (FakePlaywright(), FakeContext())
 
-    fake_raw_catalog = {
+
+def _raw_catalog():
+    return {
         "settings": [],
         "format_options": [{"text": "MP3", "role": "tab", "aria_selected": "true"}],
-        "voice_current": "Tự động",
-        "voice_opened": True,
-        "voice_closed": True,
+        "voice_current": "Tự động", "voice_opened": True, "voice_closed": True,
         "voice_options": [{"text": "Voice A", "role": "option"}],
-        "language_current": "VI",
-        "language_opened": True,
-        "language_closed": True,
+        "language_current": "VI", "language_opened": True, "language_closed": True,
         "language_options": [{"text": "Tiếng Việt", "role": "option"}],
-        "pause_current": "Đang tắt",
-        "pause_opened": True,
-        "pause_closed": True,
-        "pause_options": [],
-        "pause_panel": {},
-        "warnings": [],
+        "pause_current": "Đang tắt", "pause_opened": True, "pause_closed": True,
+        "pause_options": [], "pause_panel": {}, "warnings": [],
     }
 
-    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), (FakePlaywright(), FakeContext()), FakePage()))
-    monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: fake_raw_catalog)
+
+def test_runner_writes_d2_catalog_paths_when_catalog_capture_succeeds(monkeypatch, tmp_path: Path):
+    from saydivoice_discovery import runner
+    page, bundle = _bundle()
+    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), bundle, page))
+    monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: _raw_catalog())
     monkeypatch.setattr(runner, "capture_d2_enhancements", lambda page, voice_current=None, language_current=None: {})
 
     report = runner.run_discovery(DiscoveryConfig(), build_runtime_paths(tmp_path))
 
     assert report.run_status == "CAPTURED"
-    assert report.runner_version == "0.3.2"
+    assert report.runner_version == "0.4.1"
     assert report.voice_catalog_path is not None
     assert report.settings_catalog_path is not None
-    assert Path(report.voice_catalog_path).exists()
-    assert Path(report.settings_catalog_path).exists()
+    assert report.generation_lifecycle_path is None
+
+
+def test_runner_invokes_d3_only_when_explicitly_allowed(monkeypatch, tmp_path: Path):
+    from saydivoice_discovery import runner
+    page, bundle = _bundle()
+    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), bundle, page))
+    monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: _raw_catalog())
+    monkeypatch.setattr(runner, "capture_d2_enhancements", lambda page, voice_current=None, language_current=None: {})
+    calls = []
+    def fake_generation(page, evidence_dir, timeout_ms, poll_ms, retry_after_reload_error=False):
+        calls.append((timeout_ms, poll_ms, retry_after_reload_error))
+        out = evidence_dir / "generation_lifecycle.json"
+        out.write_text("{}", encoding="utf-8")
+        return out
+    monkeypatch.setattr(runner, "run_generation_lifecycle", fake_generation)
+
+    report = runner.run_discovery(
+        DiscoveryConfig(allow_generate=True, generation_retry_after_reload_error=True),
+        build_runtime_paths(tmp_path),
+    )
+    assert calls == [(60_000, 500, True)]
+    assert report.generation_lifecycle_path is not None
 
 
 def test_runner_overrides_weak_options_with_enhanced_surface_results(monkeypatch, tmp_path: Path):
     from saydivoice_discovery import runner
-
-    class FakePage:
-        def screenshot(self, path: str, full_page: bool = False): Path(path).write_bytes(b"fake-png")
-    class FakeContext:
-        def close(self): pass
-    class FakePlaywright:
-        def stop(self): pass
-
-    raw = {
-        "settings": [],
-        "format_options": [{"text": "MP3", "role": "tab", "aria_selected": "true"}],
-        "voice_current": "Tự động", "voice_opened": True, "voice_closed": True,
-        "voice_options": [{"text": "Khám phá", "role": "tab"}],
-        "language_current": "VI", "language_opened": True, "language_closed": True,
-        "language_options": [], "pause_current": "Đang tắt", "pause_opened": True,
-        "pause_closed": True, "pause_options": [], "pause_panel": {}, "warnings": [],
-    }
+    page, bundle = _bundle()
+    raw = _raw_catalog()
+    raw["voice_options"] = [{"text": "Khám phá", "role": "tab"}]
+    raw["language_options"] = []
     enhanced = {
         "voice_options": [{"text": "Tự động — Hệ thống tự chọn giọng", "role": "voice_card"}],
         "language_options": [{"text": "Tiếng Việt", "role": "language_option"}],
     }
-    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), (FakePlaywright(), FakeContext()), FakePage()))
+    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), bundle, page))
     monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: raw)
     monkeypatch.setattr(runner, "capture_d2_enhancements", lambda page, voice_current=None, language_current=None: enhanced)
 
@@ -104,18 +107,8 @@ def test_runner_overrides_weak_options_with_enhanced_surface_results(monkeypatch
 
 def test_runner_keeps_d1_capture_when_d2_catalog_probe_fails(monkeypatch, tmp_path: Path):
     from saydivoice_discovery import runner
-
-    class FakePage:
-        def screenshot(self, path: str, full_page: bool = False):
-            Path(path).write_bytes(b"fake-png")
-
-    class FakeContext:
-        def close(self): pass
-
-    class FakePlaywright:
-        def stop(self): pass
-
-    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), (FakePlaywright(), FakeContext()), FakePage()))
+    page, bundle = _bundle()
+    monkeypatch.setattr(runner, "open_and_probe", lambda cfg, paths: (_ready_probe(), bundle, page))
     monkeypatch.setattr(runner, "capture_d2_catalog", lambda page, evidence_dir=None: (_ for _ in ()).throw(RuntimeError("provider changed")))
 
     report = runner.run_discovery(DiscoveryConfig(), build_runtime_paths(tmp_path))

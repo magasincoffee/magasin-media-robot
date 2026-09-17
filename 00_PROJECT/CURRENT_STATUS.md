@@ -4,61 +4,69 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 is merged to `main`. D2 Voice/Settings Catalog has now completed real field runs on V0.3 and V0.3.1. V0.3.1 fixed pause restoration and visible setting-value capture, but still under-captured custom voice/language option text. V0.3.2 is implemented and awaiting one final D2 field rerun before PR #7 can merge.**
+**Phase 0 — SaydiVoice Discovery. D0–D2 are complete and field-verified. D3 V0.4.0 completed its first real controlled generation attempt and captured a provider reload-page error. V0.4.1 recovery is implemented, Windows CI/package verified, and now needs one operator-authorized real-provider recovery run before D3 can merge.**
 
 ## Completed
 
-- D0 / Discovery Runner V0.1 completed and merged.
-- D1 / Surface Map V0.2 completed, field-verified, and merged through PR #6 as `79bb057f4adc7ba010645bc63461564fa037e7a8`.
-- Real V0.2 field run `20260917_110310_7bf1810a` confirmed `TTS_READY` / `ANONYMOUS` / `CAPTURED`, 38 interactive elements, correct D1 outputs, and the V0.1 contenteditable privacy leak fixed on the real provider page.
-- D2 is on branch `feat/saydivoice-d2-voice-settings-catalog`, PR #7.
-- Real V0.3 run `20260917_135249_9534c523` exposed `BUG-20260917-008` around custom provider surfaces.
-- Real V0.3.1 run `20260917_142133_bd48aed7` field evidence reviewed:
-  - script phrase visible in the browser screenshot is absent from uploaded DOM/map/selectors/settings/voice JSON evidence;
-  - stability display value captured as `2.8`;
-  - expression captured as `Ổn định`;
-  - speed captured as `1.00×`;
-  - output formats captured as WAV/MP3/FLAC/OGG with MP3 selected;
-  - pause panel structure captured: checkbox off, period `0.45s`, comma `0.25s`, semicolon `0.3s`, newline `0.6s`, default button present;
-  - pause surface reports `closed_after_observation: true`;
-  - language surface visibly contains English, Tiếng Việt, 中文, 日本語, 한국어, Deutsch, Español, Français, but `language.options` remained empty;
-  - voice surface visibly contains one `Tự động / Hệ thống tự chọn giọng` card, but catalog incorrectly promoted modal navigation tabs as four voice options.
-- V0.3.2 implemented to address the remaining D2 gap:
-  - second privacy-safe visible-leaf delta pass for custom surfaces;
-  - editable/input content excluded at the browser probe boundary;
-  - language labels extracted from newly visible leaf nodes;
-  - voice modal navigation/generic controls filtered;
-  - current automatic voice card recognized as `Tự động — Hệ thống tự chọn giọng` when exposed;
-  - enhanced results override weak V0.3.1 option results only when meaningful data is found;
-  - runner bumped to `0.3.2` and regression coverage added.
+- D0 / Discovery Runner V0.1: complete and merged.
+- D1 / Surface Map V0.2: complete, field-verified, merged.
+- D2 / Voice & Settings Catalog V0.3.2: complete, field-verified, merged through PR #7 as `ec7ee7c0b18e488a3bc43361e8e38ca4e88ce54b`.
+- `BUG-20260917-008`: VERIFIED.
+- D3 branch: `feat/saydivoice-d3-generation-lifecycle`, PR #8.
+- First real D3 V0.4.0 run: `20260917_153149_2bb6c109`.
+- V0.4.0 real lifecycle evidence:
+  - fixed sample length 52; only length/SHA-256 persisted;
+  - Generate available at start;
+  - after click, Generate disappeared and `Hủy` appeared, showing a real processing phase;
+  - provider then returned `Không tải được giọng. Vui lòng tải lại trang.`;
+  - terminal state: ERROR;
+  - quota 3 → 3;
+  - audio elements 5 → 5;
+  - no new result/download control;
+  - `download_clicked: false`;
+  - D1/D2 structured privacy remained intact.
+- `BUG-20260917-009` recorded because successful generation is not yet characterized and V0.4.0 missed the `Hủy` processing signal.
+- V0.4.1 corrective implementation:
+  - detects `Hủy/Cancel` and Generate disappearance as processing;
+  - waits best-effort for network-idle before each attempt;
+  - adds explicit `--retry-after-reload-error` authorization;
+  - permits exactly one reload + retry only when attempt 1 explicitly asks to reload;
+  - D3 BAT warns the operator that at most two generation attempts may occur;
+  - writes per-attempt traces and screenshots;
+  - still never downloads audio and never persists editor text.
+- V0.4.1 Windows Actions run `35201169611`: PASS.
+- V0.4.1 operator artifact generated.
+- Extracted operator ZIP compile: PASS.
+- Extracted operator ZIP pytest: **48 tests PASS**.
 
 ## Current live gate
 
-Run V0.3.2 once on the target Windows laptop. D2 can merge if:
+Run V0.4.1 once using `CAI_DAT_VA_CHAY_D3.bat` and confirm Y. This may use **up to two SaydiVoice generation attempts**; the second attempt occurs only after the exact reload-page error pattern.
 
-- voice catalog identifies the automatic voice card instead of modal navigation tabs;
-- language catalog contains the visible language choices instead of an empty list;
-- pause remains restored after observation;
-- stability/expression/speed/output-format evidence remains correct;
-- no setting is changed;
-- no Generate/download action occurs;
-- no script/editor value appears in structured outputs;
-- D1 evidence remains valid.
+Return from the same run ID:
+- `runs\<run-id>\generation_lifecycle.json`
+- all `runs\<run-id>\d3_attempt*_before.png`
+- all `runs\<run-id>\d3_attempt*_after.png`
+- `runs\<run-id>\d3_before_generate.png`
+- `runs\<run-id>\d3_after_generate.png`
+- `reports\discovery_report_<run-id>.json`
+- `logs\discovery_<run-id>.jsonl`
+
+D3 acceptance: processing is correctly recorded; either a success signal is observed after reload recovery, or a repeated provider failure is captured clearly enough to prove a provider/login availability blocker. No download occurs and privacy remains intact.
 
 ## Not yet implemented
 
-- D2 V0.3.2 field verification and merge.
-- D3 generation lifecycle observation/automation.
+- D3 V0.4.1 real-provider verification and merge.
 - D4 audio download discovery.
 - D5 controlled limits/error characterization.
 - D6 frozen discovery contracts.
 - Production Voice Engine.
-- Media Analyzer, Scene Planner, Subtitle Engine, Render Engine, Desktop UI, full diagnostics/resume runtime, and installer.
+- Media Analyzer, Scene Planner, Subtitle Engine, Render Engine, Desktop UI, diagnostics/resume runtime, installer, full regression.
 
 ## Repository visibility risk
 
-GitHub metadata has reported the repository as public. Never commit passwords, cookies, browser profiles, auth tokens, private media, voice catalogs from a private account, or raw local runtime/session artifacts.
+GitHub metadata still reports the repository as public. Never commit passwords, cookies, browser profiles, auth tokens, private media, or raw runtime/session artifacts.
 
 ## Current active objective
 
-Finish V0.3.2 Windows CI/package, perform one final D2 field rerun, merge PR #7 if accepted, then begin D3 Generation Lifecycle.
+Perform one controlled V0.4.1 recovery field run; review the result; then either merge D3 and begin D4 or isolate a provider/login/session blocker before proceeding.

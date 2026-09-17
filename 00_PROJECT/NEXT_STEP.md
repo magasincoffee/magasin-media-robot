@@ -1,37 +1,48 @@
 # Next Step
 
-## Immediate next step — Final D2 field gate with V0.3.2
+## Immediate next step — D3 Generation Lifecycle V0.4.1 recovery field run
 
-Real V0.3.1 run `20260917_142133_bd48aed7` verified that pause restoration and visible setting-value capture now work, but two custom-provider surfaces are still under-captured in structured JSON:
+The first real V0.4.0 D3 run reached processing, then SaydiVoice returned `Không tải được giọng. Vui lòng tải lại trang.` with quota unchanged. D3 therefore needs one controlled reload-recovery run before merge.
 
-- the language dropdown visibly shows language labels, while `language.options` is empty;
-- the voice modal visibly shows one automatic voice card, while the catalog counts navigation tabs as voice options.
+### What V0.4.1 changes
 
-V0.3.2 adds a second privacy-safe visible-leaf delta pass specifically for custom SaydiVoice surfaces. It excludes input/contenteditable text, filters modal navigation/generic controls, captures visible language labels, and recognizes the current automatic voice card without changing a selection.
+- detects `Hủy/Cancel` or Generate disappearance as a processing signal;
+- waits best-effort for network idle before each attempt;
+- attempt 1 remains a fixed short non-sensitive test sentence;
+- when and only when attempt 1 returns a provider error explicitly asking to reload, the robot reloads the disposable same-session page and makes exactly one second attempt;
+- a second attempt never occurs for unrelated errors;
+- saves per-attempt traces/screenshots plus the final lifecycle analysis;
+- never clicks a download control;
+- never persists editor content, only fixed-sample length/SHA-256.
 
-## Operator sequence
+### Operator sequence
 
-1. Use `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2.zip` on the target Windows laptop.
-2. Extract to a new folder.
-3. Run `CAI_DAT_VA_CHAY.bat`.
-4. Do not manually change voice, language, pause, sliders, output format, or script while discovery is running.
-5. Do not click `Tạo giọng nói`.
-6. Let the robot finish by itself.
-7. Return the newest same-run artifacts, especially `voice_catalog.json`, `settings_catalog.json`, `d2_voice_surface.png`, `d2_language_surface.png`, and `d2_pause_surface.png`.
-8. Never send `browser_profile`.
+1. Extract `MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.1.zip` to a new folder.
+2. Run `CAI_DAT_VA_CHAY_D3.bat`.
+3. Read the warning: this run may use up to two generation attempts; attempt 2 occurs only after the reload-page error.
+4. Press `Y` to authorize the controlled recovery test.
+5. Do not interact with the SaydiVoice window while the robot runs.
+6. Return the newest same-run artifacts:
+   - `runs\<run-id>\generation_lifecycle.json`
+   - all `runs\<run-id>\d3_attempt*_before.png`
+   - all `runs\<run-id>\d3_attempt*_after.png`
+   - `runs\<run-id>\d3_before_generate.png`
+   - `runs\<run-id>\d3_after_generate.png`
+   - `reports\discovery_report_<run-id>.json`
+   - `logs\discovery_<run-id>.jsonl`
+7. Never send `browser_profile`.
 
-## D2 acceptance gate
+### D3 acceptance gate
 
-Merge PR #7 when:
+Merge PR #8 when:
+- processing is correctly recognized;
+- retry occurs only after the explicit reload-page error;
+- preferably attempt 2 reaches a concrete success signal (quota decrement, new result control, or new audio evidence);
+- if the same provider error repeats after reload, the evidence is sufficient to classify generation as provider/login availability blocked rather than an automation-lifecycle ambiguity;
+- no download occurs;
+- no script/editor content is persisted;
+- D1/D2 evidence remains valid.
 
-- voice catalog identifies `Tự động — Hệ thống tự chọn giọng` or equivalent semantic automatic-card evidence rather than modal navigation tabs;
-- language catalog includes visible choices such as English/Tiếng Việt instead of an empty list;
-- pause reports restored/closed after observation;
-- display values remain `2.8`, `Ổn định`, `1.00×` for the current page state;
-- MP3 remains selected and no provider setting changed;
-- no Generate/download occurs;
-- structured evidence contains no script/editor text.
+## After D3 — D4 Audio Download Lifecycle
 
-## After D2 — D3 Generation Lifecycle
-
-After D2 field acceptance and merge: use a minimal controlled text sample to characterize Generate start, processing, completion, error, quota behavior, result-player controls, and lifecycle timing. D3 may trigger one real generation only after the operator package explicitly marks that action as controlled. Audio download remains D4.
+D4 starts only after a successful generated result exists. It will characterize the real result-player/download control, browser download event, filename/extension, completion/error behavior, and safe destination handling. D4 will require its own explicit operator authorization for one audio download.
