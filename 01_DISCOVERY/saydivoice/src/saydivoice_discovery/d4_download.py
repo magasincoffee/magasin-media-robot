@@ -3,33 +3,20 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .browser import open_and_probe, probe_page
+from .browser import open_and_probe
 from .classifier import classify_auth_state, classify_page_state
+from .evidence import make_page_signals
 from .generation import DEFAULT_D3_SAMPLE
-from .models import DiscoveryConfig, PageSignals
+from .models import DiscoveryConfig
 from .runtime import build_runtime_paths, sanitize_error_message
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _signals(raw: dict) -> PageSignals:
-    return PageSignals(
-        url=str(raw.get("url") or ""),
-        title=str(raw.get("title") or ""),
-        visible_text=str(raw.get("visible_text") or ""),
-        has_password_input=bool(raw.get("has_password_input")),
-        has_textarea=bool(raw.get("has_textarea")),
-        has_contenteditable=bool(raw.get("has_contenteditable")),
-        button_texts=tuple(str(x) for x in raw.get("button_texts") or []),
-        link_texts=tuple(str(x) for x in raw.get("link_texts") or []),
-    )
 
 
 def _sha256(path: Path) -> str:
@@ -40,14 +27,47 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def _visible_download_buttons(page):
-    return page.get_by_role("button", name=re.compile(r"^\s*Tải về\s*$", re.I))
-
-
-def _mark_best_download_for_sample(page) -> bool:
-    return bool(page.evaluate(
+def _mark_latest_history_menu(page) -> str | None:
+    return page.evaluate(
+        r"""
+        () => {
+          const visible = (el) => {
+            if (!el) return false;
+            const s = getComputedStyle(el); const r = el.getBoundingClientRect();
+            return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+          };
+          const text = (el) => (el?.innerText || el?.textContent || '').replace(/\s+/g, ' ').trim();
+          document.querySelectorAll('[data-d4-history-menu]').forEach(el => el.removeAttribute('data-d4-history-menu'));
+          const stampRe = /^\d{1,2}:\d{2}:\d{2}\s+\d{1,2}\/\d{1,2}\/\d{4}$/;
+          const stamps = Array.from(document.querySelectorAll('div,span,p'))
+            .filter(visible)
+            .filter(el => stampRe.test(text(el)))
+            .filter(el => el.getBoundingClientRect().left > window.innerWidth * 0.55)
+            .sort((a,b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+          if (!stamps.length) return null;
+          const stamp = stamps[0];
+          let p = stamp;
+          for (let depth = 0; p && depth <= 7; depth++, p = p.parentElement) {
+            const pr = p.getBoundingClientRect();
+            const candidates = Array.from(p.querySelectorAll('button,[role="button"],[tabindex]')).filter(visible);
+            if (candidates.length) {
+              const rightmost = candidates.sort((a,b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)[0];
+              if (rightmost.getBoundingClientRect().right >= pr.right - 80 || candidates.length === 1) {
+                rightmost.setAttribute('data-d4-history-menu', '1');
+                return text(stamp);
+              }
+            }
+          }
+          return null;
+        }
         """
-        (sample) => {
+    )
+
+
+def _mark_download_menu_action(page) -> bool:
+    return bool(page.evaluate(
+        r"""
+        () => {
           const visible = (el) => {
             if (!el) return false;
             const s = getComputedStyle(el); const r = el.getBoundingClientRect();
@@ -55,63 +75,18 @@ def _mark_best_download_for_sample(page) -> bool:
           };
           const text = (el) => (el?.innerText || el?.textContent || '').replace(/\s+/g, ' ').trim();
           document.querySelectorAll('[data-d4-download-target]').forEach(el => el.removeAttribute('data-d4-download-target'));
-          const buttons = Array.from(document.querySelectorAll('button,[role="button"],a'))
+          const candidates = Array.from(document.querySelectorAll('button,[role="button"],[role="menuitem"],a,div'))
             .filter(visible)
             .filter(el => /^Tải về$/i.test(text(el)));
-          if (!buttons.length) return false;
-          if (buttons.length === 1) {
-            buttons[0].setAttribute('data-d4-download-target', '1');
-            return true;
-          }
-          const scored = [];
-          for (const b of buttons) {
-            let p = b;
-            for (let depth = 0; p && depth <= 10; depth++, p = p.parentElement) {
-              if (text(p).includes(sample)) {
-                const r = p.getBoundingClientRect();
-                scored.push({b, depth, area: Math.max(1, r.width * r.height)});
-                break;
-              }
-            }
-          }
-          if (!scored.length) return false;
-          scored.sort((a,b) => a.depth - b.depth || a.area - b.area);
-          if (scored.length > 1 && scored[0].depth === scored[1].depth && Math.abs(scored[0].area - scored[1].area) < 1) return false;
-          scored[0].b.setAttribute('data-d4-download-target', '1');
-          return true;
-        }
-        """,
-        DEFAULT_D3_SAMPLE,
-    ))
-
-
-def _try_select_history_sample(page) -> bool:
-    return bool(page.evaluate(
-        """
-        (sample) => {
-          const visible = (el) => {
-            if (!el) return false;
-            const s = getComputedStyle(el); const r = el.getBoundingClientRect();
-            return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
-          };
-          const norm = (v) => (v || '').replace(/\s+/g, ' ').trim();
-          document.querySelectorAll('[data-d4-history-target]').forEach(el => el.removeAttribute('data-d4-history-target'));
-          const all = Array.from(document.querySelectorAll('div,li,button,[role="button"]')).filter(visible);
-          const matches = all.filter(el => norm(el.innerText || el.textContent).includes(sample));
-          const right = matches.filter(el => el.getBoundingClientRect().left >= window.innerWidth * 0.55);
-          const pool = right.length ? right : matches;
-          if (!pool.length) return false;
-          pool.sort((a,b) => {
-            const ta = norm(a.innerText || a.textContent).length;
-            const tb = norm(b.innerText || b.textContent).length;
-            const ra = a.getBoundingClientRect(); const rb = b.getBoundingClientRect();
-            return ta - tb || (ra.width * ra.height) - (rb.width * rb.height);
+          if (!candidates.length) return false;
+          candidates.sort((a,b) => {
+            const ar = a.getBoundingClientRect(); const br = b.getBoundingClientRect();
+            return (ar.width * ar.height) - (br.width * br.height);
           });
-          pool[0].setAttribute('data-d4-history-target', '1');
+          candidates[0].setAttribute('data-d4-download-target', '1');
           return true;
         }
-        """,
-        DEFAULT_D3_SAMPLE,
+        """
     ))
 
 
@@ -138,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     result_path = evidence_dir / "download_lifecycle.json"
 
     result = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "mode": "D4_CONTROLLED_DOWNLOAD_ONLY",
         "started_at": _now(),
         "generate_clicked": False,
@@ -161,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     browser_bundle = None
     try:
         raw, browser_bundle, page = open_and_probe(cfg, runtime)
-        signals = _signals(raw)
+        signals = make_page_signals(raw)
         state = classify_page_state(signals)
         auth = classify_auth_state(signals, state)
         result.update({"page_state": state, "auth_state": auth})
@@ -170,36 +145,30 @@ def main(argv: list[str] | None = None) -> int:
 
         page.screenshot(path=str(evidence_dir / "d4_before.png"), full_page=True)
 
-        target_mode = None
-        if _mark_best_download_for_sample(page):
-            target_mode = "current_player_or_unique_visible_download"
-        else:
-            history = page.get_by_role("tab", name="Lịch sử", exact=True)
-            if history.count() < 1:
-                history = page.get_by_text("Lịch sử", exact=True)
-            if history.count() < 1:
-                raise RuntimeError("History control not found and no safe Download target is visible")
-            history.first.click(timeout=5_000)
-            page.wait_for_timeout(1_500)
-            page.screenshot(path=str(evidence_dir / "d4_history.png"), full_page=True)
+        history = page.get_by_role("tab", name="Lịch sử", exact=True)
+        if history.count() < 1:
+            history = page.get_by_text("Lịch sử", exact=True)
+        if history.count() < 1:
+            raise RuntimeError("History control not found")
+        history.first.click(timeout=5_000)
+        page.wait_for_timeout(1_500)
+        page.screenshot(path=str(evidence_dir / "d4_history.png"), full_page=True)
 
-            if _try_select_history_sample(page):
-                page.locator('[data-d4-history-target="1"]').first.click(timeout=5_000)
-                page.wait_for_timeout(1_000)
+        newest_timestamp = _mark_latest_history_menu(page)
+        if not newest_timestamp:
+            raise RuntimeError("Could not bind the newest history item's overflow menu")
+        menu = page.locator('[data-d4-history-menu="1"]')
+        if menu.count() != 1:
+            raise RuntimeError(f"Expected one newest-history overflow menu, found {menu.count()}")
+        menu.click(timeout=5_000)
+        page.wait_for_timeout(500)
+        page.screenshot(path=str(evidence_dir / "d4_menu.png"), full_page=True)
 
-            if not _mark_best_download_for_sample(page):
-                visible = _visible_download_buttons(page)
-                if visible.count() == 1:
-                    visible.first.evaluate("el => el.setAttribute('data-d4-download-target','1')")
-                    target_mode = "history_unique_visible_download"
-                else:
-                    raise RuntimeError(f"Could not uniquely bind D4 target to the D3 sample; visible Download buttons={visible.count()}")
-            else:
-                target_mode = "history_sample_matched_download"
-
+        if not _mark_download_menu_action(page):
+            raise RuntimeError("Newest history overflow menu did not expose a visible Tải về action")
         target = page.locator('[data-d4-download-target="1"]')
         if target.count() != 1:
-            raise RuntimeError(f"D4 safety gate expected exactly one marked Download control; found {target.count()}")
+            raise RuntimeError(f"D4 safety gate expected exactly one marked Download action; found {target.count()}")
 
         page.screenshot(path=str(evidence_dir / "d4_before_click.png"), full_page=True)
         with page.expect_download(timeout=30_000) as download_info:
@@ -219,7 +188,8 @@ def main(argv: list[str] | None = None) -> int:
         page.screenshot(path=str(evidence_dir / "d4_after_click.png"), full_page=True)
         result.update({
             "status": "PASS",
-            "target_mode": target_mode,
+            "target_mode": "newest_history_item_overflow_menu",
+            "newest_history_timestamp": newest_timestamp,
             "suggested_filename": suggested,
             "saved_filename": saved_name,
             "extension": suffix,
