@@ -15,7 +15,7 @@ from .models import DiscoveryConfig, DiscoveryReport, RunStatus, RuntimePaths
 from .runtime import build_runtime_paths, sanitize_error_message, sanitize_url
 from .surface import write_surface_outputs
 
-RUNNER_VERSION = "0.4.1"
+RUNNER_VERSION = "0.4.3"
 
 
 def _now() -> str:
@@ -44,7 +44,7 @@ def run_discovery(config: DiscoveryConfig | None = None, paths: RuntimePaths | N
     screenshot_path = runtime.screenshots_dir / f"saydivoice_{run_id}.png"
     inventory_path = run_dir / "dom_inventory.json"
     report_path = runtime.reports_dir / f"discovery_report_{run_id}.json"
-    logger.info("Starting SaydiVoice discovery V0.4.1", extra={"event": "run_started"})
+    logger.info("Starting SaydiVoice discovery V0.4.3", extra={"event": "run_started"})
     browser_bundle = None
     try:
         raw_probe, browser_bundle, page = open_and_probe(cfg, runtime)
