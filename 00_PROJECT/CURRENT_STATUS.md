@@ -4,45 +4,40 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. The first real Windows artifact set has now been reviewed. D1 Surface Map/V0.2 is implemented on branch `feat/saydivoice-d1-surface-map`, code/CI verified, and awaits one live V0.2 rerun on the target laptop before merge.**
+**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 is implemented on branch `feat/saydivoice-d1-surface-map`, code/CI verified, packaged for Windows field verification, and now waits for one real V0.2 run on the target laptop before merge.**
 
 ## Completed
 
 - Repository/project architecture and durable continuation records established.
 - SaydiVoice Discovery Runner V0.1 merged through PR #1.
-- Main implementation merge commit: `f5d35eb157b26ca0425267979be2d32e359b7f55`.
-- Python package, CLI, visible Playwright Chromium, persistent local browser profile, structured report/logging, and Windows setup/run scripts implemented.
-- V0.1 regression suite: 16 tests PASS; PR and post-merge Windows CI PASS.
-- First real Windows field run succeeded: run `20260917_011521_dcb358a9`, `TTS_READY`, `CAPTURED`, exit code `0`.
-- Uploaded field artifacts reviewed: discovery report, screenshot, DOM inventory, and JSONL log.
-- The first field state is anonymous-ready: the TTS editor is usable while login controls remain visible.
-- 37 visible interactive elements were captured in the V0.1 DOM inventory.
-- Verified visible TTS controls include language selector, automatic voice selector, script editor, add-speaker, import-script, subtitle-to-voice, Generate, Settings/History, pause selector, WAV/MP3/FLAC/OGG format tabs, and assistant/chat control.
-- D1/V0.2 surface-mapping implementation added on branch `feat/saydivoice-d1-surface-map`.
-- D1 outputs include `saydi_map.json` and `selectors.json` with semantic control keys and ranked locator candidates.
-- D1 distinguishes page readiness from authentication state so anonymous-ready is not misclassified as login failure.
-- D1 branch Windows Actions run `35172844321`: PASS through dependency install, compile, and unit-test steps.
-- D1 suite contains 23 tests and includes privacy and locator regression coverage.
+- First real Windows V0.1 run succeeded: run `20260917_011521_dcb358a9`, `TTS_READY`, `CAPTURED`, exit code `0`.
+- Uploaded field artifacts reviewed: report, screenshot, DOM inventory, and JSONL log.
+- First real state confirmed as anonymous-ready: TTS editor usable while login controls remain visible.
+- 37 visible interactive elements captured in V0.1.
+- Privacy defect `BUG-20260917-006` found: V0.1 persisted contenteditable script text.
+- Semantic defect `BUG-20260917-007` found: login explanatory text could be confused with History.
+- D1/V0.2 implemented: readiness/auth state split, contenteditable privacy suppression, semantic surface map, ranked locator candidates, `saydi_map.json`, and `selectors.json`.
+- D1 branch Windows Actions run `35172844321`: PASS; dependency install, compile, and unit tests PASS.
+- Branch D1 suite: 23 tests PASS.
+- One-click Windows helpers added: `CAI_DAT_VA_CHAY.bat` and `CHAY_LAI_DISCOVERY.bat`.
+- Operator distribution `MAGASIN_SAYDIVOICE_DISCOVERY_V0.2.zip` built and self-tested locally.
+- Distribution compile: PASS.
+- Distribution pytest: **29 tests PASS**.
+- Distribution version import: PASS (`0.2.0`).
+- Distribution was regression-checked against a sanitized structural fixture derived from the first real field inventory; expected semantic controls mapped and the prior script text was absent from structured evidence.
 
-## Field defect found and fixed in V0.2
+## Current live gate
 
-The V0.1 DOM inventory persisted text from the contenteditable script editor. This violated the intended privacy boundary even though input/textarea values were already suppressed.
+Run `MAGASIN_SAYDIVOICE_DISCOVERY_V0.2.zip` on the target Windows laptop and return the newest six artifacts:
 
-- Tracked as `BUG-20260917-006`.
-- V0.2 blanks text from contenteditable controls in the browser probe and serializer.
-- Regression test added and Windows CI passes.
-- A live V0.2 artifact is still required to verify the fix on the real SaydiVoice page.
+- `reports\discovery_report_*.json`
+- `runs\<run-id>\dom_inventory.json`
+- `runs\<run-id>\saydi_map.json`
+- `runs\<run-id>\selectors.json`
+- `screenshots\saydivoice_<run-id>.png`
+- `logs\discovery_<run-id>.jsonl`
 
-A second semantic issue was also fixed: anonymous login explanatory copy mentioning history could be confused with the actual History tab. This is tracked as `BUG-20260917-007`; login controls now receive priority over generic label matching.
-
-## Pending before D1 merge
-
-- Run the updated V0.2 discovery package on the target Windows laptop.
-- Confirm the new DOM inventory no longer persists script/editor text.
-- Confirm `saydi_map.json` and `selectors.json` are generated.
-- Review unresolved visual sliders/settings controls from the new live pass.
-- Run the discovery a second time while the same browser session remains valid to confirm persistent-profile reuse behavior.
-- If the live artifact/privacy checks pass, merge D1/V0.2 and advance to D2 Voice/Settings Catalog.
+Acceptance requires `TTS_READY` / `CAPTURED`, no editor/script text in structured evidence, correct D1 outputs, and no new blocking defect. A second run may be requested if session-reuse behavior still needs confirmation.
 
 ## Not yet implemented
 
@@ -56,8 +51,8 @@ A second semantic issue was also fixed: anonymous login explanatory copy mention
 
 ## Repository visibility risk
 
-GitHub metadata still reports the repository as **public**. No passwords, cookies, browser profiles, auth tokens, private media, or generated private artifacts are committed. Keep local runtime evidence/session data out of Git.
+GitHub metadata has reported the repository as public. Never commit passwords, cookies, browser profiles, auth tokens, private media, or raw local runtime/session artifacts.
 
 ## Current active objective
 
-Package and run D1/V0.2 on the target Windows laptop, verify the privacy fix and surface-map outputs against the real SaydiVoice page, then merge D1 and proceed to D2.
+Complete the real V0.2 Windows field gate, then merge D1 and proceed to D2 Voice/Settings Catalog.
