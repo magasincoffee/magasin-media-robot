@@ -1,0 +1,194 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "saydivoice-discovery-v1",
+  "frozen_at": "2026-09-17",
+  "target": {
+    "origin": "https://voice.saydi.ai",
+    "tts_url": "https://voice.saydi.ai/vi/studio/tts/"
+  },
+  "field_evidence": {
+    "authenticated_session_run": 35216153839,
+    "d3_generation_run": 35219033748,
+    "d4_download_run": 35219638775,
+    "d5b3_voice_roundtrip_run": 35230995883,
+    "d5c_input_boundary_run": 35231771503
+  },
+  "session": {
+    "required_page_state": "TTS_READY",
+    "required_auth_state": "AUTHENTICATED_OR_HIDDEN",
+    "runner": "MAGASIN-PC",
+    "platform": "Windows X64",
+    "browser": "installed Google Chrome controlled by Playwright",
+    "profile_root": "%LOCALAPPDATA%\\MAGASIN\\MediaRobot\\saydivoice\\browser_profile",
+    "profile_must_remain_local": true,
+    "anonymous_session_is_production_supported": false
+  },
+  "locator_policy": {
+    "priority": [
+      "test_id",
+      "role_and_accessible_name",
+      "aria_label_or_placeholder",
+      "stable_css",
+      "exact_visible_text_fallback"
+    ],
+    "editor": {
+      "css": "[contenteditable=\"true\"]"
+    },
+    "generate": {
+      "role": "button",
+      "name": "Tạo giọng nói",
+      "exact": true
+    },
+    "cancel": {
+      "visible_text_any": ["Hủy", "Huỷ", "Cancel"]
+    },
+    "download_result": {
+      "visible_text_contains_any": ["Tải về", "Download"]
+    },
+    "voice_selector": {
+      "open_from_exact_current_voice_label": true,
+      "search_input": "visible input with placeholder containing tìm/search/nhập",
+      "card_match": "exact visible voice label",
+      "select_action_any": ["Dùng", "Sử dụng", "Use"],
+      "selected_action_any": ["Xóa", "Xoá", "Remove"]
+    },
+    "custom_sliders": {
+      "css": ".slider",
+      "stability_expression_index": 0,
+      "speed_index": 1,
+      "fill_css": ".slider-fill",
+      "knob_css": ".slider-knob"
+    },
+    "format_tabs": {
+      "css": ".fmt-tab",
+      "observed": ["WAV", "MP3", "FLAC", "OGG"]
+    }
+  },
+  "controls": {
+    "voice_catalog": {
+      "observed_vietnamese_voice_count": 60,
+      "baseline_voice": "Adam — Giọng hot tiktok",
+      "roundtrip_verified_with": "THEANH28 - Nữ"
+    },
+    "stability_expression": {
+      "single_shared_axis": true,
+      "baseline_display": "2.8 / Ổn định",
+      "reversible_change_verified": true
+    },
+    "speed": {
+      "baseline_display": "1.00×",
+      "reversible_change_verified": true
+    },
+    "pause": {
+      "automatic_baseline": false,
+      "dot_seconds": 0.45,
+      "comma_seconds": 0.25,
+      "semicolon_seconds": 0.3,
+      "newline_seconds": 0.6
+    },
+    "independent_mood_or_emotion_control_observed": false
+  },
+  "input_boundary": {
+    "advertised_character_limit": 20000,
+    "empty_input": "GENERATE_DISABLED_UI",
+    "one_character": "ACCEPTED_UI",
+    "at_limit": "ACCEPTED_UI",
+    "above_limit": "CLAMPED_AT_LIMIT_UI",
+    "effective_maximum_characters": 20000,
+    "d5c_tts_request_count": 0
+  },
+  "generation": {
+    "explicit_authorization_required": true,
+    "default_max_generate_attempts": 1,
+    "default_timeout_ms": 60000,
+    "poll_interval_ms": 500,
+    "use_disposable_same_session_tab": true,
+    "download_during_d3": false,
+    "processing_signals": [
+      "Generate disabled or disappears",
+      "Hủy/Cancel appears",
+      "aria-busy=true"
+    ],
+    "success_signals": [
+      "result control appears",
+      "audio element count increases",
+      "quota decreases"
+    ],
+    "field_verified_success": {
+      "POST /api/tts": "HTTP 200 audio/mpeg",
+      "result_control": "Tải về appeared",
+      "history_write": "HTTP 201",
+      "terminal_state": "SUCCESS_SIGNAL"
+    },
+    "retry": {
+      "implicit_retry": false,
+      "reload_retry_only_when_explicitly_authorized_and_new_error_is_reload_specific": true
+    }
+  },
+  "download": {
+    "explicit_authorization_required": true,
+    "requires_generation_success_signal": true,
+    "maximum_new_downloads_per_controlled_run": 1,
+    "verify_extension_and_nonzero_bytes": true,
+    "hash_locally": true,
+    "raw_audio_must_be_deleted_before_artifact_staging": true,
+    "raw_audio_must_not_be_uploaded_to_github": true,
+    "field_verified_example": {
+      "extension": ".mp3",
+      "bytes": 11853,
+      "sha256": "f0dd8145d6d55a70ebb46ab032d7805741f81d64e1ac06b4b9a08008f1928be4"
+    }
+  },
+  "error_handling": {
+    "anonymous_session_start_403": {
+      "classification": "REAUTH_OR_USE_AUTHENTICATED_PROFILE",
+      "retry_without_auth_change": false
+    },
+    "anonymous_samples_401": {
+      "classification": "REAUTH_OR_USE_AUTHENTICATED_PROFILE",
+      "retry_without_auth_change": false
+    },
+    "empty_input": {
+      "classification": "FIX_INPUT",
+      "provider_request_expected": false
+    },
+    "over_limit_input": {
+      "classification": "UI_CLAMPS_TO_20000",
+      "provider_request_expected_during_boundary_probe": false
+    },
+    "generic_provider_error": {
+      "classification": "DO_NOT_BLIND_RETRY",
+      "capture_privacy_safe_transport_metadata": true
+    }
+  },
+  "privacy": {
+    "never_persist": [
+      "editor_text",
+      "credentials",
+      "cookies",
+      "localStorage",
+      "sessionStorage",
+      "authorization_headers",
+      "request_bodies",
+      "successful_response_bodies",
+      "raw_html",
+      "browser_profile",
+      "raw_generated_audio_in_github_artifacts"
+    ],
+    "network_evidence": {
+      "allowed_resource_types": ["xhr", "fetch", "media"],
+      "strip_query": true,
+      "strip_fragment": true,
+      "max_events": 180
+    },
+    "editor_evidence": "length/hash only for fixed controlled sample; no text body"
+  },
+  "invariants": [
+    "Normal discovery is read-only by default.",
+    "Generate requires an explicit allow gate.",
+    "Download requires a separate explicit allow gate.",
+    "No authentication, quota, CAPTCHA, or provider restriction bypass is permitted.",
+    "A controlled test must restore reversible UI state before PASS.",
+    "The browser profile stays local to the runner and is never uploaded."
+  ]
+}

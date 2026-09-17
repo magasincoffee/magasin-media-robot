@@ -1,53 +1,49 @@
 # Next Step
 
-## Immediate next step — D5 controlled limits/error characterization
+## Immediate next step — freeze D6 and start the production SaydiVoice adapter
 
-Authenticated live discovery is now working on the Windows self-hosted runner and D1–D4 are field-verified. The next phase is not another authentication/browser bootstrap. It is a bounded characterization of Saydi provider limits and failure modes.
+D1–D5 are now sufficiently field-verified on the authenticated `MAGASIN-PC` path. Do not spend more generation quota merely to repeat already accepted discovery evidence.
 
-## Current validated baseline
+## D6 gate
 
-- Runner: `MAGASIN-PC` (`self-hosted`, `Windows`, `X64`).
-- Browser: installed Google Chrome controlled by Playwright.
-- Persistent profile: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile`.
-- Session: `TTS_READY` + `AUTHENTICATED_OR_HIDDEN`.
-- D3: one authenticated Generate succeeds and yields a real download-ready result.
-- D4: one authenticated Download succeeds; metadata can be captured and the temporary audio deleted before evidence upload.
-- Normal live-session workflow remains non-destructive by default.
+The frozen contract is `01_DISCOVERY/saydivoice/contracts/saydivoice_contract_v1.json` and must be treated as the integration boundary for the first production adapter.
 
-## D5 objectives
+Before moving on:
 
-Characterize only limits/errors that materially affect a production Voice Engine. Do not stress-test the provider and do not bypass provider restrictions.
+1. contract JSON parses and contract tests pass;
+2. Generate and Download remain separate explicit gates;
+3. the 20,000-character boundary is enforced before provider generation;
+4. no blind retry is introduced;
+5. profile/auth state remains local to the runner;
+6. raw generated audio is never staged into the public GitHub artifacts;
+7. editor/user text remains outside structured discovery evidence.
 
-Priority checks:
+## Production adapter scope after D6
 
-1. **Text boundary behavior**
-   - verify accepted lengths near practical/advertised limits using the minimum number of requests;
-   - record validation messages/statuses without repeatedly probing the same boundary.
-2. **Unsupported/invalid input behavior**
-   - empty or whitespace-only input where the UI permits observation without generation;
-   - clearly over-limit input only if it can be rejected before provider generation work.
-3. **Session expiry/re-auth behavior**
-   - observe naturally when encountered; do not intentionally invalidate credentials unless required for a bounded test.
-4. **Quota/rate-limit behavior**
-   - prefer passive observation from normal runs;
-   - do not intentionally exhaust free/paid quota or generate rapid repeated requests.
-5. **Format/settings failure behavior**
-   - only test combinations exposed by the UI and avoid combinatorial sweeps.
+Build a narrow provider adapter instead of extending the discovery runner indefinitely. The adapter should expose a stable application-facing interface such as:
 
-## D5 acceptance gate
+- session readiness check;
+- voice selection by catalog identity/label;
+- stability/expression, speed, pause and format configuration;
+- text validation (1–20,000 characters per provider request);
+- one explicitly authorized generation operation;
+- observable lifecycle state (`processing`, `success`, `error`, `needs_reauth`);
+- one explicitly authorized download/materialization operation;
+- privacy-safe diagnostics and bounded timeouts.
 
-D5 is sufficient when the project has documented, reproducible handling for the production-relevant provider errors encountered or safely observable, including:
+The adapter should not embed application-level text splitting, content rewriting, retry storms, quota exhaustion behavior, or authentication bypasses. Those policies belong in higher layers.
 
-- user-facing error/validation signal;
-- relevant HTTP status/endpoint metadata where privacy-safe;
-- whether a request consumed generation quota;
-- retryability classification (`retry`, `re-auth`, `fix input`, or `do not retry`);
-- bounded timeout/cancellation behavior.
+## Rediscovery rule
 
-## After D5
+Do not re-run D1–D5 on every change. Increment the contract version and rediscover only when a material provider change invalidates a frozen assumption, for example:
 
-1. Freeze D6 discovery contracts: selectors, session requirements, generation lifecycle, download lifecycle, errors/timeouts, privacy boundaries.
-2. Build the production SaydiVoice provider adapter against those frozen contracts.
-3. Keep browser profile/auth state local; never place it in GitHub artifacts or repository files.
+- TTS page/session state changes;
+- key locator/accessible-name changes;
+- voice selection semantics change;
+- slider/format controls change;
+- generation success/error lifecycle changes;
+- download mechanism changes;
+- the 20,000-character limit changes;
+- privacy-safe endpoint behavior materially changes.
 
-No operator ZIP round-trip is required for ordinary D5 iterations while the self-hosted runner is online.
+This keeps future provider testing bounded, reproducible and quota-conscious.
