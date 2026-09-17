@@ -46,6 +46,7 @@ class DiscoveryConfig:
     allow_generate: bool = False
     generation_timeout_ms: int = 60_000
     generation_poll_ms: int = 500
+    generation_retry_after_reload_error: bool = False
 
 
 @dataclass(frozen=True)
