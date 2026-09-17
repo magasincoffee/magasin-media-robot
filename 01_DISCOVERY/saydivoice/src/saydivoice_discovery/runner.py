@@ -15,7 +15,7 @@ from .models import DiscoveryConfig, DiscoveryReport, RunStatus, RuntimePaths
 from .runtime import build_runtime_paths, sanitize_error_message, sanitize_url
 from .surface import write_surface_outputs
 
-RUNNER_VERSION = "0.4.0"
+RUNNER_VERSION = "0.4.1"
 
 
 def _now() -> str:
@@ -57,7 +57,7 @@ def run_discovery(
     inventory_path = run_dir / "dom_inventory.json"
     report_path = runtime.reports_dir / f"discovery_report_{run_id}.json"
 
-    logger.info("Starting SaydiVoice discovery V0.4.0", extra={"event": "run_started"})
+    logger.info("Starting SaydiVoice discovery V0.4.1", extra={"event": "run_started"})
     browser_bundle = None
     try:
         raw_probe, browser_bundle, page = open_and_probe(cfg, runtime)
@@ -148,8 +148,12 @@ def run_discovery(
                         evidence_dir=run_dir,
                         timeout_ms=cfg.generation_timeout_ms,
                         poll_ms=cfg.generation_poll_ms,
+                        retry_after_reload_error=cfg.generation_retry_after_reload_error,
                     )
-                    notes.append("D3 performed exactly one explicitly authorized controlled generation in a disposable same-session tab; no download control was clicked.")
+                    if cfg.generation_retry_after_reload_error:
+                        notes.append("D3 allowed one initial controlled generation and at most one reload retry only when the provider explicitly returned a reload-page error; no download was clicked.")
+                    else:
+                        notes.append("D3 performed one explicitly authorized controlled generation; no download control was clicked.")
                     logger.info(
                         "D3 controlled generation lifecycle captured",
                         extra={"event": "d3_generation_captured"},
@@ -165,7 +169,7 @@ def run_discovery(
         page.screenshot(path=str(screenshot_path), full_page=True)
 
         report = DiscoveryReport(
-            schema_version="1.3",
+            schema_version="1.4",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,
@@ -194,7 +198,7 @@ def run_discovery(
         return report
     except Exception as exc:
         report = DiscoveryReport(
-            schema_version="1.3",
+            schema_version="1.4",
             runner_version=RUNNER_VERSION,
             run_id=run_id,
             started_at=started,
