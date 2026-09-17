@@ -4,43 +4,54 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. V0.1 runner is merged, unit/CI verified, and the first real Windows/SaydiVoice field run reached `TTS_READY` / `CAPTURED`. Artifact review and a session-reuse rerun remain before D0 is fully closed.**
+**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 has passed its real Windows/SaydiVoice field gate and is ready to merge. The next implementation phase is D2 — Voice/Settings Catalog.**
 
 ## Completed
 
 - Repository/project architecture and durable continuation records established.
 - SaydiVoice Discovery Runner V0.1 merged through PR #1.
-- Main implementation merge commit: `f5d35eb157b26ca0425267979be2d32e359b7f55`.
-- Python package and CLI created.
-- Playwright persistent-profile browser runner created; browser is visible by default.
-- Local runtime policy implemented under `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice`.
-- Basic states implemented: `TTS_READY`, `LOGIN_REQUIRED`, `ACCESS_BLOCKED`, `UNKNOWN`, plus `BROWSER_ERROR` run status.
-- Manual login support added: `RUN_DISCOVERY.bat` waits up to 180 seconds when login is required so the user can authenticate in the robot browser; credentials are not automated or committed.
-- Local screenshot, sanitized DOM inventory, structured discovery report, JSONL logs, and explicit exit codes implemented.
-- Privacy safeguards implemented for editor values, URLs/query strings, token-like text, emails, cookies/storage/auth-header boundaries.
-- Windows setup/run scripts implemented.
-- Regression tests implemented: 16 local tests PASS.
-- PR Windows CI run `35130561175`: PASS.
-- Post-merge `main` Windows CI run `35130819104`: PASS for merge commit `f5d35eb157b26ca0425267979be2d32e359b7f55`.
-- Five defects discovered during self-test/review were fixed and recorded in `BUG_LOG.md`.
-- First real Windows field run observed from operator screenshot: Playwright Chromium installed, bundled tests `16 passed`, run ID `20260917_011521_dcb358a9`, final `State: TTS_READY`, `Status: CAPTURED`, process status `0`.
-- Field report path shown by runner: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\reports\discovery_report_20260917_011521_dcb358a9.json`.
+- First real Windows V0.1 run succeeded: `20260917_011521_dcb358a9`, `TTS_READY`, `CAPTURED`, exit code `0`.
+- V0.1 artifacts reviewed and real anonymous-ready behavior documented.
+- Field privacy defect `BUG-20260917-006` and locator semantic defect `BUG-20260917-007` found, fixed, and regression-tested.
+- D1/V0.2 implemented on branch `feat/saydivoice-d1-surface-map`:
+  - page readiness separated from authentication state;
+  - contenteditable editor text suppressed;
+  - semantic surface map generated as `saydi_map.json`;
+  - ranked locator candidates generated as `selectors.json`;
+  - Windows helpers and one-click packaging added.
+- D1 branch Windows Actions passed; distribution self-test passed.
+- Real V0.2 field run `20260917_110310_7bf1810a` reviewed:
+  - runner `0.2.0`;
+  - `TTS_READY` / `ANONYMOUS` / `CAPTURED`;
+  - exit/error state clean;
+  - 38 visible interactive elements captured;
+  - script editor element index 18 persisted with `contenteditable: true` and no script text;
+  - `saydi_map.json` and `selectors.json` generated successfully;
+  - login controls and standalone History tab classified correctly;
+  - MP3 selected; WAV/MP3/FLAC/OGG format tabs mapped;
+  - language, voice selector, generate, settings/history, pause, editor utility controls, and assistant chat mapped.
+- Visible stability/expression/speed controls are present on screen but do not expose stable interactive nodes in this D1 capture. D1 intentionally does not invent selectors for them; D2 will inspect these settings live.
 
-## Pending before D0 field verification is fully closed
+## D1 acceptance result
 
-- Review the generated local artifacts for run `20260917_011521_dcb358a9`:
-  - `reports\discovery_report_20260917_011521_dcb358a9.json`
-  - `runs\20260917_011521_dcb358a9\dom_inventory.json`
-  - `screenshots\saydivoice_20260917_011521_dcb358a9.png`
-  - `logs\discovery_20260917_011521_dcb358a9.jsonl`
-- Confirm the evidence contains no intentionally captured password/input values, raw cookies/storage/auth headers, or query/fragment secrets.
-- Run `RUN_DISCOVERY.bat` once more while the current SaydiVoice session remains valid and confirm it reaches `TTS_READY` without requiring a new login.
-- Once those checks pass, mark D0 field verification complete and begin D1 Surface Map.
+**PASS.** No new blocking defect was found in the uploaded V0.2 report, DOM inventory, surface map, selectors, screenshot, or lifecycle log. The V0.1 privacy leak is verified fixed on the real provider page.
+
+The current field state is anonymous, so authenticated session-reuse behavior is not a D1 blocker. Persistent browser-profile support remains implemented and will be exercised when a later phase requires account authentication.
+
+## Next phase
+
+D2 — Voice/Settings Catalog:
+
+- non-destructively open the current voice selector and settings surfaces;
+- catalog available voice/language choices that can be observed safely;
+- capture real setting controls and current values/ranges for stability, expression, speed, pause behavior, and output format;
+- improve locator evidence for sliders/custom controls without guessing;
+- emit structured catalog outputs and tests;
+- do not click Generate or download audio yet.
 
 ## Not yet implemented
 
-- D1 complete surface/locator map.
-- D2 voice/settings catalog.
+- D2 complete voice/settings catalog.
 - D3 generation lifecycle automation/observation.
 - D4 audio download discovery.
 - D5 controlled limits/error characterization.
@@ -48,14 +59,10 @@ Last updated: 2026-09-17
 - Production Voice Engine.
 - Media Analyzer, Scene Planner, Subtitle Engine, Render Engine, Desktop UI, full diagnostics/resume runtime, and installer.
 
-## Known environment limitation
-
-The coding sandbox used for V0.1 blocks Chromium navigation by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`). The first real-browser field evidence therefore comes from the target Windows laptop. Pure logic, orchestration behavior, package compilation/import, PR CI, post-merge `main` CI, and one successful real Windows run are now verified.
-
 ## Repository visibility risk
 
-GitHub metadata still reports the repository as **public**. No passwords, cookies, tokens, browser profiles, private media, or generated private artifacts have been committed. If the project is intended to remain private, change repository visibility in GitHub settings before any sensitive material is ever added.
+GitHub metadata has reported the repository as public. Never commit passwords, cookies, browser profiles, auth tokens, private media, or raw local runtime/session artifacts.
 
 ## Current active objective
 
-Review the first real local discovery artifact set and verify persistent-session reuse, then implement D1 — Surface Map from the real SaydiVoice evidence.
+Merge D1/V0.2, create the D2 branch, implement/test D2 Voice/Settings Catalog, and stop only when a new real SaydiVoice interaction is required from the operator.

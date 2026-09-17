@@ -1,88 +1,67 @@
 # Test Log
 
+## 2026-09-17 — V0.2 Windows distribution packaging self-test
+
+Scope: final operator ZIP for the D1 live gate.
+
+- Distribution: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.2.zip`.
+- Runner version: `0.2.0`.
+- `python -m compileall -q src`: PASS.
+- `PYTHONPATH=src python -m pytest -q`: PASS — **29 tests**.
+- Version import check: PASS (`0.2.0`).
+- Real V0.1 field inventory replayed as a sanitized structural fixture with the editor marked contenteditable: expected D1 controls mapped.
+- Privacy regression replay: PASS — the prior real script text is absent after V0.2 inventory sanitization.
+- Expected selector keys observed in replay include language, voice, script editor, Generate, Settings, History, pause, WAV/MP3/FLAC/OGG, login, toolbar actions, and assistant chat.
+- Live provider navigation for V0.2: PENDING target-laptop run.
+
+## 2026-09-17 — First field artifact review + D1/V0.2 validation
+
+Scope: review uploaded artifacts from real Windows run `20260917_011521_dcb358a9` and validate D1 Surface Map branch.
+
+### Uploaded artifact review
+
+- `discovery_report_20260917_011521_dcb358a9.json`: PASS structurally; runner `0.1.0`, `TTS_READY`, `CAPTURED`, no runtime error.
+- `discovery_20260917_011521_dcb358a9.jsonl`: PASS; clean start/completion lifecycle with no exception.
+- Screenshot: PASS for visible TTS page; anonymous login controls are visible while TTS editor remains usable.
+- `dom_inventory.json`: functional control capture PASS (37 elements), privacy FAIL for V0.1 because a contenteditable script editor persisted its visible text.
+- Privacy defect tracked as `BUG-20260917-006`; fixed in V0.2 with browser-probe and serializer suppression plus regression coverage.
+- Locator semantic defect `BUG-20260917-007` also fixed so login explanatory copy is not confused with the History tab.
+
+### D1/V0.2 branch verification
+
+- Branch: `feat/saydivoice-d1-surface-map`.
+- Version: `0.2.0`.
+- D1 writes `saydi_map.json` and `selectors.json` in the per-run directory.
+- Windows GitHub Actions run `35172844321`: PASS.
+- Environment: `windows-latest`.
+- Dependency install: PASS.
+- Compile package: PASS.
+- Unit-test step: PASS.
+- D1 suite: 23 tests, including contenteditable privacy suppression and locator semantic regression coverage.
+
+### Remaining live gate
+
+Run V0.2 on the real Windows/SaydiVoice page and verify no script/editor text in structured evidence, D1 outputs, real slider/settings semantics where exposed, and persistent-profile reuse if needed.
+
 ## 2026-09-17 — Real Windows SaydiVoice field run
 
-Scope: first operator-run field verification of SaydiVoice Discovery Runner V0.1 on the target Windows laptop.
-
-### Evidence observed from operator screenshot
-
 - Playwright Chromium download/install: PASS.
-- Chromium version shown: `143.0.7499.4` (Playwright build `v1200`).
-- Bundled regression tests: PASS — `16 passed in 0.29s`.
+- Bundled regression tests: PASS — 16 tests.
 - Discovery run ID: `20260917_011521_dcb358a9`.
 - Final page classification: `TTS_READY`.
 - Final run status: `CAPTURED`.
 - Process status: `0`.
-- Report path printed by runner: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\reports\discovery_report_20260917_011521_dcb358a9.json`.
-
-### Result
-
-PASS for real Windows setup, real browser launch/navigation, test execution, and page classification/capture.
-
-### Remaining field checks
-
-- Full contents of the generated report, DOM inventory, screenshot, and JSONL log have not yet been reviewed by the project implementation session.
-- Persistent-session reuse still needs a second run while the SaydiVoice session remains valid.
-- D0 will be marked fully field-verified only after those checks pass.
 
 ## 2026-09-17 — SaydiVoice Discovery Runner V0.1
 
-Scope: D0 runner foundation implemented on PR #1 and merged to `main`.
-
-### Local self-test
-
-- `python -m compileall -q src`: PASS.
-- `PYTHONPATH=src python -m pytest -q`: PASS — 16 tests.
-- Package import/version check: PASS (`0.1.0`).
-- Tested pure logic: runtime path construction, URL/text/error sanitization, page-state classifier, report serialization, evidence privacy, runner orchestration/cleanup, and manual-login re-probe.
-- First privacy test exposed editor-text persistence risk; fixed and regression-tested.
-- Full real-browser navigation in the implementation sandbox: NOT RUN. Chromium navigation is blocked there by administrator policy (`ERR_BLOCKED_BY_ADMINISTRATOR`), including local/data test navigation. This is an environment limitation documented in `01_DISCOVERY/saydivoice/SMOKE_TEST_NOTES.md`.
-
-### GitHub Actions — PR validation
-
-- Workflow: `Discovery Tests`.
-- Run ID: `35130561175`.
-- Code head: `06d39030f08b1de635122c4edd1c0875001a5458`.
-- Environment: `windows-latest`, Python 3.13.
-- Dependency install: PASS.
-- Compile package: PASS.
-- Unit tests: PASS.
-- Overall conclusion: PASS.
-
-### GitHub Actions — merged `main`
-
-- Merge/squash commit: `f5d35eb157b26ca0425267979be2d32e359b7f55`.
-- Workflow run ID: `35130819104`.
-- Environment: `windows-latest`, Python 3.13.
-- Checkout/setup: PASS.
-- Dependency install: PASS.
-- Compile package: PASS.
-- Unit tests: PASS.
-- Overall conclusion: PASS.
-
-### Acceptance note
-
-Code/unit/CI verification for V0.1 is complete on `main`.
+- Local compile: PASS.
+- Local pytest: PASS — 16 tests.
+- Package import/version: PASS (`0.1.0`).
+- PR GitHub Actions Windows run `35130561175`: PASS.
+- Post-merge `main` GitHub Actions run `35130819104`: PASS.
 
 ## 2026-09-17 — Repository initialization checks
 
 - Repository access: PASS (`magasincoffee/magasin-media-robot`, admin/push access available).
 - Default branch: `main`.
-- Initial repository state before scaffolding: empty.
-- Documentation/source-of-truth scaffold creation: PASS for files recorded in the initialization changelog.
-- Production code tests: NOT APPLICABLE — implementation had not started at that point.
-
-## Test entry template
-
-```text
-Date/time:
-Scope:
-Environment:
-Commit/branch:
-Commands/checks:
-Expected:
-Result: PASS | FAIL
-Evidence:
-Related bug IDs:
-Notes:
-```
+- Documentation/source-of-truth scaffold creation: PASS.

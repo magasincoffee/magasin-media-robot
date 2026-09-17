@@ -24,6 +24,23 @@ def test_inventory_does_not_persist_input_value(tmp_path: Path):
     assert parsed["elements"][0]["placeholder"] == "Email"
 
 
+def test_contenteditable_text_is_always_suppressed(tmp_path: Path):
+    raw = [
+        {
+            "tag": "div",
+            "contenteditable": True,
+            "text": "Nội dung riêng tư trong kịch bản",
+            "aria_label": None,
+        }
+    ]
+    inventory = sanitize_inventory(raw)
+    assert inventory[0].contenteditable is True
+    assert inventory[0].text is None
+    output = tmp_path / "dom.json"
+    write_dom_inventory(output, inventory)
+    assert "Nội dung riêng tư" not in output.read_text(encoding="utf-8")
+
+
 def test_page_signals_url_is_sanitized():
     signals = make_page_signals(
         {

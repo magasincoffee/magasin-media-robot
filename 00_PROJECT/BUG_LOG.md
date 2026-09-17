@@ -4,9 +4,49 @@ Use one entry per significant reproducible defect. Keep unresolved defects visib
 
 ## Open
 
-None in V0.1 code. The real SaydiVoice browser smoke test is still pending on the target Windows laptop because the implementation sandbox blocks Chromium navigation by administrator policy; this is tracked as a test-environment limitation, not a product defect.
+None currently blocking D1/V0.2. The real SaydiVoice page does not expose stable interactive DOM nodes for the visible stability/expression/speed sliders in the D1 capture; those settings are intentionally deferred to D2 live catalog discovery instead of using guessed selectors.
 
 ## Resolved
+
+### BUG-20260917-006 — Contenteditable editor text leaked into DOM inventory
+
+Status: VERIFIED
+
+Detected in: first real Windows field artifact set, run `20260917_011521_dcb358a9`.
+
+Symptom: `dom_inventory.json` persisted the full text currently visible in the SaydiVoice editor even though the discovery privacy contract says editor/input values are not intentionally persisted.
+
+Expected: Text entered or displayed inside editable TTS script surfaces must never be written to structured discovery evidence.
+
+Root cause: The browser probe did not persist a `contenteditable` flag per element, and the V0.1 serializer did not independently suppress contenteditable text.
+
+Fix: V0.2 records contenteditable state, blanks editor text inside the browser probe, and suppresses editor text again in the serializer.
+
+Tests added/run: contenteditable privacy regression, runner privacy regression, D1 suite PASS, Windows Actions PASS.
+
+Live regression result: VERIFIED on real Windows/SaydiVoice V0.2 run `20260917_110310_7bf1810a`. The contenteditable editor is present at element index 18 with `text: null`; no script text appears in the uploaded structured DOM inventory, surface map, selectors, report, or JSONL lifecycle log.
+
+Commit/PR: branch `feat/saydivoice-d1-surface-map`.
+
+### BUG-20260917-007 — Login explanatory copy could be misclassified as History control
+
+Status: VERIFIED
+
+Detected in: D1 mapping against the first real V0.1 DOM inventory.
+
+Symptom: The anonymous login button text includes explanatory copy mentioning history, so a loose substring matcher could classify that button as `history_tab`.
+
+Expected: Authentication controls must map to `login`; the actual standalone `Lịch sử` tab must map to `history_tab`.
+
+Root cause: Initial D1 semantic matching used broad substring terms and evaluated history before login semantics.
+
+Fix: Authentication controls are detected first using a login-prefix rule; common controls then use exact normalized labels.
+
+Tests added/run: `test_login_explanatory_copy_is_not_misclassified_as_history`; D1 suite PASS and Windows Actions PASS.
+
+Live regression result: VERIFIED on run `20260917_110310_7bf1810a`: three login controls map to `login`, while standalone element index 31 maps to `history_tab`.
+
+Commit/PR: branch `feat/saydivoice-d1-surface-map`.
 
 ### BUG-20260917-001 — Editor text could enter DOM inventory
 
@@ -20,7 +60,7 @@ Expected: Discovery evidence must never persist entered script/credential values
 
 Root cause: Sanitization trusted the probe to blank editor text instead of enforcing the privacy boundary again at serialization.
 
-Fix: `sanitize_inventory()` now suppresses text for editor controls regardless of probe input.
+Fix: `sanitize_inventory()` suppresses text for editor controls regardless of probe input.
 
 Tests added/run: privacy regression in `test_evidence.py` and runner orchestration test; local pytest and Windows CI pass.
 
@@ -34,59 +74,25 @@ Symptom: Dependencies could be installed while `python -m saydivoice_discovery.c
 
 Expected: After one setup run, `RUN_DISCOVERY.bat` must be able to import and launch the package.
 
-Root cause: Setup originally installed requirement files only.
-
 Fix: `SETUP_DISCOVERY.bat` installs the project in editable mode with development extras before running tests.
-
-Tests added/run: package import/compile checks locally; Windows CI package tests pass.
 
 ### BUG-20260917-003 — Error logging could leak sensitive URL/query content
 
 Status: VERIFIED
 
-Detected in: security/privacy review.
-
-Symptom: Raw exception text can contain redirect URLs, query parameters, emails, or token-like values.
-
-Expected: Logs/reports must not intentionally persist those values.
-
-Root cause: Raw exception output was not consistently sanitized before logging/reporting.
-
-Fix: Errors now pass through `sanitize_error_message()`; URL query/fragment, obvious bearer/JWT values, and emails are redacted, and raw stack traces are not written by default.
-
-Tests added/run: runtime sanitization tests; local pytest and Windows CI pass.
+Fix: Errors pass through `sanitize_error_message()`; URL query/fragment, obvious bearer/JWT values, and emails are redacted, and raw stack traces are not written by default.
 
 ### BUG-20260917-004 — Browser resources could leak after navigation/probe failure
 
 Status: VERIFIED
 
-Detected in: orchestration self-review.
-
-Symptom: If Chromium launched successfully but navigation or DOM probing failed before the context bundle returned to the runner, Playwright/context cleanup was not guaranteed.
-
-Expected: Browser resources must close on launch, navigation, probe, capture, and runner failure paths.
-
-Root cause: Cleanup responsibility began too late in the call chain.
-
-Fix: `open_and_probe()` now closes the persistent context and stops Playwright when navigation/probing raises; runner cleanup remains responsible after a successful return.
-
-Tests added/run: orchestration cleanup coverage plus local/CI regression suite.
+Fix: `open_and_probe()` closes the persistent context and stops Playwright when navigation/probing raises; runner cleanup remains responsible after a successful return.
 
 ### BUG-20260917-005 — First login could not populate persistent browser profile
 
 Status: VERIFIED
 
-Detected in: first-use workflow review.
-
-Symptom: A login-required page would be classified and the browser would close immediately, preventing the user from logging in once to populate the persistent profile.
-
-Expected: First use should allow manual login without storing credentials in code, then reuse the local profile.
-
-Root cause: V0.1 had classification but no bounded manual-login observation window.
-
-Fix: Added configurable manual-login polling. `RUN_DISCOVERY.bat` now keeps the visible browser open for up to 180 seconds when login is required and re-probes after the user logs in.
-
-Tests added/run: `test_runner_reprobes_during_manual_login_wait`; 16 local tests pass and GitHub Actions Windows run `35130561175` passes.
+Fix: Added configurable manual-login polling. The visible browser remains open during first-use login and re-probes afterward; persistent profile storage remains local-only.
 
 ## Entry template
 
