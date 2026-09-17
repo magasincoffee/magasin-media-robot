@@ -4,55 +4,49 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 has passed its real Windows/SaydiVoice field gate and is ready to merge. The next implementation phase is D2 — Voice/Settings Catalog.**
+**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 is merged to `main`. D2 Voice/Settings Catalog V0.3 is implemented and code/CI verified on branch `feat/saydivoice-d2-voice-settings-catalog`; the next gate is one real Windows/SaydiVoice V0.3 run.**
 
 ## Completed
 
-- Repository/project architecture and durable continuation records established.
-- SaydiVoice Discovery Runner V0.1 merged through PR #1.
-- First real Windows V0.1 run succeeded: `20260917_011521_dcb358a9`, `TTS_READY`, `CAPTURED`, exit code `0`.
-- V0.1 artifacts reviewed and real anonymous-ready behavior documented.
-- Field privacy defect `BUG-20260917-006` and locator semantic defect `BUG-20260917-007` found, fixed, and regression-tested.
-- D1/V0.2 implemented on branch `feat/saydivoice-d1-surface-map`:
-  - page readiness separated from authentication state;
-  - contenteditable editor text suppressed;
-  - semantic surface map generated as `saydi_map.json`;
-  - ranked locator candidates generated as `selectors.json`;
-  - Windows helpers and one-click packaging added.
-- D1 branch Windows Actions passed; distribution self-test passed.
-- Real V0.2 field run `20260917_110310_7bf1810a` reviewed:
-  - runner `0.2.0`;
-  - `TTS_READY` / `ANONYMOUS` / `CAPTURED`;
-  - exit/error state clean;
-  - 38 visible interactive elements captured;
-  - script editor element index 18 persisted with `contenteditable: true` and no script text;
-  - `saydi_map.json` and `selectors.json` generated successfully;
-  - login controls and standalone History tab classified correctly;
-  - MP3 selected; WAV/MP3/FLAC/OGG format tabs mapped;
-  - language, voice selector, generate, settings/history, pause, editor utility controls, and assistant chat mapped.
-- Visible stability/expression/speed controls are present on screen but do not expose stable interactive nodes in this D1 capture. D1 intentionally does not invent selectors for them; D2 will inspect these settings live.
+- D0 / Discovery Runner V0.1 completed and merged.
+- D1 / Surface Map V0.2 completed, field-verified, and merged through PR #6 as `79bb057f4adc7ba010645bc63461564fa037e7a8`.
+- Real V0.2 field run `20260917_110310_7bf1810a` confirmed `TTS_READY` / `ANONYMOUS` / `CAPTURED`, 38 interactive elements, correct D1 outputs, and the V0.1 contenteditable privacy leak fixed on the real provider page.
+- D2 / V0.3 implementation added on branch `feat/saydivoice-d2-voice-settings-catalog`.
+- D2 adds `voice_catalog.json` and `settings_catalog.json` to each successful TTS-ready run.
+- D2 opens only the voice, language, and pause selectors for observation, captures visible options when exposed, then closes each surface without selecting an option.
+- D2 does not invoke Generate, does not download audio, and does not enter credentials.
+- D2 setting probe records stability/expression/speed/pause/output-format labels plus current range/ARIA evidence when the provider exposes it; unresolved custom controls remain explicit rather than guessed.
+- Output-format catalog records WAV/MP3/FLAC/OGG and the selected format when available.
+- D2 catalog builder excludes unrelated script/editor values and keeps catalog evidence local-only.
+- Runner upgraded to `0.3.0`, report schema to `1.2`, and report now includes optional catalog paths.
+- Graceful fallback implemented: if the D2 catalog probe fails because the provider UI changed, D1 capture/report still completes instead of failing the entire discovery run.
 
-## D1 acceptance result
+## Verification
 
-**PASS.** No new blocking defect was found in the uploaded V0.2 report, DOM inventory, surface map, selectors, screenshot, or lifecycle log. The V0.1 privacy leak is verified fixed on the real provider page.
+- Local distribution-derived regression suite: **38 tests PASS** after integrating D2 runner/catalog logic.
+- Branch Windows Actions run `35189216611`: PASS for initial D2 catalog suite.
+- Branch Windows Actions run `35189339655`: PASS after D2 runner integration/fallback tests.
+- Compile and package-version checks are clean for V0.3 code.
 
-The current field state is anonymous, so authenticated session-reuse behavior is not a D1 blocker. Persistent browser-profile support remains implemented and will be exercised when a later phase requires account authentication.
+## Current live gate
 
-## Next phase
+Run V0.3 on the target Windows laptop against the real SaydiVoice TTS page. Review:
 
-D2 — Voice/Settings Catalog:
+- `reports\discovery_report_<run-id>.json`
+- `runs\<run-id>\dom_inventory.json`
+- `runs\<run-id>\saydi_map.json`
+- `runs\<run-id>\selectors.json`
+- `runs\<run-id>\voice_catalog.json`
+- `runs\<run-id>\settings_catalog.json`
+- `screenshots\saydivoice_<run-id>.png`
+- `logs\discovery_<run-id>.jsonl`
 
-- non-destructively open the current voice selector and settings surfaces;
-- catalog available voice/language choices that can be observed safely;
-- capture real setting controls and current values/ranges for stability, expression, speed, pause behavior, and output format;
-- improve locator evidence for sliders/custom controls without guessing;
-- emit structured catalog outputs and tests;
-- do not click Generate or download audio yet.
+Acceptance requires the D2 outputs to be generated or to report explicit non-blocking warnings, no settings to be changed, no Generate/download action, and no script/editor values in structured evidence.
 
 ## Not yet implemented
 
-- D2 complete voice/settings catalog.
-- D3 generation lifecycle automation/observation.
+- D2 real-provider field acceptance.
+- D3 generation lifecycle observation/automation.
 - D4 audio download discovery.
 - D5 controlled limits/error characterization.
 - D6 frozen discovery contracts.
@@ -61,8 +55,8 @@ D2 — Voice/Settings Catalog:
 
 ## Repository visibility risk
 
-GitHub metadata has reported the repository as public. Never commit passwords, cookies, browser profiles, auth tokens, private media, or raw local runtime/session artifacts.
+GitHub metadata has reported the repository as public. Never commit passwords, cookies, browser profiles, auth tokens, private media, voice catalogs from a private account, or raw local runtime/session artifacts.
 
 ## Current active objective
 
-Merge D1/V0.2, create the D2 branch, implement/test D2 Voice/Settings Catalog, and stop only when a new real SaydiVoice interaction is required from the operator.
+Package D2/V0.3 for the operator, perform one real Windows/SaydiVoice run, review the eight outputs above, fix any provider-specific discovery defect, then merge D2 and proceed to D3 only after field acceptance.
