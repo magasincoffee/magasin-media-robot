@@ -25,10 +25,14 @@ def _signals(raw: dict) -> PageSignals:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="One-time interactive SaydiVoice login bootstrap for the persistent local Playwright profile."
+        description="One-time interactive SaydiVoice login bootstrap for the persistent local Chrome profile."
     )
     parser.add_argument("--runtime-root", type=Path, help="Override MAGASIN MediaRobot runtime root.")
     parser.add_argument("--timeout-ms", type=int, default=60_000)
+    parser.add_argument(
+        "--chromium-executable",
+        help="Installed Google Chrome/Chromium executable used to create and verify the persistent profile.",
+    )
     return parser
 
 
@@ -40,11 +44,14 @@ def main(argv: list[str] | None = None) -> int:
         headless=False,
         navigation_timeout_ms=max(5_000, args.timeout_ms),
         settle_ms=2_000,
+        chromium_executable_path=args.chromium_executable,
     )
 
     print("\n=== MAGASIN SaydiVoice — One-time Browser Profile Setup ===")
     print(f"Profile local: {runtime.profile_dir}")
-    print("1) Dang nhap SaydiVoice trong cua so Chromium vua mo.")
+    if args.chromium_executable:
+        print(f"Browser executable: {args.chromium_executable}")
+    print("1) Dang nhap SaydiVoice trong cua so Chrome vua mo.")
     print("2) Neu Google/OTP/CAPTCHA xuat hien, tu hoan tat tren trinh duyet.")
     print("3) Khi quay lai trang TTS va khong con nut Dang nhap, quay lai cua so nay.")
     print("4) Nhan ENTER de kiem tra va luu profile.\n")
