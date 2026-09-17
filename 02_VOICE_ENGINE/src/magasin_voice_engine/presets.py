@@ -10,11 +10,10 @@ DEFAULT_VOICE = "Adam — Giọng hot tiktok"
 
 @dataclass(frozen=True, slots=True)
 class PauseProfile:
+    # Field verification supports deterministic pause enable/disable. Exact
+    # per-punctuation timing writes are intentionally excluded from the frozen
+    # production contract until they are separately field-verified.
     enabled: bool = False
-    dot_seconds: float = 0.45
-    comma_seconds: float = 0.25
-    semicolon_seconds: float = 0.30
-    newline_seconds: float = 0.60
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,14 +65,8 @@ PRESETS: Mapping[str, VoicePreset] = {
         voice=DEFAULT_VOICE,
         stability_ratio=0.40,
         speed_ratio=0.35,
-        pause=PauseProfile(
-            enabled=True,
-            dot_seconds=0.55,
-            comma_seconds=0.30,
-            semicolon_seconds=0.35,
-            newline_seconds=0.70,
-        ),
-        intent="Chậm hơn, mềm và có khoảng nghỉ cho nội dung kể chuyện.",
+        pause=PauseProfile(enabled=True),
+        intent="Chậm hơn, mềm và bật ngắt nghỉ; timing chi tiết chưa thuộc production contract.",
     ),
     "news_stable": VoicePreset(
         key="news_stable",
@@ -90,14 +83,8 @@ PRESETS: Mapping[str, VoicePreset] = {
         voice=DEFAULT_VOICE,
         stability_ratio=0.30,
         speed_ratio=0.35,
-        pause=PauseProfile(
-            enabled=True,
-            dot_seconds=0.60,
-            comma_seconds=0.35,
-            semicolon_seconds=0.40,
-            newline_seconds=0.75,
-        ),
-        intent="Nghiêng về biểu cảm, tốc độ chậm và khoảng nghỉ dài hơn.",
+        pause=PauseProfile(enabled=True),
+        intent="Nghiêng về biểu cảm, tốc độ chậm và bật ngắt nghỉ.",
     ),
 }
 
