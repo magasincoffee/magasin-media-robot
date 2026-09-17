@@ -57,3 +57,33 @@ Rationale:
 - allows live evidence artifacts to exclude the profile entirely.
 
 The self-hosted runner should initially be started interactively under the same Windows account that owns the browser profile. Controlled Generate remains separately gated and is not implied by merely having an authenticated profile.
+
+## ADR-009 — Voice mood/style is an application-level preset over verified provider controls
+
+Status: Accepted
+
+SaydiVoice field discovery exposed voice selection, a Biểu cảm ↔ Ổn định axis, speed, pause controls, and audio format. No separate discrete Happy/Sad/Angry mood selector was observed. MAGASIN therefore models delivery style as named application presets that deterministically compose only those verified controls.
+
+Rationale:
+
+- avoids inventing a provider capability that was not observed;
+- gives downstream media jobs a stable semantic interface such as `tiktok_energetic` or `story_warm`;
+- keeps provider-specific slider ratios and UI behavior behind the Saydi adapter;
+- allows presets to be unit-tested and roundtrip-tested without consuming generation quota.
+
+Preset values are implementation policy and may be tuned later from listening tests without changing the provider contract.
+
+## ADR-010 — Live Generate is a separately authorized one-shot side effect
+
+Status: Accepted
+
+Production/discovery automation must treat Generate as an explicit side effect. A normal preflight or control-setting workflow does not imply permission to Generate. When a live Generate is authorized, the default execution contract is exactly one click with no automatic retry.
+
+Rationale:
+
+- prevents accidental quota consumption;
+- prevents duplicate history/audio results when terminal signals are ambiguous;
+- separates retry policy from provider UI mechanics;
+- makes operator authorization auditable in workflow design.
+
+A later production adapter may expose retryability metadata, but a second Generate attempt still requires an explicit caller policy rather than an implicit browser retry.

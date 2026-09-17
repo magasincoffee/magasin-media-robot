@@ -1,8 +1,8 @@
 # Next Step
 
-## Immediate next step — D5 controlled limits/error characterization
+## Immediate next step — freeze preset controls and build the production SaydiVoice provider adapter
 
-Authenticated live discovery is now working on the Windows self-hosted runner and D1–D4 are field-verified. The next phase is not another authentication/browser bootstrap. It is a bounded characterization of Saydi provider limits and failure modes.
+Authenticated live discovery has now proven the complete control path required for production: session reuse, voice/settings control, one-shot generation, and download lifecycle. The next phase is implementation against those observed contracts rather than further exploratory Generate runs.
 
 ## Current validated baseline
 
@@ -10,44 +10,72 @@ Authenticated live discovery is now working on the Windows self-hosted runner an
 - Browser: installed Google Chrome controlled by Playwright.
 - Persistent profile: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile`.
 - Session: `TTS_READY` + `AUTHENTICATED_OR_HIDDEN`.
-- D3: one authenticated Generate succeeds and yields a real download-ready result.
-- D4: one authenticated Download succeeds; metadata can be captured and the temporary audio deleted before evidence upload.
-- Normal live-session workflow remains non-destructive by default.
+- Voice: deterministic selection/verification supported.
+- Style controls: stability/expression ratio, speed ratio, pause enable, and audio format supported.
+- Application-level presets exist for common delivery styles; no separate discrete provider mood selector was observed.
+- One-shot generation returns HTTP 200 `audio/mpeg` and creates history successfully.
+- Download lifecycle is field-verified and raw audio can remain local.
+- `tiktok_energetic` real generation run `35241844708` passed with exactly one Generate and zero Download clicks.
 
-## D5 objectives
+## Production adapter objective
 
-Characterize only limits/errors that materially affect a production Voice Engine. Do not stress-test the provider and do not bypass provider restrictions.
+Create a provider boundary that accepts a stable request similar to:
 
-Priority checks:
+```text
+text
+preset_key
+voice_override (optional)
+format_override (optional)
+output_directory
+```
 
-1. **Text boundary behavior**
-   - verify accepted lengths near practical/advertised limits using the minimum number of requests;
-   - record validation messages/statuses without repeatedly probing the same boundary.
-2. **Unsupported/invalid input behavior**
-   - empty or whitespace-only input where the UI permits observation without generation;
-   - clearly over-limit input only if it can be rejected before provider generation work.
-3. **Session expiry/re-auth behavior**
-   - observe naturally when encountered; do not intentionally invalidate credentials unless required for a bounded test.
-4. **Quota/rate-limit behavior**
-   - prefer passive observation from normal runs;
-   - do not intentionally exhaust free/paid quota or generate rapid repeated requests.
-5. **Format/settings failure behavior**
-   - only test combinations exposed by the UI and avoid combinatorial sweeps.
+and returns a structured result similar to:
 
-## D5 acceptance gate
+```text
+status
+provider
+voice
+preset_key
+format
+local_audio_path
+byte_count
+sha256
+provider_history_created
+error_class
+retryable
+```
 
-D5 is sufficient when the project has documented, reproducible handling for the production-relevant provider errors encountered or safely observable, including:
+## Required behavior
 
-- user-facing error/validation signal;
-- relevant HTTP status/endpoint metadata where privacy-safe;
-- whether a request consumed generation quota;
-- retryability classification (`retry`, `re-auth`, `fix input`, or `do not retry`);
-- bounded timeout/cancellation behavior.
+1. Reuse the local authenticated Chrome profile; never serialize credentials or cookies.
+2. Run an authenticated preflight before any side effect.
+3. Resolve and validate the requested preset before touching the live page.
+4. Apply voice/style controls and verify observed state before Generate.
+5. Enforce exactly one Generate attempt unless a caller explicitly authorizes a separate retry policy.
+6. Wait for a verified terminal success/error signal with a bounded timeout.
+7. Download only when requested by the production operation.
+8. Keep generated audio local; GitHub artifacts may contain metadata/screenshots only.
+9. Classify failures as `fix_input`, `re_auth`, `retry`, or `do_not_retry`.
+10. Preserve the existing safe evidence/redaction boundary.
 
-## After D5
+## Acceptance gate for the adapter
 
-1. Freeze D6 discovery contracts: selectors, session requirements, generation lifecycle, download lifecycle, errors/timeouts, privacy boundaries.
-2. Build the production SaydiVoice provider adapter against those frozen contracts.
-3. Keep browser profile/auth state local; never place it in GitHub artifacts or repository files.
+Before another live Generate is requested, complete all offline/unit verification for:
 
-No operator ZIP round-trip is required for ordinary D5 iterations while the self-hosted runner is online.
+- preset validation;
+- request/result models;
+- preflight failure handling;
+- one-attempt guard;
+- timeout/error classification;
+- output-path and metadata handling;
+- privacy/redaction tests.
+
+A final end-to-end production acceptance Generate may be requested separately only after these tests pass.
+
+## After the provider adapter
+
+1. Expose the adapter through the Windows Control Center / orchestration layer.
+2. Hand local audio into the deterministic FFmpeg media pipeline.
+3. Add job-level logging/state so media projects can resume safely after interruption.
+
+No additional operator ZIP round-trip is required while the self-hosted runner is online.
