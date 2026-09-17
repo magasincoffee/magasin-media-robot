@@ -1,5 +1,45 @@
 # Test Log
 
+## 2026-09-17 — D2 V0.3 real-provider review + V0.3.1 corrective build
+
+Scope: review the operator's real SaydiVoice V0.3 artifacts, isolate provider-specific discovery defects, implement V0.3.1 corrective capture, and verify packaging.
+
+### Real V0.3 field run
+
+- Run ID: `20260917_135249_9534c523`.
+- Runner: `0.3.0`; schema: `1.2`.
+- Page/run: `TTS_READY` / `ANONYMOUS` / `CAPTURED`.
+- Runtime exception: none.
+- Interactive elements: 38.
+- Lifecycle log: clean start → D2 catalog captured → run completed.
+- D1 evidence: still valid; script/editor text remained suppressed in structured inventory.
+- Output formats: PASS — WAV/MP3/FLAC/OGG observed; MP3 selected.
+- D2 semantic completeness: FAIL/PARTIAL.
+  - Voice catalog contained only generic `Xoá` instead of meaningful voice options.
+  - Language selector opened but options were empty.
+  - Stability/expression/speed text values were visible (`2.8`, `Ổn định`, `1.00×`) but generic nearby buttons were associated as controls.
+  - Screenshot showed the pause panel remained expanded and exposed rows `0.45s`, `0.25s`, `0.3s`, `0.6s`.
+- Defect recorded as `BUG-20260917-008`.
+
+### V0.3.1 corrective implementation
+
+- Added privacy-safe visible-control delta capture around selector opening.
+- Added generic control filtering (`Xoá`/Clear, +/- etc.).
+- Added display-value parsing from provider-visible label/value text when range/ARIA semantics are unavailable.
+- Added pause-panel structure capture without changing values.
+- Added Escape + opener-toggle restoration check.
+- Added per-surface screenshots for voice/language/pause.
+- Added explicit closed-after-observation/warning output.
+- Runner/package: `0.3.1`.
+- Windows Actions run `35192735044`: PASS.
+- Packaging workflow run `35193609757`: PASS.
+- GitHub Actions operator artifact produced: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.1`.
+- Extracted operator ZIP: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.1.zip`.
+- Extracted ZIP compile: PASS.
+- Extracted ZIP pytest: **35 tests PASS**.
+- Version check in packaged files: PASS (`0.3.1`).
+- Real V0.3.1 provider verification: PENDING one operator rerun.
+
 ## 2026-09-17 — D2 Voice/Settings Catalog V0.3 automated verification
 
 Scope: implement and regression-test non-destructive D2 voice/settings observation before real-provider field execution.
@@ -21,7 +61,6 @@ Scope: implement and regression-test non-destructive D2 voice/settings observati
 - GitHub Actions push run `35189216611`: PASS.
 - GitHub Actions push run `35189339655`: PASS after runner integration/fallback coverage.
 - PR #7 Windows Actions run `35189814339`: PASS — checkout, Python setup, dependency install, compile, unit tests all successful.
-- Real SaydiVoice D2 navigation/option capture: PENDING target-laptop V0.3 run.
 
 ## 2026-09-17 — V0.2 Windows distribution packaging self-test
 
@@ -35,7 +74,6 @@ Scope: final operator ZIP for the D1 live gate.
 - Real V0.1 field inventory replayed as a sanitized structural fixture with the editor marked contenteditable: expected D1 controls mapped.
 - Privacy regression replay: PASS — the prior real script text is absent after V0.2 inventory sanitization.
 - Expected selector keys observed in replay include language, voice, script editor, Generate, Settings, History, pause, WAV/MP3/FLAC/OGG, login, toolbar actions, and assistant chat.
-- Live provider navigation for V0.2: PENDING target-laptop run.
 
 ## 2026-09-17 — First field artifact review + D1/V0.2 validation
 
@@ -61,10 +99,6 @@ Scope: review uploaded artifacts from real Windows run `20260917_011521_dcb358a9
 - Compile package: PASS.
 - Unit-test step: PASS.
 - D1 suite: 23 tests, including contenteditable privacy suppression and locator semantic regression coverage.
-
-### Remaining live gate
-
-Run V0.2 on the real Windows/SaydiVoice page and verify no script/editor text in structured evidence, D1 outputs, real slider/settings semantics where exposed, and persistent-profile reuse if needed.
 
 ## 2026-09-17 — Real Windows SaydiVoice field run
 
