@@ -20,7 +20,7 @@ EXIT_CODES = {
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="MAGASIN SaydiVoice Discovery Runner V0.2 (D1 surface map)."
+        description="MAGASIN SaydiVoice Discovery Runner V0.3 (D2 voice/settings catalog)."
     )
     parser.add_argument("--headless", action="store_true", help="Run Chromium headless (default is visible).")
     parser.add_argument("--runtime-root", type=Path, help="Override local runtime root for testing/diagnostics.")
@@ -52,6 +52,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"State: {report.page_state}")
         print(f"Auth: {report.auth_state}")
         print(f"Status: {report.run_status}")
+        if report.catalog_summary:
+            print(f"D2 catalog: {report.catalog_summary}")
         if report.error:
             print(f"Error: {report.error}", file=sys.stderr)
 
