@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 PageState = Literal["TTS_READY", "LOGIN_REQUIRED", "ACCESS_BLOCKED", "UNKNOWN"]
 RunStatus = Literal["CAPTURED", "LOGIN_REQUIRED", "ACCESS_BLOCKED", "UNKNOWN", "BROWSER_ERROR"]
+AuthState = Literal["ANONYMOUS", "AUTHENTICATED_OR_HIDDEN", "UNKNOWN"]
 
 
 @dataclass(frozen=True)
@@ -67,6 +68,13 @@ class InteractiveElement:
     placeholder: str | None = None
     aria_label: str | None = None
     test_id: str | None = None
+    contenteditable: bool = False
+    disabled: bool = False
+    aria_selected: str | None = None
+    aria_checked: str | None = None
+    aria_valuenow: str | None = None
+    aria_valuemin: str | None = None
+    aria_valuemax: str | None = None
 
 
 @dataclass
@@ -84,6 +92,9 @@ class DiscoveryReport:
     screenshot_path: str | None
     dom_inventory_path: str | None
     element_count: int
+    auth_state: AuthState = "UNKNOWN"
+    surface_map_path: str | None = None
+    selectors_path: str | None = None
     notes: list[str] = field(default_factory=list)
     error: str | None = None
 
