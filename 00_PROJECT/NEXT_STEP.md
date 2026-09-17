@@ -1,37 +1,44 @@
 # Next Step
 
-## Immediate next step — Final D2 field gate with V0.3.2
+## Immediate next step — authenticated Saydi live session through GitHub Actions
 
-Real V0.3.1 run `20260917_142133_bd48aed7` verified that pause restoration and visible setting-value capture now work, but two custom-provider surfaces are still under-captured in structured JSON:
+Anonymous Saydi testing is no longer useful as the primary path. The latest controlled diagnostics established a repeatable session-bootstrap block before generation:
 
-- the language dropdown visibly shows language labels, while `language.options` is empty;
-- the voice modal visibly shows one automatic voice card, while the catalog counts navigation tabs as voice options.
+- `/api/session/start` returns 403 with `Verification failed. Please retry.`;
+- `/api/samples` returns 401 with `Invalid or missing credentials.`;
+- the anonymous voice catalog exposes only `Tự động`;
+- V0.4.3 correctly stops at `PREFLIGHT_BLOCKED` before Generate.
 
-V0.3.2 adds a second privacy-safe visible-leaf delta pass specifically for custom SaydiVoice surfaces. It excludes input/contenteditable text, filters modal navigation/generic controls, captures visible language labels, and recognizes the current automatic voice card without changing a selection.
+The next bounded step is therefore to reuse one authenticated persistent browser profile on a Windows self-hosted GitHub Actions runner.
 
 ## Operator sequence
 
-1. Use `MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2.zip` on the target Windows laptop.
-2. Extract to a new folder.
-3. Run `CAI_DAT_VA_CHAY.bat`.
-4. Do not manually change voice, language, pause, sliders, output format, or script while discovery is running.
-5. Do not click `Tạo giọng nói`.
-6. Let the robot finish by itself.
-7. Return the newest same-run artifacts, especially `voice_catalog.json`, `settings_catalog.json`, `d2_voice_surface.png`, `d2_language_surface.png`, and `d2_pause_surface.png`.
-8. Never send `browser_profile`.
+1. Configure the target Windows laptop as a self-hosted runner for `magasincoffee/magasin-media-robot`.
+2. Start the runner interactively with `run.cmd` under the Windows account that will own the browser profile.
+3. Check out PR #9 / branch `feat/saydi-github-live-profile` on that machine.
+4. Run `01_DISCOVERY\saydivoice\SETUP_LIVE_PROFILE.bat` once.
+5. Chromium opens. Log in to SaydiVoice manually; complete Google/OTP/CAPTCHA yourself if requested.
+6. Return to the terminal and press Enter only after the TTS page is back and the login control is gone.
+7. Setup must report `PASS`.
+8. In GitHub, run **Actions → SaydiVoice Live Session Check → Run workflow**.
+9. Do not upload or commit the browser profile.
 
-## D2 acceptance gate
+## Live-session acceptance gate
 
-Merge PR #7 when:
+The first workflow is deliberately non-destructive and must pass before any GitHub Action is allowed to click Generate:
 
-- voice catalog identifies `Tự động — Hệ thống tự chọn giọng` or equivalent semantic automatic-card evidence rather than modal navigation tabs;
-- language catalog includes visible choices such as English/Tiếng Việt instead of an empty list;
-- pause reports restored/closed after observation;
-- display values remain `2.8`, `Ổn định`, `1.00×` for the current page state;
-- MP3 remains selected and no provider setting changed;
+- `TTS_READY`;
+- `AUTHENTICATED_OR_HIDDEN`;
+- D1/D2 observation completes;
+- no provider login/session failure is surfaced;
 - no Generate/download occurs;
-- structured evidence contains no script/editor text.
+- only latest privacy-safe evidence/report/log is uploaded.
 
-## After D2 — D3 Generation Lifecycle
+## After the session gate passes
 
-After D2 field acceptance and merge: use a minimal controlled text sample to characterize Generate start, processing, completion, error, quota behavior, result-player controls, and lifecycle timing. D3 may trigger one real generation only after the operator package explicitly marks that action as controlled. Audio download remains D4.
+1. Synchronize/enable the controlled D3 V0.4.x lifecycle implementation in the repository.
+2. Run exactly one authorized D3 generation on the same persistent authenticated profile.
+3. Require a real success signal before proceeding.
+4. Implement D4 result/download metadata capture only after D3 passes.
+
+The operator should not need to download a new diagnostic ZIP for every iteration once the self-hosted GitHub Actions path is active.

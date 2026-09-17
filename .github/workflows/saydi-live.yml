@@ -1,0 +1,86 @@
+name: SaydiVoice Live Session Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-live-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  live-session-check:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: 01_DISCOVERY/saydivoice
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Saydi discovery dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
+          python -m playwright install chromium
+
+      - name: Verify persistent local Saydi profile exists
+        run: |
+          $profile = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\browser_profile"
+          if (-not (Test-Path $profile)) {
+            throw "Saydi browser profile is missing. Run 01_DISCOVERY\saydivoice\SETUP_LIVE_PROFILE.bat once on this self-hosted runner machine."
+          }
+          $items = @(Get-ChildItem $profile -Force -ErrorAction SilentlyContinue)
+          if ($items.Count -eq 0) {
+            throw "Saydi browser profile exists but is empty. Run SETUP_LIVE_PROFILE.bat once on this machine."
+          }
+          Write-Host "Persistent profile found locally. Profile contents will not be uploaded."
+
+      - name: Run non-destructive live discovery
+        run: |
+          & python -m saydivoice_discovery.cli --timeout-ms 60000 --settle-ms 2500 --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Require authenticated Saydi session
+        run: |
+          & python -m saydivoice_discovery.ci_gate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect privacy-safe latest evidence
+        if: always()
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice"
+          $out = Join-Path $env:RUNNER_TEMP "saydi-live-evidence"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Path $out | Out-Null
+
+          $latestRun = Get-ChildItem (Join-Path $root "runs") -Directory -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($latestRun) { Copy-Item $latestRun.FullName (Join-Path $out "run") -Recurse -Force }
+
+          $latestReport = Get-ChildItem (Join-Path $root "reports\discovery_report_*.json") -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($latestReport) { Copy-Item $latestReport.FullName $out -Force }
+
+          $latestLog = Get-ChildItem (Join-Path $root "logs\discovery_*.jsonl") -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($latestLog) { Copy-Item $latestLog.FullName $out -Force }
+
+          Write-Host "Evidence staged without browser_profile."
+
+      - name: Upload live evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saydi-live-session-${{ github.run_id }}
+          path: ${{ runner.temp }}\saydi-live-evidence
+          if-no-files-found: warn
+          retention-days: 7

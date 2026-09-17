@@ -41,3 +41,19 @@ Status: Accepted
 Status: Accepted
 
 Technical dependencies may run underneath, but normal operation should be exposed through a simple Windows Control Center.
+
+## ADR-008 — Live Saydi GitHub Actions use a trusted Windows self-hosted runner
+
+Status: Accepted
+
+Real-provider SaydiVoice checks that require authentication/session continuity run through GitHub Actions on the user's trusted Windows machine as a self-hosted runner. GitHub orchestrates the job, but the Playwright persistent browser profile remains in `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile` on that machine.
+
+Rationale:
+
+- preserves ADR-004 and the no-secrets-in-Git rule;
+- avoids uploading cookies, browser profile archives, OAuth state, or authentication artifacts;
+- reuses the same machine/network/browser context after anonymous `/api/session/start` verification failures;
+- removes the repeated operator ZIP download/upload loop while keeping live tests reproducible from GitHub Actions;
+- allows live evidence artifacts to exclude the profile entirely.
+
+The self-hosted runner should initially be started interactively under the same Windows account that owns the browser profile. Controlled Generate remains separately gated and is not implied by merely having an authenticated profile.

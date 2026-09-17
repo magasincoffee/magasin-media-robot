@@ -4,61 +4,60 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. D1 Surface Map/V0.2 is merged to `main`. D2 Voice/Settings Catalog has now completed real field runs on V0.3 and V0.3.1. V0.3.1 fixed pause restoration and visible setting-value capture, but still under-captured custom voice/language option text. V0.3.2 is implemented and awaiting one final D2 field rerun before PR #7 can merge.**
+**Phase 0 — SaydiVoice Discovery. D1 and D2 are field-verified. D3 is blocked specifically by anonymous Saydi session verification, not by selector/editor automation. A self-hosted GitHub Actions live-session path is being added so the authenticated persistent browser profile can be reused without repeated operator package downloads.**
 
 ## Completed
 
 - D0 / Discovery Runner V0.1 completed and merged.
-- D1 / Surface Map V0.2 completed, field-verified, and merged through PR #6 as `79bb057f4adc7ba010645bc63461564fa037e7a8`.
-- Real V0.2 field run `20260917_110310_7bf1810a` confirmed `TTS_READY` / `ANONYMOUS` / `CAPTURED`, 38 interactive elements, correct D1 outputs, and the V0.1 contenteditable privacy leak fixed on the real provider page.
-- D2 is on branch `feat/saydivoice-d2-voice-settings-catalog`, PR #7.
-- Real V0.3 run `20260917_135249_9534c523` exposed `BUG-20260917-008` around custom provider surfaces.
-- Real V0.3.1 run `20260917_142133_bd48aed7` field evidence reviewed:
-  - script phrase visible in the browser screenshot is absent from uploaded DOM/map/selectors/settings/voice JSON evidence;
-  - stability display value captured as `2.8`;
-  - expression captured as `Ổn định`;
-  - speed captured as `1.00×`;
-  - output formats captured as WAV/MP3/FLAC/OGG with MP3 selected;
-  - pause panel structure captured: checkbox off, period `0.45s`, comma `0.25s`, semicolon `0.3s`, newline `0.6s`, default button present;
-  - pause surface reports `closed_after_observation: true`;
-  - language surface visibly contains English, Tiếng Việt, 中文, 日本語, 한국어, Deutsch, Español, Français, but `language.options` remained empty;
-  - voice surface visibly contains one `Tự động / Hệ thống tự chọn giọng` card, but catalog incorrectly promoted modal navigation tabs as four voice options.
-- V0.3.2 implemented to address the remaining D2 gap:
-  - second privacy-safe visible-leaf delta pass for custom surfaces;
-  - editable/input content excluded at the browser probe boundary;
-  - language labels extracted from newly visible leaf nodes;
-  - voice modal navigation/generic controls filtered;
-  - current automatic voice card recognized as `Tự động — Hệ thống tự chọn giọng` when exposed;
-  - enhanced results override weak V0.3.1 option results only when meaningful data is found;
-  - runner bumped to `0.3.2` and regression coverage added.
+- D1 / Surface Map V0.2 completed and field-verified.
+- D2 / Voice + Settings Catalog field evidence is accepted:
+  - language catalog captures visible language choices;
+  - current voice surface resolves `Tự động — Hệ thống tự chọn giọng` instead of modal navigation tabs;
+  - stability `2.8`, expression `Ổn định`, speed `1.00×`, pause `Đang tắt`, MP3 + WAV/MP3/FLAC/OGG remain captured;
+  - pause panel is observed non-destructively and restored;
+  - script/editor values remain excluded from structured evidence.
+- Controlled D3 diagnostics were advanced through operator checkpoint V0.4.3:
+  - V0.4.2 network diagnostics showed `/api/session/start` 403, `/api/samples` 401 and `/api/gpu/eta` 401 in the anonymous session;
+  - V0.4.3 captured safe provider error details: `/api/session/start` → `Verification failed. Please retry.` and `/api/samples` → `Invalid or missing credentials.`;
+  - V0.4.3 stopped at `PREFLIGHT_BLOCKED` with `attempt_count: 0`, so no Generate click and no quota consumption occurred.
+- Independent browser testing reproduced the same anonymous limitation: voice catalog only exposed `Tự động`, and anonymous generation failed.
+- Branch `feat/saydi-github-live-profile`, PR #9, adds:
+  - a one-time interactive local profile bootstrap;
+  - a Windows self-hosted GitHub Actions live session workflow;
+  - an authenticated-session CI gate;
+  - privacy-safe latest evidence upload only;
+  - no browser-profile upload to GitHub.
 
 ## Current live gate
 
-Run V0.3.2 once on the target Windows laptop. D2 can merge if:
+The next provider test must use an authenticated persistent Saydi profile on the same Windows machine/network context used by the self-hosted runner.
 
-- voice catalog identifies the automatic voice card instead of modal navigation tabs;
-- language catalog contains the visible language choices instead of an empty list;
-- pause remains restored after observation;
-- stability/expression/speed/output-format evidence remains correct;
-- no setting is changed;
-- no Generate/download action occurs;
-- no script/editor value appears in structured outputs;
-- D1 evidence remains valid.
+Acceptance for the live session gate:
 
-## Not yet implemented
+- page state `TTS_READY`;
+- auth state `AUTHENTICATED_OR_HIDDEN`;
+- voice/settings observation completes without login/session errors;
+- no Generate or Download action occurs in the first live-session workflow;
+- `browser_profile` remains local and is never uploaded.
 
-- D2 V0.3.2 field verification and merge.
-- D3 generation lifecycle observation/automation.
-- D4 audio download discovery.
+## Repository synchronization note
+
+`main` currently contains the V0.3.2 discovery source. The later V0.4.x D3 diagnostic checkpoints were field-run as operator packages during this session. The GitHub live-session infrastructure is being merged first; once authenticated session reuse is proven, the controlled D3 lifecycle implementation will be synchronized/enabled in the repository as the next bounded change.
+
+## Not yet completed
+
+- Authenticated self-hosted live session verification.
+- Repository sync/enablement of controlled D3 generation lifecycle on the authenticated profile.
+- D3 successful generation observation.
+- D4 audio/result download discovery.
 - D5 controlled limits/error characterization.
 - D6 frozen discovery contracts.
-- Production Voice Engine.
-- Media Analyzer, Scene Planner, Subtitle Engine, Render Engine, Desktop UI, full diagnostics/resume runtime, and installer.
+- Production Voice Engine and downstream media pipeline phases.
 
 ## Repository visibility risk
 
-GitHub metadata has reported the repository as public. Never commit passwords, cookies, browser profiles, auth tokens, private media, voice catalogs from a private account, or raw local runtime/session artifacts.
+The repository is public. Never commit passwords, cookies, browser profiles, auth tokens, private media, generated private audio, or sensitive runtime/session artifacts.
 
 ## Current active objective
 
-Finish V0.3.2 Windows CI/package, perform one final D2 field rerun, merge PR #7 if accepted, then begin D3 Generation Lifecycle.
+Finish PR #9 CI, bootstrap the authenticated local Saydi profile once on the Windows self-hosted runner, pass the non-destructive GitHub Actions live session check, then enable controlled D3 on that same profile.

@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-09-17 — SaydiVoice authenticated live-session GitHub Actions path
+
+### Added
+
+- Windows self-hosted GitHub Actions workflow for non-destructive Saydi live-session checks.
+- One-time `SETUP_LIVE_PROFILE.bat` bootstrap for a persistent local Playwright profile.
+- `profile_setup.py` interactive login verifier that keeps credentials out of code/logs.
+- `ci_gate.py` acceptance gate requiring `TTS_READY` and `AUTHENTICATED_OR_HIDDEN` before controlled D3 enablement.
+- Privacy-safe latest evidence staging/upload that explicitly excludes `browser_profile`.
+- Operator documentation for the self-hosted runner/profile workflow.
+
+### Decision
+
+- Real-provider authenticated Saydi checks use a trusted Windows self-hosted runner so the browser profile remains local while GitHub Actions orchestrates execution.
+- Fresh GitHub-hosted runners are not used for the authenticated profile because anonymous session verification has already failed and session continuity is required.
+
+### D3 diagnostic findings
+
+- Anonymous `/api/session/start` observed at 403 with `Verification failed. Please retry.`.
+- Anonymous `/api/samples` observed at 401 with `Invalid or missing credentials.`.
+- V0.4.3 preflight stops at `PREFLIGHT_BLOCKED` with zero generation attempts when that session block is present.
+- Repeated operator ZIP download/upload loops are being replaced by the self-hosted Actions path.
+
 ## 2026-09-17 — SaydiVoice Discovery Runner V0.1
 
 ### Added

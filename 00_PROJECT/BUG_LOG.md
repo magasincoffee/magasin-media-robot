@@ -4,9 +4,38 @@ Use one entry per significant reproducible defect. Keep unresolved defects visib
 
 ## Open
 
+### BUG-20260917-009 — Anonymous Saydi session bootstrap rejected before generation
+
+Status: OPEN — authenticated persistent-profile path prepared in PR #9.
+
+Detected in: controlled D3 operator diagnostics V0.4.2/V0.4.3 and independent browser reproduction.
+
+Symptoms:
+- anonymous voice catalog exposes only `Tự động`;
+- `/api/session/start` returns HTTP 403;
+- safe provider detail: `Verification failed. Please retry.`;
+- `/api/samples` returns HTTP 401;
+- safe provider detail: `Invalid or missing credentials.`;
+- during the earlier attempt `/api/gpu/eta` also returned 401;
+- anonymous Generate returns a generic provider error and does not create a result.
+
+Expected: a valid session can load the real voice catalog and reach a bounded controlled generation lifecycle.
+
+Root cause status: provider-side anonymous verification/authentication requirement is confirmed as the blocking layer; the exact server-side policy is external to this project.
+
+Mitigation/next verification:
+- reuse one manually authenticated Playwright persistent profile on the same trusted Windows machine/network context;
+- orchestrate non-destructive live checks through a Windows self-hosted GitHub Actions runner;
+- keep the profile local and out of Git/artifacts;
+- do not authorize Generate until the authenticated session gate passes.
+
+Safety behavior verified in V0.4.3: `PREFLIGHT_BLOCKED`, `attempt_count: 0`, no Generate click, no quota decrease.
+
+Branch/PR: `feat/saydi-github-live-profile`, PR #9.
+
 ### BUG-20260917-008 — D2 custom SaydiVoice surfaces under-captured
 
-Status: FIXED IN V0.3.2 — awaiting final real-provider verification.
+Status: VERIFIED by later field evidence.
 
 Detected in: V0.3 field run `20260917_135249_9534c523`.
 
@@ -16,39 +45,29 @@ V0.3 symptoms:
 - visible custom slider values were not represented well;
 - pause panel remained expanded after observation.
 
-V0.3.1 real-field result: PARTIAL FIX on run `20260917_142133_bd48aed7`.
+V0.3.1 partial fixes:
+- structured evidence remained free of script/editor text;
+- stability `2.8`, expression `Ổn định`, speed `1.00×`, output formats and pause structure were captured;
+- pause restoration worked.
 
-Verified fixed in V0.3.1:
-- structured evidence remains free of the visible script/editor phrase;
-- stability display value `2.8` captured;
-- expression `Ổn định` captured;
-- speed `1.00×` captured;
-- MP3 + WAV/MP3/FLAC/OGG captured correctly;
-- pause structure captured (`0.45s`, `0.25s`, `0.3s`, `0.6s`, checkbox off, default button present);
-- pause reports `closed_after_observation: true`.
-
-Still incorrect in V0.3.1:
-- language screenshot visibly contains English, Tiếng Việt, 中文, 日本語, 한국어, Deutsch, Español, Français, but `language.options` is empty;
-- voice screenshot visibly contains one `Tự động / Hệ thống tự chọn giọng` card, but structured catalog counts navigation tabs (`Khám phá`, `Đã chọn`, `Giọng của tôi`, `Yêu thích`) as four voice options.
-
-Root cause: SaydiVoice renders language entries and voice-card text as custom visible leaf nodes without the conventional option/ARIA roles used by the first D2 probe.
-
-Fix in V0.3.2:
-- added a second visible-leaf before/after delta pass;
-- input/textarea/contenteditable/textbox content excluded at the browser boundary;
+V0.3.2 fix:
+- second privacy-safe visible-leaf before/after delta pass;
+- editable/input/contenteditable/textbox content excluded at the browser boundary;
 - language labels collected from newly visible leaf nodes;
 - modal navigation and generic controls filtered from voice options;
-- current automatic voice card recognized as `Tự động — Hệ thống tự chọn giọng` when that label/descriptor pair is present;
-- enhanced results replace weak base-catalog options only when meaningful data exists;
-- added multilingual, automatic-card, modal-filter, visible-delta, and runner-integration regressions.
+- current automatic voice card recognized as `Tự động — Hệ thống tự chọn giọng` when exposed;
+- regression coverage added.
 
-Automated regression result: PASS. Windows Actions run `35195143308` PASS; packaged V0.3.2 compile PASS; packaged pytest **40 tests PASS**.
-
-Remaining verification: one real V0.3.2 SaydiVoice run.
-
-Commit/PR: branch `feat/saydivoice-d2-voice-settings-catalog`, PR #7.
+Later field runs confirm the language catalog and automatic voice-card evidence are now captured correctly while prior D2 settings remain stable.
 
 ## Resolved
+
+### BUG-20260917-010 — New live workflow used unavailable `runner` context in top-level concurrency
+Status: FIXED in PR #9.
+Detected in: Actions run `35210309047`, which failed workflow validation with no jobs created.
+Root cause: top-level `concurrency.group` referenced `${{ runner.name }}`, but the `runner` context is only available after a job is assigned.
+Fix: changed the top-level group to `${{ github.repository }}`, which is valid before job scheduling.
+Regression: workflow validation re-check pending on the next branch push/PR synchronize event.
 
 ### BUG-20260917-006 — Contenteditable editor text leaked into DOM inventory
 Status: VERIFIED on V0.2 real run `20260917_110310_7bf1810a`.
