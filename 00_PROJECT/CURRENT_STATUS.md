@@ -4,7 +4,7 @@ Last updated: 2026-09-17
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery. D0–D2 are complete and field-verified. D3 V0.4.0 completed its first real controlled generation attempt and correctly captured a provider error asking to reload the page. V0.4.1 now adds explicit reload-retry recovery and improved processing detection. One V0.4.1 Windows field run is required before D3 can merge.**
+**Phase 0 — SaydiVoice Discovery. D0–D2 are complete and field-verified. D3 V0.4.0 completed its first real controlled generation attempt and captured a provider reload-page error. V0.4.1 recovery is implemented, Windows CI/package verified, and now needs one operator-authorized real-provider recovery run before D3 can merge.**
 
 ## Completed
 
@@ -34,6 +34,10 @@ Last updated: 2026-09-17
   - D3 BAT warns the operator that at most two generation attempts may occur;
   - writes per-attempt traces and screenshots;
   - still never downloads audio and never persists editor text.
+- V0.4.1 Windows Actions run `35201169611`: PASS.
+- V0.4.1 operator artifact generated.
+- Extracted operator ZIP compile: PASS.
+- Extracted operator ZIP pytest: **48 tests PASS**.
 
 ## Current live gate
 
@@ -65,4 +69,4 @@ GitHub metadata still reports the repository as public. Never commit passwords, 
 
 ## Current active objective
 
-Finish V0.4.1 CI/package, perform one controlled recovery field run, review the result, then either merge D3 and begin D4 or isolate a provider/login blocker before proceeding.
+Perform one controlled V0.4.1 recovery field run; review the result; then either merge D3 and begin D4 or isolate a provider/login/session blocker before proceeding.
