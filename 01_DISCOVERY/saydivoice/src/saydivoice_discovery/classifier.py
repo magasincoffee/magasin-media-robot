@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .models import PageSignals, PageState
+from .models import AuthState, PageSignals, PageState
 
 READY_TERMS = (
     "tạo giọng",
@@ -56,4 +56,15 @@ def classify_page_state(signals: PageSignals) -> PageState:
     if login_term_present and not editor_present:
         return "LOGIN_REQUIRED"
 
+    return "UNKNOWN"
+
+
+def classify_auth_state(signals: PageSignals, page_state: PageState) -> AuthState:
+    """Describe what the current surface shows without guessing account identity."""
+    text = _haystack(signals)
+    login_visible = any(term in text for term in LOGIN_TERMS)
+    if page_state == "TTS_READY" and login_visible:
+        return "ANONYMOUS"
+    if page_state == "TTS_READY" and not login_visible:
+        return "AUTHENTICATED_OR_HIDDEN"
     return "UNKNOWN"
