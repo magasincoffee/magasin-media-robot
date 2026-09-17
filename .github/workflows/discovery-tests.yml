@@ -32,22 +32,22 @@ jobs:
         shell: pwsh
         run: |
           $root = (Get-Location).Path
-          $stage = Join-Path $env:RUNNER_TEMP "MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2"
+          $stage = Join-Path $env:RUNNER_TEMP "MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0"
           if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
           New-Item -ItemType Directory -Path $stage | Out-Null
           Get-ChildItem $root -Force | Where-Object { $_.Name -notin @('.venv','__pycache__','.pytest_cache') } | ForEach-Object {
             Copy-Item $_.FullName -Destination $stage -Recurse -Force
           }
           Get-ChildItem $stage -Recurse -Directory -Force | Where-Object { $_.Name -in @('__pycache__','.pytest_cache') } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-          $zip = Join-Path $env:RUNNER_TEMP "MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2.zip"
+          $zip = Join-Path $env:RUNNER_TEMP "MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
-          Copy-Item $zip -Destination (Join-Path $root 'MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2.zip') -Force
+          Copy-Item $zip -Destination (Join-Path $root 'MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0.zip') -Force
       - name: Upload operator ZIP
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2
-          path: 01_DISCOVERY/saydivoice/MAGASIN_SAYDIVOICE_DISCOVERY_V0.3.2.zip
+          name: MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0
+          path: 01_DISCOVERY/saydivoice/MAGASIN_SAYDIVOICE_DISCOVERY_V0.4.0.zip
           if-no-files-found: error
           retention-days: 7
