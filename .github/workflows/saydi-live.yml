@@ -1,20 +1,19 @@
-name: SaydiVoice Live Session Check
+name: SaydiVoice D3 One-Shot Authenticated Generation
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - fix/saydi-profile-system-chrome
+      - ops/saydi-d3-one-shot-20260917
 
 permissions:
   contents: read
 
 concurrency:
-  group: saydi-live-${{ github.repository }}
+  group: saydi-d3-one-shot-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
-  live-session-check:
+  d3-one-shot:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 20
     env:
@@ -47,9 +46,9 @@ jobs:
           Write-Host "Using installed Python: $python ($version)"
           "SAYDI_SYSTEM_PYTHON=$python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Create isolated live-test environment
+      - name: Create isolated D3 environment
         run: |
-          $venv = Join-Path $env:RUNNER_TEMP "saydi-live-venv"
+          $venv = Join-Path $env:RUNNER_TEMP "saydi-d3-one-shot-venv"
           if (Test-Path $venv) { Remove-Item $venv -Recurse -Force }
           & "$env:SAYDI_SYSTEM_PYTHON" -m venv $venv
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -74,37 +73,38 @@ jobs:
           "SAYDI_CHROME=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Using installed Google Chrome: $chrome"
 
-      - name: Verify persistent local Saydi profile exists and is unlocked
+      - name: Verify persistent Saydi profile exists and is unlocked
         run: |
           $profile = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\browser_profile"
           if (-not (Test-Path $profile)) {
-            throw "Saydi browser profile is missing. Run 01_DISCOVERY\saydivoice\SETUP_LIVE_PROFILE.bat once on this self-hosted runner machine."
+            throw "Saydi browser profile is missing."
           }
           $items = @(Get-ChildItem $profile -Force -ErrorAction SilentlyContinue)
           if ($items.Count -eq 0) {
-            throw "Saydi browser profile exists but is empty. Run SETUP_LIVE_PROFILE.bat once on this machine."
+            throw "Saydi browser profile exists but is empty."
           }
           $holders = @(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -like "*MAGASIN\MediaRobot\saydivoice\browser_profile*" })
           if ($holders.Count -gt 0) {
-            throw "Saydi browser profile is currently open in Chrome. Close that robot-profile Chrome window before running the workflow."
+            throw "Saydi robot browser profile is currently open in Chrome. Close it before D3."
           }
-          Write-Host "Persistent profile found locally and unlocked. Profile contents will not be uploaded."
+          Write-Host "Persistent authenticated profile found and unlocked."
 
-      - name: Run non-destructive live discovery with installed Chrome
+      - name: Run exactly one authenticated D3 Generate attempt
         run: |
-          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.cli --chromium-executable "$env:SAYDI_CHROME" --timeout-ms 60000 --settle-ms 2500
+          Write-Host "AUTHORIZED D3: exactly one Generate attempt; no reload retry; no Download click."
+          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.cli --chromium-executable "$env:SAYDI_CHROME" --timeout-ms 60000 --settle-ms 2500 --allow-generate --generation-timeout-ms 60000 --generation-poll-ms 500
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Require authenticated Saydi session
+      - name: Require authenticated D3 success signal
         run: |
-          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.ci_gate
+          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.ci_gate --require-generation-success
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Collect privacy-safe latest evidence
+      - name: Collect privacy-safe D3 evidence
         if: always()
         run: |
           $root = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice"
-          $out = Join-Path $env:RUNNER_TEMP "saydi-live-evidence"
+          $out = Join-Path $env:RUNNER_TEMP "saydi-d3-one-shot-evidence"
           if (Test-Path $out) { Remove-Item $out -Recurse -Force }
           New-Item -ItemType Directory -Path $out | Out-Null
 
@@ -120,13 +120,13 @@ jobs:
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if ($latestLog) { Copy-Item $latestLog.FullName $out -Force }
 
-          Write-Host "Evidence staged without browser_profile."
+          Write-Host "D3 evidence staged without browser_profile."
 
-      - name: Upload live evidence
+      - name: Upload D3 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: saydi-live-session-${{ github.run_id }}
-          path: ${{ runner.temp }}\saydi-live-evidence
+          name: saydi-d3-one-shot-${{ github.run_id }}
+          path: ${{ runner.temp }}\saydi-d3-one-shot-evidence
           if-no-files-found: warn
           retention-days: 7
