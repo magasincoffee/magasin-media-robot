@@ -2,6 +2,41 @@
 
 Chronological handoff record across implementation sessions. Each session must append one concise entry before stopping.
 
+## 2026-09-17 — Session 006 — D2 Voice/Settings Catalog V0.3
+
+### Workbox
+
+Operator requested task execution in bounded workboxes of at most 28 minutes. This workbox started at approximately 13:12 ICT and is stopped as soon as a real-provider operator action becomes the next gate.
+
+### Goal
+
+Complete everything possible for D2 without operator interaction: implementation, privacy safeguards, tests, Windows CI, durable logs, and operator packaging.
+
+### Work completed
+
+- Confirmed D1/V0.2 merged through PR #6 (`79bb057f4adc7ba010645bc63461564fa037e7a8`).
+- Created branch `feat/saydivoice-d2-voice-settings-catalog`.
+- Added `catalog.py` with non-destructive voice/language/pause observation plus current settings DOM probing.
+- Added structured `voice_catalog.json` and `settings_catalog.json` outputs.
+- Added stability/expression/speed/pause/output-format evidence model with current value/range/ARIA/locator hints where the provider exposes them.
+- Added voice/language/pause option observation that closes opened surfaces and does not intentionally change selections.
+- Runner upgraded to V0.3 / report schema 1.2 with optional catalog paths.
+- Added graceful D2 fallback: provider-specific catalog failure leaves D1 capture usable.
+- Added privacy test proving unrelated script text is not copied into D2 catalogs.
+- Added output-format, option deduplication, settings-range, runner-integration, and fallback regression tests.
+- Updated `CURRENT_STATUS.md`, `NEXT_STEP.md`, and `TEST_LOG.md`.
+
+### Test result
+
+- Distribution-derived local compile: PASS.
+- Distribution-derived local pytest after D2 integration: **38 tests PASS**.
+- Windows Actions run `35189216611`: PASS.
+- Windows Actions run `35189339655`: PASS after runner integration/fallback tests.
+
+### Next gate
+
+Build/use the V0.3 Windows package and perform one real SaydiVoice run. The operator should not manually change settings or click Generate. Return the V0.3 report, D1 files, `voice_catalog.json`, `settings_catalog.json`, screenshot, and JSONL log for field review.
+
 ## 2026-09-17 — Session 005 — Package D1/V0.2 for live Windows verification
 
 ### Goal
