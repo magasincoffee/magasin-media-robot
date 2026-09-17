@@ -31,6 +31,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo [MAGASIN] Cai dat Discovery V0.2 hoan tat.
-echo Chay RUN_DISCOVERY.bat de bat dau.
+echo [MAGASIN] Cai dat Discovery V0.3 hoan tat.
+echo Chay RUN_DISCOVERY.bat hoac CHAY_LAI_DISCOVERY.bat de bat dau D2 catalog.
 pause
