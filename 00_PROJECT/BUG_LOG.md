@@ -62,6 +62,13 @@ Later field runs confirm the language catalog and automatic voice-card evidence 
 
 ## Resolved
 
+### BUG-20260917-010 — New live workflow used unavailable `runner` context in top-level concurrency
+Status: FIXED in PR #9.
+Detected in: Actions run `35210309047`, which failed workflow validation with no jobs created.
+Root cause: top-level `concurrency.group` referenced `${{ runner.name }}`, but the `runner` context is only available after a job is assigned.
+Fix: changed the top-level group to `${{ github.repository }}`, which is valid before job scheduling.
+Regression: workflow validation re-check pending on the next branch push/PR synchronize event.
+
 ### BUG-20260917-006 — Contenteditable editor text leaked into DOM inventory
 Status: VERIFIED on V0.2 real run `20260917_110310_7bf1810a`.
 Fix: blank editor text in browser probe and suppress again in serializer.
