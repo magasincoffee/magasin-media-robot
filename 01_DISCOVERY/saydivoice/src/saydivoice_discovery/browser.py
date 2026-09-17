@@ -15,30 +15,44 @@ DOM_PROBE_SCRIPT = r"""
   const interactiveSelector = [
     'button', 'a', 'input', 'textarea', 'select',
     '[role="button"]', '[role="combobox"]', '[role="slider"]', '[role="tab"]',
-    '[role="textbox"]', '[contenteditable="true"]'
+    '[role="textbox"]', '[contenteditable="true"]', '[aria-valuenow]'
   ].join(',');
 
-  const all = Array.from(document.querySelectorAll(interactiveSelector)).filter(isVisible).slice(0, 300);
-  const elements = all.map((el) => ({
-    tag: el.tagName.toLowerCase(),
-    role: el.getAttribute('role'),
-    name: el.getAttribute('name'),
-    text: ['input', 'textarea'].includes(el.tagName.toLowerCase()) ? '' : textOf(el),
-    type: el.getAttribute('type'),
-    placeholder: el.getAttribute('placeholder'),
-    aria_label: el.getAttribute('aria-label'),
-    test_id: el.getAttribute('data-testid') || el.getAttribute('data-test') || el.getAttribute('data-qa')
-  }));
+  const all = Array.from(document.querySelectorAll(interactiveSelector)).filter(isVisible).slice(0, 400);
+  const elements = all.map((el) => {
+    const tag = el.tagName.toLowerCase();
+    const contenteditable = el.getAttribute('contenteditable') === 'true' || el.isContentEditable === true;
+    const isEditor = ['input', 'textarea', 'select'].includes(tag)
+      || el.getAttribute('role') === 'textbox'
+      || contenteditable;
+    return {
+      tag,
+      role: el.getAttribute('role'),
+      name: el.getAttribute('name'),
+      text: isEditor ? '' : textOf(el),
+      type: el.getAttribute('type'),
+      placeholder: el.getAttribute('placeholder'),
+      aria_label: el.getAttribute('aria-label'),
+      test_id: el.getAttribute('data-testid') || el.getAttribute('data-test') || el.getAttribute('data-qa'),
+      contenteditable,
+      disabled: el.disabled === true || el.getAttribute('aria-disabled') === 'true',
+      aria_selected: el.getAttribute('aria-selected'),
+      aria_checked: el.getAttribute('aria-checked'),
+      aria_valuenow: el.getAttribute('aria-valuenow'),
+      aria_valuemin: el.getAttribute('aria-valuemin'),
+      aria_valuemax: el.getAttribute('aria-valuemax')
+    };
+  });
 
   const buttonTexts = Array.from(document.querySelectorAll('button, [role="button"]'))
-    .filter(isVisible).map(textOf).filter(Boolean).slice(0, 80);
+    .filter(isVisible).map(textOf).filter(Boolean).slice(0, 100);
   const linkTexts = Array.from(document.querySelectorAll('a'))
-    .filter(isVisible).map(textOf).filter(Boolean).slice(0, 80);
+    .filter(isVisible).map(textOf).filter(Boolean).slice(0, 100);
 
   return {
     url: window.location.href,
     title: document.title || '',
-    visible_text: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 4000),
+    visible_text: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 6000),
     has_password_input: Array.from(document.querySelectorAll('input[type="password"]')).some(isVisible),
     has_textarea: Array.from(document.querySelectorAll('textarea')).some(isVisible),
     has_contenteditable: Array.from(document.querySelectorAll('[contenteditable="true"]')).some(isVisible),
@@ -55,11 +69,7 @@ def probe_page(page: Any) -> dict[str, Any]:
 
 
 def open_and_probe(config: DiscoveryConfig, paths: RuntimePaths) -> tuple[dict[str, Any], Any, Any]:
-    """Open SaydiVoice and return probe data plus context/page for evidence capture.
-
-    Import Playwright lazily so pure-logic tests do not require browser binaries.
-    Caller owns closing the returned context.
-    """
+    """Open SaydiVoice and return probe data plus context/page for evidence capture."""
     from playwright.sync_api import sync_playwright
 
     playwright = sync_playwright().start()
