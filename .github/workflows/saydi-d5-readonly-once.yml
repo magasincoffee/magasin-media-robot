@@ -1,0 +1,109 @@
+name: SaydiVoice D5 Read-Only Limits Once
+
+on:
+  push:
+    branches:
+      - ops/saydi-d5-readonly-20260917
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-d5-readonly-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  d5-readonly:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    defaults:
+      run:
+        working-directory: 01_DISCOVERY/saydivoice
+        shell: powershell
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve installed Python
+        run: |
+          $python = $null
+          $py = Get-Command py.exe -ErrorAction SilentlyContinue
+          if ($py) {
+            $candidate = (& $py.Source -3 -c "import sys; print(sys.executable)").Trim()
+            if ($LASTEXITCODE -eq 0 -and (Test-Path $candidate)) { $python = $candidate }
+          }
+          if (-not $python) {
+            $cmd = Get-Command python.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $python = $cmd.Source }
+          }
+          if (-not $python -or -not (Test-Path $python)) { throw "Installed Python 3 was not found." }
+          "SAYDI_SYSTEM_PYTHON=$python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using installed Python: $python"
+
+      - name: Create isolated D5 environment
+        run: |
+          $venv = Join-Path $env:RUNNER_TEMP "saydi-d5-readonly-venv"
+          if (Test-Path $venv) { Remove-Item $venv -Recurse -Force }
+          & "$env:SAYDI_SYSTEM_PYTHON" -m venv $venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $venvPython = Join-Path $venv "Scripts\python.exe"
+          & $venvPython -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $venvPython -m pip install -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $venvPython -m pip install -e .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "SAYDI_PYTHON=$venvPython" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Resolve installed Google Chrome
+        run: |
+          $chrome = Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"
+          if (-not (Test-Path $chrome)) { $chrome = Join-Path ${env:ProgramFiles(x86)} "Google\Chrome\Application\chrome.exe" }
+          if (-not (Test-Path $chrome)) { throw "Installed Google Chrome was not found." }
+          "SAYDI_CHROME=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify authenticated robot profile is present and unlocked
+        run: |
+          $profile = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\browser_profile"
+          if (-not (Test-Path $profile)) { throw "Saydi robot browser profile is missing." }
+          if (@(Get-ChildItem $profile -Force -ErrorAction SilentlyContinue).Count -eq 0) { throw "Saydi robot browser profile is empty." }
+          $holders = @(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -like "*MAGASIN\MediaRobot\saydivoice\browser_profile*" })
+          if ($holders.Count -gt 0) { throw "Saydi robot profile is currently open in Chrome; close it before D5." }
+          Write-Host "Robot profile is present and unlocked."
+
+      - name: Run D5 read-only input limit characterization
+        run: |
+          Write-Host "D5 READ-ONLY: no Generate click, no Download click, no provider TTS request expected."
+          & "$env:SAYDI_PYTHON" -m saydivoice_discovery.d5_limits --chromium-executable "$env:SAYDI_CHROME" --settle-ms 500
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify D5 emitted no TTS request
+        if: always()
+        run: |
+          $file = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\runs\d5_limits_latest\d5_input_limits.json"
+          if (-not (Test-Path $file)) { throw "D5 evidence JSON missing." }
+          $data = Get-Content $file -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ([int]$data.tts_request_count -ne 0) { throw "Safety gate failed: D5 observed /api/tts request." }
+          Write-Host "Safety PASS: zero /api/tts requests."
+
+      - name: Stage privacy-safe D5 evidence
+        if: always()
+        run: |
+          $src = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\runs\d5_limits_latest"
+          $out = Join-Path $env:RUNNER_TEMP "saydi-d5-readonly-evidence"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Path $out | Out-Null
+          if (Test-Path (Join-Path $src "d5_input_limits.json")) { Copy-Item (Join-Path $src "d5_input_limits.json") $out -Force }
+          if (Test-Path (Join-Path $src "d5_over_limit_state.png")) { Copy-Item (Join-Path $src "d5_over_limit_state.png") $out -Force }
+
+      - name: Upload D5 read-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saydi-d5-readonly-${{ github.run_id }}
+          path: ${{ runner.temp }}\saydi-d5-readonly-evidence
+          if-no-files-found: warn
+          retention-days: 7
