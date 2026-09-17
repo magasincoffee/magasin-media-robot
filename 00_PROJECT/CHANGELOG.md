@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-09-17 — SaydiVoice voice/style presets and authenticated preset generation
+
+### Added
+
+- Reusable `voice_presets.py` application-level style profiles.
+- Reusable `voice_controls.py` for verified voice selection, slider control, format control, and pause-enable control.
+- Presets: `tiktok_energetic`, `review_natural`, `story_warm`, `news_stable`, and `slow_emotional`.
+- Controlled preset generation path with explicit one-Generate authorization boundary and no automatic retry.
+- Privacy-safe preset-generation evidence workflow on the Windows self-hosted runner.
+
+### Field verification
+
+- Voice selector roundtrip is verified and restores `Adam — Giọng hot tiktok`.
+- Authenticated preflight verifies voice, editor, Generate enabled, two sliders, pause controls, and MP3/WAV/FLAC/OGG format surface.
+- Reversible preset roundtrip workflow run `35237679528`: PASS without Generate.
+- `tiktok_energetic` live run `35241844708`: PASS with exactly one Generate and zero Download clicks.
+- Live configured values were approximately stability/expression `0.30`, speed `0.65`, MP3, pause disabled.
+- `/api/tts` returned HTTP 200 `audio/mpeg`; `/api/library/history` returned HTTP 201.
+
+### Decision
+
+- Mood/style is modeled as an application-level deterministic combination of real Saydi controls. No unsupported claim is made that Saydi exposes a discrete Happy/Sad/Angry emotion API.
+- Further live generations are unnecessary for ordinary adapter implementation; offline tests should be exhausted before requesting another production acceptance Generate.
+
 ## 2026-09-17 — SaydiVoice authenticated live-session GitHub Actions path
 
 ### Added
