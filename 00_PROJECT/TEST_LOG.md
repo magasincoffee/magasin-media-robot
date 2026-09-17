@@ -1,5 +1,19 @@
 # Test Log
 
+## 2026-09-17 — V0.2 Windows distribution packaging self-test
+
+Scope: final operator ZIP for the D1 live gate.
+
+- Distribution: `MAGASIN_SAYDIVOICE_DISCOVERY_V0.2.zip`.
+- Runner version: `0.2.0`.
+- `python -m compileall -q src`: PASS.
+- `PYTHONPATH=src python -m pytest -q`: PASS — **29 tests**.
+- Version import check: PASS (`0.2.0`).
+- Real V0.1 field inventory replayed as a sanitized structural fixture with the editor marked contenteditable: expected D1 controls mapped.
+- Privacy regression replay: PASS — the prior real script text is absent after V0.2 inventory sanitization.
+- Expected selector keys observed in replay include language, voice, script editor, Generate, Settings, History, pause, WAV/MP3/FLAC/OGG, login, toolbar actions, and assistant chat.
+- Live provider navigation for V0.2: PENDING target-laptop run.
+
 ## 2026-09-17 — First field artifact review + D1/V0.2 validation
 
 Scope: review uploaded artifacts from real Windows run `20260917_011521_dcb358a9` and validate D1 Surface Map branch.
@@ -27,16 +41,9 @@ Scope: review uploaded artifacts from real Windows run `20260917_011521_dcb358a9
 
 ### Remaining live gate
 
-Run V0.2 on the real Windows/SaydiVoice page and verify:
-
-- no script/editor text in structured evidence;
-- `saydi_map.json` and `selectors.json` are generated correctly;
-- real slider/settings nodes are resolved where the current DOM exposes stable semantics;
-- persistent-profile reuse behaves correctly on a second run.
+Run V0.2 on the real Windows/SaydiVoice page and verify no script/editor text in structured evidence, D1 outputs, real slider/settings semantics where exposed, and persistent-profile reuse if needed.
 
 ## 2026-09-17 — Real Windows SaydiVoice field run
-
-Scope: first operator-run field verification of SaydiVoice Discovery Runner V0.1 on the target Windows laptop.
 
 - Playwright Chromium download/install: PASS.
 - Bundled regression tests: PASS — 16 tests.
