@@ -1,10 +1,10 @@
 # Current Status
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery is functionally complete for the authenticated Windows path. D1–D4 generation/download, voice/style controls, reversible preset application, authenticated preflight, and one real `tiktok_energetic` preset generation are field-verified on `MAGASIN-PC`. The next objective is to freeze these verified contracts into a production SaydiVoice provider adapter; no additional live generation is required for ordinary implementation work.**
+**Phase 0 discovery remains complete and the production `SaydiVoiceProvider` boundary is now implemented and offline-verified. The adapter has stable request/result models, validation-before-browser-access, authenticated preflight, verified controls, one-attempt Generate semantics, explicit Download, error classification, and local metadata handling. Live production acceptance is intentionally NOT run during the approved night window.**
 
 ## Completed
 
@@ -58,6 +58,17 @@ Last updated: 2026-09-17
   - `POST /api/library/history` returned 201;
   - terminal state `SUCCESS_SIGNAL`.
 
+- Production `SaydiVoiceProvider` offline gate completed:
+  - stable request/result + preflight/generation/download metadata models;
+  - preset/text/output validation before runtime/browser access;
+  - explicit `download_requested` side-effect gate;
+  - exactly one Generate attempt; retryability returned as metadata only;
+  - `fix_input` / `re_auth` / `retry` / `do_not_retry` classification;
+  - local audio path / byte count / SHA-256 result handling;
+  - privacy-safe error redaction;
+  - Discovery Tests run `35370775036`: 83 tests PASS;
+  - no live Generate and no live Download performed.
+
 ## Anonymous-provider limitation
 
 Anonymous diagnostics remain historical characterization only:
@@ -81,11 +92,11 @@ The production path therefore reuses the authenticated persistent Chrome profile
 
 ## Not yet completed
 
-- Merge/freeze the current voice preset/control work into `main`.
-- Production `SaydiVoiceProvider` adapter with a stable request/result contract.
+- Review/merge the production provider adapter branch after the approved night run.
+- One separately authorized live production acceptance Generate (not allowed in the current night window).
 - Production local audio handoff from provider adapter to media pipeline.
-- Session-expiry/re-auth production error path.
-- Downstream media pipeline phases.
+- Windows Control Center / orchestration exposure for provider jobs.
+- Downstream deterministic FFmpeg media pipeline phases.
 
 ## Repository visibility risk
 
@@ -93,4 +104,4 @@ The repository is public. Never commit passwords, cookies, browser profiles, aut
 
 ## Current active objective
 
-Open and validate the preset/control integration PR, then implement the production SaydiVoice provider adapter using the field-verified authenticated Chrome contracts. Do not spend another generation unless a later production acceptance test is explicitly authorized.
+Keep the offline-verified provider adapter reviewable, then integrate its stable contract with the Business OS / Media Robot orchestration layer without live Generate/Download. A live production acceptance Generate remains a separate explicit Owner authorization after offline/night-run QA.
