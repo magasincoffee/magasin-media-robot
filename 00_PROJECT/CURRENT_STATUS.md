@@ -79,12 +79,27 @@ The production path therefore reuses the authenticated persistent Chrome profile
 - Download: explicit separate action; raw audio remains local unless intentionally consumed by the downstream pipeline.
 - Voice styling: deterministic application-level preset mapped to verified provider controls.
 
+## Phase 1 implementation progress
+
+- Voice preset/control work is merged into `main` via PR #16.
+- Production `02_VOICE_ENGINE` package is implemented on `feat/saydi-production-provider` with:
+  - provider-neutral request/result models;
+  - normalized failure dispositions (`fix_input`, `re_auth`, `retry`, `do_not_retry`);
+  - explicit Generate/Download authorization gates;
+  - no automatic Generate retry;
+  - `SaydiPlaywrightBackend` using installed Chrome and the local authenticated profile;
+  - local download metadata (`path`, byte count, SHA-256);
+  - five frozen application-level style presets.
+- Offline Voice Engine CI run `35243425623`: PASS, **15 tests**.
+- Hosted CI verified it has no authenticated Saydi profile, so ordinary unit CI cannot perform live provider side effects.
+- Production backend read-only live preflight is the remaining smoke gate. First attempt exposed Windows stdout encoding only; the UTF-8 fix is committed. The subsequent self-hosted run ended abnormally before a complete log could be retained, so live preflight remains pending and no Generate/Download was authorized.
+
 ## Not yet completed
 
-- Merge/freeze the current voice preset/control work into `main`.
-- Production `SaydiVoiceProvider` adapter with a stable request/result contract.
+- Complete one read-only production-backend preflight on `MAGASIN-PC`.
+- Merge the production Voice Engine PR after that smoke gate and PR CI pass.
+- Final production Generate/Download acceptance test, only with separate explicit authorization.
 - Production local audio handoff from provider adapter to media pipeline.
-- Session-expiry/re-auth production error path.
 - Downstream media pipeline phases.
 
 ## Repository visibility risk
@@ -93,4 +108,4 @@ The repository is public. Never commit passwords, cookies, browser profiles, aut
 
 ## Current active objective
 
-Open and validate the preset/control integration PR, then implement the production SaydiVoice provider adapter using the field-verified authenticated Chrome contracts. Do not spend another generation unless a later production acceptance test is explicitly authorized.
+Complete the read-only production `SaydiPlaywrightBackend` preflight on `MAGASIN-PC`, then merge the provider adapter after PR CI passes. Do not Generate or Download during this gate, and do not spend another generation unless a later production acceptance test is explicitly authorized.
