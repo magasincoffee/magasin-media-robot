@@ -55,7 +55,7 @@ jobs:
           & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $start -Hidden
           if ($LASTEXITCODE -ne 0) { Write-Host "START_EXIT=$LASTEXITCODE" }
 
-          Start-Sleep -Seconds 10
+          Start-Sleep -Seconds 22
 
           if (Test-Path $pidFile) {
             $pidValue = Get-Content $pidFile | Select-Object -First 1
@@ -93,3 +93,5 @@ jobs:
             Get-Content $logFile -Tail 20
             Write-Host "SAFE_LOG_TAIL_END"
           }
+
+# second pass: verify steady-state after browser startup
