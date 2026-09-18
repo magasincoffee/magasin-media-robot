@@ -1,0 +1,67 @@
+name: Bootstrap MAGASIN Business OS Control
+
+on:
+  push:
+    branches:
+      - ops/bootstrap-business-os-control
+    paths:
+      - '.github/workflows/bootstrap-business-os-control.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-business-os-control
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Fetch canonical Business OS repository
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'magasin-business-os-control'
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          git clone --depth 1 https://github.com/magasincoffee/magasincoffee.github.io.git $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "BUSINESS_OS_REPO=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify canonical project identity
+        run: |
+          $statePath = Join-Path $env:BUSINESS_OS_REPO '01_DOCS\MAGASIN\00_PROJECT_STATE.json'
+          $state = Get-Content $statePath -Raw | ConvertFrom-Json
+          if ($state.project -ne 'MAGASIN Business OS') { throw "Unexpected project: $($state.project)" }
+          if ($state.repository -ne 'magasincoffee/magasincoffee.github.io') { throw "Unexpected repo: $($state.repository)" }
+          Write-Host "CANONICAL_PROJECT=$($state.project)"
+          Write-Host "CURRENT_TASK=$($state.current_task) - $($state.current_task_title)"
+
+      - name: Install correct Supervisor and unified control panel
+        run: |
+          $installer = Join-Path $env:BUSINESS_OS_REPO '08_INTEGRATIONS\supervisor\windows\install-supervisor.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Launch MAGASIN Business OS Control
+        run: |
+          $runtime = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime'
+          $panel = Join-Path $runtime 'windows\control-panel.ps1'
+          if (-not (Test-Path $panel)) { throw "Panel missing: $panel" }
+
+          $env:RUNNER_TRACKING_ID = 'MAGASIN_BUSINESS_OS_CONTROL_PERSISTENT'
+          $args = '-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $panel + '"'
+          Start-Process powershell.exe -ArgumentList $args
+          Start-Sleep -Seconds 3
+
+          $desktop = [Environment]::GetFolderPath('Desktop')
+          $shortcut = Join-Path $desktop 'MAGASIN BUSINESS OS CONTROL.lnk'
+          if (-not (Test-Path $shortcut)) { throw "Shortcut missing: $shortcut" }
+
+          Write-Host "BUSINESS_OS_CONTROL_READY=True"
+          Write-Host "SHORTCUT=$shortcut"
+          Write-Host "SAYDI/media control is no longer the canonical project control."
