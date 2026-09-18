@@ -87,3 +87,19 @@ Rationale:
 - makes operator authorization auditable in workflow design.
 
 A later production adapter may expose retryability metadata, but a second Generate attempt still requires an explicit caller policy rather than an implicit browser retry.
+
+## ADR-011 — Production provider exposes retry metadata but never retries Generate implicitly
+
+Status: Accepted
+
+The production `SaydiVoiceProvider` owns request validation, authenticated preflight, verified control application, exactly one Generate attempt, terminal classification, and optional explicit Download. It may return `retryable=true` to an orchestration layer, but it never converts that metadata into a second Generate attempt by itself.
+
+Download is also explicit through `download_requested`; merely constructing or validating a provider request cannot click Generate or Download.
+
+Rationale:
+
+- preserves ADR-010 at the production boundary;
+- allows Business OS / Media Robot orchestration to make retry decisions without duplicating provider mechanics;
+- prevents duplicate provider history/audio after ambiguous failures or reboot recovery;
+- keeps unit/offline verification free of quota-consuming side effects.
+
