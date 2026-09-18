@@ -1,10 +1,11 @@
-name: Install MAGASIN Supervisor Controls
+name: Install SAYDI Control Panel
 
 on:
   push:
     branches:
       - feat/saydi-production-provider
     paths:
+      - '02_VOICE_ENGINE/tools/saydi_control_panel.py'
       - '.github/workflows/install-magasin-supervisor-controls.yml'
   workflow_dispatch:
 
@@ -12,11 +13,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: install-magasin-supervisor-controls
+  group: install-saydi-control-panel
   cancel-in-progress: false
 
 jobs:
-  install-controls:
+  install-control-panel:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 10
     env:
@@ -26,156 +27,86 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Resolve Python and initialize local dashboard
+      - name: Resolve local Python with Tkinter
         shell: powershell
         run: |
           $python=$null
+          $candidates=@()
           $py=Get-Command py.exe -ErrorAction SilentlyContinue
           if($py){
             $candidate=(& $py.Source -3 -c "import sys; print(sys.executable)").Trim()
-            if($LASTEXITCODE -eq 0 -and (Test-Path $candidate)){$python=$candidate}
+            if($LASTEXITCODE -eq 0 -and (Test-Path $candidate)){$candidates += $candidate}
           }
-          if(-not $python){
-            $cmd=Get-Command python.exe -ErrorAction SilentlyContinue
-            if($cmd){$python=$cmd.Source}
+          $cmd=Get-Command python.exe -ErrorAction SilentlyContinue
+          if($cmd){$candidates += $cmd.Source}
+          foreach($candidate in ($candidates | Select-Object -Unique)){
+            & $candidate -c "import tkinter; print(tkinter.TkVersion)" | Out-Null
+            if($LASTEXITCODE -eq 0){$python=$candidate; break}
           }
-          if(-not $python){throw "Python not found"}
-          $env:PYTHONPATH="$env:GITHUB_WORKSPACE\02_VOICE_ENGINE\src"
-          @'
-          from magasin_voice_engine.supervisor_status import RobotStatus, SupervisorStateStore
-          store = SupervisorStateStore()
-          state = store.load()
-          if state.updated_at is None:
-              store.publish(
-                  RobotStatus.IDLE,
-                  current_step="waiting_for_job",
-                  next_action="Keep the GitHub runner online and wait for a job.",
-                  requires_user=False,
-                  message="Supervisor controls installed.",
-              )
-          else:
-              store.ensure_dashboard()
-          print(store.dashboard_path)
-          '@ | & $python -
-          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          if(-not $python){throw "Python with Tkinter not found"}
 
-      - name: Install START STOP and SAYDI CONTROL on Desktop
+          $pythonw=Join-Path (Split-Path $python) "pythonw.exe"
+          if(-not(Test-Path $pythonw)){throw "pythonw.exe not found next to $python"}
+
+          "SAYDI_PANEL_PYTHON=$python" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "SAYDI_PANEL_PYTHONW=$pythonw" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install unified control panel
         shell: powershell
         run: |
           $controlDir=Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\control"
           $statusDir=Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydi"
-          $dashboard=Join-Path $statusDir "saydi_status.html"
           $desktop=[Environment]::GetFolderPath("Desktop")
           if(-not $desktop){throw "Desktop path unavailable"}
+
           New-Item -ItemType Directory -Force -Path $controlDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $statusDir | Out-Null
 
-          $runnerCmd=@'
-          @echo off
-          title MAGASIN-PC GitHub Runner
-          cd /d C:\actions-runner
-          echo ============================================================
-          echo  MAGASIN-PC RUNNER
-          echo  Keep this window open while the robot should receive jobs.
-          echo ============================================================
-          echo.
-          call run.cmd
-          echo.
-          echo Runner stopped. Press any key to close.
-          pause >nul
-          '@
-          Set-Content -Path (Join-Path $controlDir "RUN_MAGASIN_RUNNER.cmd") -Value $runnerCmd -Encoding ASCII
+          $source=Join-Path $env:GITHUB_WORKSPACE "02_VOICE_ENGINE\tools\saydi_control_panel.py"
+          $target=Join-Path $controlDir "saydi_control_panel.py"
+          Copy-Item -Force $source $target
 
-          $startPs=@'
-          $ErrorActionPreference = "Stop"
-          $controlDir = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\control"
-          $dashboard = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydi\saydi_status.html"
-          $runnerRoot = "C:\actions-runner"
+          & "$env:SAYDI_PANEL_PYTHON" $target --self-test
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
 
-          if(-not (Test-Path (Join-Path $runnerRoot "run.cmd"))){
-              Add-Type -AssemblyName PresentationFramework
-              [System.Windows.MessageBox]::Show(
-                  "C:\actions-runner\run.cmd was not found.",
-                  "MAGASIN Supervisor",
-                  "OK",
-                  "Error"
-              ) | Out-Null
-              exit 2
-          }
-
-          $listener = Get-Process -Name "Runner.Listener" -ErrorAction SilentlyContinue
-          if(-not $listener){
-              $runnerScript = Join-Path $controlDir "RUN_MAGASIN_RUNNER.cmd"
-              $arg = '/k "' + $runnerScript + '"'
-              Start-Process -FilePath "cmd.exe" -ArgumentList $arg
-              Start-Sleep -Seconds 4
-              $listener = Get-Process -Name "Runner.Listener" -ErrorAction SilentlyContinue
-          }
-
-          if(Test-Path $dashboard){
-              Start-Process -FilePath $dashboard
-          }
-
-          if($listener){
-              Add-Type -AssemblyName PresentationFramework
-              [System.Windows.MessageBox]::Show(
-                  "MAGASIN Supervisor is ONLINE.\n\nRunner is ready to receive GitHub jobs.\nSAYDI CONTROL has been opened.",
-                  "MAGASIN Supervisor",
-                  "OK",
-                  "Information"
-              ) | Out-Null
-              exit 0
-          }
-
-          Add-Type -AssemblyName PresentationFramework
-          [System.Windows.MessageBox]::Show(
-              "Runner did not become ONLINE.\nCheck the MAGASIN-PC GitHub Runner window for the error message.",
-              "MAGASIN Supervisor",
-              "OK",
-              "Warning"
-          ) | Out-Null
-          exit 3
-          '@
-          Set-Content -Path (Join-Path $controlDir "Start-MagasinSupervisor.ps1") -Value $startPs -Encoding UTF8
-
-          $stopPs=@'
-          $ErrorActionPreference = "SilentlyContinue"
-          $workers = Get-Process -Name "Runner.Worker" -ErrorAction SilentlyContinue
-          if($workers){$workers | Stop-Process -Force}
-          $listeners = Get-Process -Name "Runner.Listener" -ErrorAction SilentlyContinue
-          if($listeners){$listeners | Stop-Process -Force}
-          Start-Sleep -Seconds 1
-          Add-Type -AssemblyName PresentationFramework
-          [System.Windows.MessageBox]::Show(
-              "MAGASIN Supervisor is OFFLINE.\nThe robot will not receive new GitHub jobs until START is used again.",
-              "MAGASIN Supervisor",
-              "OK",
-              "Information"
-          ) | Out-Null
-          '@
-          Set-Content -Path (Join-Path $controlDir "Stop-MagasinSupervisor.ps1") -Value $stopPs -Encoding UTF8
-
-          $startCmd=@'
-          @echo off
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\MAGASIN\MediaRobot\control\Start-MagasinSupervisor.ps1"
-          '@
-          Set-Content -Path (Join-Path $desktop "START_MAGASIN_SUPERVISOR.cmd") -Value $startCmd -Encoding ASCII
-
-          $stopCmd=@'
-          @echo off
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\MAGASIN\MediaRobot\control\Stop-MagasinSupervisor.ps1"
-          '@
-          Set-Content -Path (Join-Path $desktop "STOP_MAGASIN_SUPERVISOR.cmd") -Value $stopCmd -Encoding ASCII
-
-          if(-not(Test-Path $dashboard)){throw "Dashboard missing: $dashboard"}
           $shortcutPath=Join-Path $desktop "SAYDI CONTROL.lnk"
           $shell=New-Object -ComObject WScript.Shell
           $shortcut=$shell.CreateShortcut($shortcutPath)
-          $shortcut.TargetPath=$dashboard
-          $shortcut.WorkingDirectory=$statusDir
-          $shortcut.Description="SAYDI robot status and heartbeat"
+          $shortcut.TargetPath=$env:SAYDI_PANEL_PYTHONW
+          $shortcut.Arguments='"' + $target + '"'
+          $shortcut.WorkingDirectory=$controlDir
+          $shortcut.Description="SAYDI Control Panel - START/STOP/status/tasks/errors"
           $shortcut.Save()
 
-          Write-Host "PASS: installed START/STOP controls and SAYDI CONTROL."
-          Write-Host "Desktop: $desktop"
-          Write-Host "Dashboard: $dashboard"
+          # One panel replaces the old separate START/STOP desktop launchers.
+          @(
+            "START_MAGASIN_SUPERVISOR.cmd",
+            "STOP_MAGASIN_SUPERVISOR.cmd",
+            "START_MAGASIN_SUPERVISOR.lnk",
+            "STOP_MAGASIN_SUPERVISOR.lnk"
+          ) | ForEach-Object {
+            $old=Join-Path $desktop $_
+            if(Test-Path $old){Remove-Item -Force $old}
+          }
+
+          Write-Host "PASS: SAYDI CONTROL installed."
+          Write-Host "Shortcut: $shortcutPath"
+          Write-Host "Panel: $target"
+          Write-Host "The panel manages Runner.Listener directly and displays supervisor_state.json."
+
+      - name: Launch SAYDI CONTROL
+        shell: powershell
+        run: |
+          $controlDir=Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\control"
+          $target=Join-Path $controlDir "saydi_control_panel.py"
+
+          $existing=Get-CimInstance Win32_Process -Filter "Name='pythonw.exe'" -ErrorAction SilentlyContinue |
+            Where-Object {$_.CommandLine -like "*saydi_control_panel.py*"}
+
+          if(-not $existing){
+            Start-Process -FilePath "$env:SAYDI_PANEL_PYTHONW" -ArgumentList ('"' + $target + '"') -WorkingDirectory $controlDir
+            Start-Sleep -Seconds 2
+          }
+
+          Write-Host "SAYDI CONTROL launch requested."
           Write-Host "No Saydi Generate or Download operation was performed."
