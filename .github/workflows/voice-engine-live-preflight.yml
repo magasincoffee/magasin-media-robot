@@ -59,18 +59,71 @@ jobs:
           @'
           import json
           from dataclasses import asdict
+          from magasin_voice_engine.models import FailureDisposition
           from magasin_voice_engine.saydi_playwright import SaydiPlaywrightBackend
+          from magasin_voice_engine.supervisor_status import (
+              HeartbeatWorker,
+              RobotStatus,
+              SupervisorStateStore,
+              default_job_id,
+          )
 
           backend = SaydiPlaywrightBackend()
+          store = SupervisorStateStore()
+          job_id = default_job_id()
+          heartbeat = HeartbeatWorker(store, interval_seconds=30).start()
+          store.publish(
+              RobotStatus.RUNNING,
+              job_id=job_id,
+              current_step="production_preflight",
+              next_action="Verify the authenticated production backend without Generate or Download.",
+              requires_user=False,
+              message="Read-only production preflight is running.",
+          )
           try:
               result = backend.preflight()
               payload = asdict(result)
               if payload.get("disposition") is not None:
                   payload["disposition"] = payload["disposition"].value
               print(json.dumps(payload, ensure_ascii=True, indent=2))
-              if not result.ready:
+              if result.ready:
+                  store.publish(
+                      RobotStatus.DONE,
+                      job_id=job_id,
+                      current_step="complete",
+                      last_completed_step="production_preflight",
+                      requires_user=False,
+                      message="Read-only production preflight passed.",
+                  )
+              else:
+                  needs_user = result.disposition in {
+                      FailureDisposition.RE_AUTH,
+                      FailureDisposition.FIX_INPUT,
+                  }
+                  store.publish(
+                      RobotStatus.WAIT_USER if needs_user else RobotStatus.FAILED,
+                      job_id=job_id,
+                      current_step="wait_user" if needs_user else "failed",
+                      last_completed_step=None,
+                      next_action="Resolve the preflight requirement, then rerun." if needs_user else "Inspect the preflight failure.",
+                      requires_user=True,
+                      message="PREFLIGHT_FAILED",
+                  )
                   raise SystemExit(25)
+          except BaseException:
+              state = store.load()
+              if state.status == RobotStatus.RUNNING.value:
+                  store.publish(
+                      RobotStatus.FAILED,
+                      job_id=job_id,
+                      current_step="failed",
+                      next_action="Inspect the read-only preflight failure.",
+                      requires_user=True,
+                      message="PREFLIGHT_EXCEPTION",
+                  )
+              raise
           finally:
+              heartbeat.stop()
               backend.close()
           '@ | & "$env:VOICE_PYTHON" -
           if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
