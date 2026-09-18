@@ -1,0 +1,148 @@
+name: Repair Supervisor Owner Turn V14
+
+on:
+  push:
+    branches:
+      - ops/repair-supervisor-owner-turn-v14
+    paths:
+      - '.github/workflows/repair-supervisor-owner-turn-v14.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repair-supervisor-owner-turn-v14
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Fetch canonical Business OS
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'magasin-business-os-v14'
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          git clone --depth 1 https://github.com/magasincoffee/magasincoffee.github.io.git $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "BUSINESS_OS_REPO=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Repair Supervisor v14
+        run: |
+          $repair = Join-Path $env:BUSINESS_OS_REPO '08_INTEGRATIONS\supervisor\windows\repair-supervisor.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipGitPull
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify v14 fingerprint and Control Panel boundary labels
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $cli = Join-Path $runtime 'src\runtime\supervisor-loop-cli.mjs'
+          $panel = Join-Path $runtime 'windows\control-panel.ps1'
+
+          if (-not (Select-String -Path $cli -SimpleMatch '2026-09-18.14' -Quiet)) {
+            throw 'Runtime v14 fingerprint missing.'
+          }
+          if (-not (Select-String -Path $cli -SimpleMatch 'currentLastRole === "user"' -Quiet)) {
+            throw 'Owner-turn trigger guard missing.'
+          }
+          if (-not (Select-String -Path $panel -SimpleMatch 'activation_boundary' -Quiet)) {
+            throw 'Activation boundary Control Panel logic missing.'
+          }
+
+          Write-Host 'RUNTIME_V14_FINGERPRINT=PASS'
+
+      - name: Verify one reconcile settles and does not self-trigger again
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $log = Join-Path $root 'supervisor.log'
+          $latest = Join-Path $root 'diagnostics\latest.json'
+
+          $bootLine = Get-Content $log -Tail 260 -Encoding UTF8 |
+            Where-Object { $_ -match '"type":"RUNTIME_BOOT"' -and $_ -match 'version=2026-09-18.14' } |
+            Select-Object -Last 1
+          if (-not $bootLine) { throw 'Runtime v14 boot marker missing.' }
+
+          $boot = $bootLine | ConvertFrom-Json
+          $bootAt = [DateTimeOffset]::Parse($boot.timestamp)
+          $sentAt = $null
+          $settledAt = $null
+
+          for ($i = 0; $i -lt 36; $i++) {
+            Start-Sleep -Seconds 5
+            $events = @(
+              Get-Content $log -Tail 420 -Encoding UTF8 |
+                ForEach-Object { try { $_ | ConvertFrom-Json } catch { $null } } |
+                Where-Object {
+                  $_ -and ([DateTimeOffset]::Parse($_.timestamp) -ge $bootAt)
+                }
+            )
+
+            if (-not $sentAt) {
+              $sent = $events |
+                Where-Object { $_.type -eq 'OWNER_RECONCILE_SENT' -and $_.executed -eq $true } |
+                Select-Object -First 1
+              if ($sent) {
+                $sentAt = [DateTimeOffset]::Parse($sent.timestamp)
+                Write-Host "OWNER_RECONCILE_SENT_AT=$sentAt"
+              }
+            }
+
+            if ($sentAt -and -not $settledAt) {
+              $settled = $events |
+                Where-Object {
+                  $_.type -eq 'OWNER_RECONCILE_SETTLED' -and
+                  ([DateTimeOffset]::Parse($_.timestamp) -gt $sentAt)
+                } |
+                Select-Object -First 1
+              if ($settled) {
+                $settledAt = [DateTimeOffset]::Parse($settled.timestamp)
+                Write-Host "OWNER_RECONCILE_SETTLED_AT=$settledAt"
+                break
+              }
+            }
+          }
+
+          if (-not $sentAt) { throw 'v14 never sent the bounded Owner reconciliation.' }
+          if (-not $settledAt) { throw 'v14 did not settle the Owner reconciliation.' }
+
+          Start-Sleep -Seconds 20
+
+          $events = @(
+            Get-Content $log -Tail 420 -Encoding UTF8 |
+              ForEach-Object { try { $_ | ConvertFrom-Json } catch { $null } } |
+              Where-Object {
+                $_ -and ([DateTimeOffset]::Parse($_.timestamp) -ge $bootAt)
+              }
+          )
+          $sends = @($events | Where-Object {
+            $_.type -eq 'OWNER_RECONCILE_SENT' -and $_.executed -eq $true
+          })
+
+          Write-Host "OWNER_RECONCILE_SEND_COUNT=$($sends.Count)"
+          if ($sends.Count -ne 1) {
+            throw "Assistant response retriggered Owner reconciliation; sends=$($sends.Count)"
+          }
+
+          if (Test-Path $latest) {
+            $d = Get-Content $latest -Raw -Encoding UTF8 | ConvertFrom-Json
+            Write-Host "FINAL_PROJECT=$($d.project.status)"
+            Write-Host "FINAL_TASK=$($d.project.current_task)"
+            Write-Host "FINAL_OBS=$($d.ui.observation)"
+            Write-Host "FINAL_ACTION=$($d.step.decision_action)"
+            Write-Host "FINAL_EXECUTED=$($d.step.execution_executed)"
+            Write-Host "FINAL_REASON=$($d.step.execution_reason)"
+            Write-Host "FINAL_ARMED=$($d.controller.armed)"
+            Write-Host "FINAL_AWAITING=$($d.owner_reconcile.awaiting_response)"
+          }
+
+          Write-Host 'FIELD_OWNER_TURN_V14=PASS'
+
+      - name: Print safe diagnostics
+        run: |
+          $collector = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime\windows\collect-supervisor-diagnostics.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $collector
