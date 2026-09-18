@@ -20,59 +20,37 @@ jobs:
         shell: powershell
 
     steps:
-      - name: Inspect and start Supervisor safely
+      - name: Start Supervisor and inspect privacy-safe runtime state
         run: |
           $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
           $runtime = Join-Path $root 'runtime'
           $start = Join-Path $runtime 'windows\start-supervisor.ps1'
-          $target = Join-Path $root 'target.json'
           $pidFile = Join-Path $root 'supervisor.pid'
           $statusFile = Join-Path $root 'runtime-status.json'
           $logFile = Join-Path $root 'supervisor.log'
 
-          Write-Host "RUNTIME_EXISTS=$(Test-Path $runtime)"
-          Write-Host "START_SCRIPT_EXISTS=$(Test-Path $start)"
-          Write-Host "TARGET_EXISTS=$(Test-Path $target)"
-          Write-Host "NODE=$((Get-Command node.exe -ErrorAction SilentlyContinue).Source)"
+          if (-not (Test-Path $start)) { throw "Start script missing: $start" }
 
-          $chromeCandidates = @(
-            "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
-            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
-            "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
-          )
-          $chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-          Write-Host "CHROME_EXISTS=$([bool]$chrome)"
-          if ($chrome) { Write-Host "CHROME_PATH=$chrome" }
-
-          try {
-            $v = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/version' -TimeoutSec 2
-            Write-Host "CDP_BEFORE=True"
-          } catch {
-            Write-Host "CDP_BEFORE=False"
-          }
-
-          if (-not (Test-Path $start)) { throw "Start script missing" }
           & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $start -Hidden
-          if ($LASTEXITCODE -ne 0) { Write-Host "START_EXIT=$LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "Supervisor start failed: $LASTEXITCODE" }
 
-          Start-Sleep -Seconds 22
+          Start-Sleep -Seconds 30
 
           if (Test-Path $pidFile) {
             $pidValue = Get-Content $pidFile | Select-Object -First 1
             $p = Get-Process -Id $pidValue -ErrorAction SilentlyContinue
-            Write-Host "SUPERVISOR_PID_PRESENT=True"
             Write-Host "SUPERVISOR_PROCESS_ALIVE=$([bool]$p)"
+            Write-Host "SUPERVISOR_PID=$pidValue"
           } else {
-            Write-Host "SUPERVISOR_PID_PRESENT=False"
+            Write-Host "SUPERVISOR_PROCESS_ALIVE=False"
           }
 
           try {
             $v = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/version' -TimeoutSec 2
-            Write-Host "CDP_AFTER=True"
+            Write-Host "CDP=True"
             Write-Host "CDP_BROWSER=$($v.Browser)"
           } catch {
-            Write-Host "CDP_AFTER=False"
-            Write-Host "CDP_ERROR=$($_.Exception.GetType().Name)"
+            Write-Host "CDP=False"
           }
 
           if (Test-Path $statusFile) {
@@ -82,6 +60,14 @@ jobs:
             Write-Host "UI_STATE=$($s.ui_state)"
             Write-Host "OBSERVATION=$($s.observation)"
             Write-Host "DECISION=$($s.decision_action)"
+            Write-Host "EXECUTED=$($s.execution_executed)"
+            Write-Host "RECOVERY_ACTION=$($s.recovery_action)"
+            Write-Host "RECOVERY_STALL_RELOADS=$($s.recovery_stall_reloads)"
+            Write-Host "RECOVERY_UNAVAILABLE_RELOADS=$($s.recovery_unavailable_reloads)"
+            Write-Host "RECOVERY_TARGET_MISSES=$($s.recovery_target_misses)"
+            Write-Host "ROLLOVER_FAILURES=$($s.recovery_rollover_failures)"
+            Write-Host "CONVERSATION_GENERATION=$($s.conversation_generation)"
+            Write-Host "RECOVERY_BLOCKED=$($s.recovery_blocked)"
             Write-Host "ERROR_NAME=$($s.error_name)"
             Write-Host "UPDATED_AT=$($s.updated_at)"
           } else {
@@ -90,48 +76,6 @@ jobs:
 
           if (Test-Path $logFile) {
             Write-Host "SAFE_LOG_TAIL_BEGIN"
-            Get-Content $logFile -Tail 20
+            Get-Content $logFile -Tail 35
             Write-Host "SAFE_LOG_TAIL_END"
           }
-
-      - name: Probe current ChatGPT UI without reading message bodies
-        run: |
-          $runtime = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime'
-          Push-Location $runtime
-          try {
-            @'
-            import { SupervisorSession } from "./src/runtime/session.mjs";
-
-            const session = new SupervisorSession({
-              cdpUrl: "http://127.0.0.1:9222",
-              maxConnectRetries: 0
-            });
-            try {
-              const adapter = await session.connect();
-              const page = adapter.getActivePage();
-              const url = new URL(page.url());
-              const probe = await session.probe();
-              const s = probe.snapshot;
-              console.log("HOST=" + url.hostname);
-              console.log("PATH_KIND=" + (s.pathKind || ""));
-              console.log("CONVERSATION_PATH=" + Boolean(s.conversationPath));
-              console.log("COMPOSER_READY=" + Boolean(s.composerReady));
-              console.log("LOGIN_REQUIRED=" + Boolean(s.loginRequired));
-              console.log("HAS_CAPTCHA=" + Boolean(s.hasCaptcha));
-              console.log("RESPONSE_RUNNING=" + Boolean(s.responseRunning));
-              console.log("HAS_CONTINUE_CONTROL=" + Boolean(s.hasContinueControl));
-              console.log("HAS_RETRY_CONTROL=" + Boolean(s.hasRetryControl));
-              console.log("ASSISTANT_MESSAGE_COUNT=" + Number(s.assistantMessageCount || 0));
-              console.log("USER_MESSAGE_COUNT=" + Number(s.userMessageCount || 0));
-              console.log("UI_STATE=" + probe.classification.uiState);
-              console.log("OBSERVATION=" + probe.classification.observation);
-            } finally {
-              await session.disconnect().catch(() => {});
-            }
-            '@ | node --input-type=module -
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          } finally {
-            Pop-Location
-          }
-
-# second pass: verify steady-state after browser startup
