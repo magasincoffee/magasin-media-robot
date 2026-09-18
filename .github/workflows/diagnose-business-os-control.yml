@@ -56,3 +56,5 @@ jobs:
             Write-Host "PANEL_WINDOW_TITLE=$($proc.MainWindowTitle)"
             Write-Host "PANEL_RESPONDING=$($proc.Responding)"
           }
+
+# verify after UTF-8 BOM fix
