@@ -65,3 +65,5 @@ jobs:
           Write-Host "BUSINESS_OS_CONTROL_READY=True"
           Write-Host "SHORTCUT=$shortcut"
           Write-Host "SAYDI/media control is no longer the canonical project control."
+
+# reinstall marker 2026-09-18
