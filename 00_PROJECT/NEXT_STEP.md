@@ -21,6 +21,12 @@ Phase 0 SaydiVoice discovery and the reusable voice/style preset layer are compl
 - GitHub-hosted Windows CI: run `35304115327`, **22 tests PASS**.
 - Ordinary CI verifies no authenticated Saydi profile is present and therefore cannot perform live side effects.
 
+## Unified control panel
+
+Normal operator flow is now intended to be: open `SAYDI CONTROL` → press `START ROBOT` → leave the panel open. The panel starts/stops the self-hosted runner, shows whether it is idle or busy, and reads `supervisor_state.json` for current work, next work, heartbeat, completion, and errors. A separate PowerShell window is no longer part of the intended daily workflow after installation.
+
+The execution bridge is `ChatGPT ↔ GitHub Actions ↔ MAGASIN-PC`; the panel makes the MAGASIN-PC endpoint available to jobs dispatched from this project.
+
 ## Operator dashboard
 
 The local state is:
