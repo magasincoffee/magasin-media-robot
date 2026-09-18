@@ -43,8 +43,8 @@ jobs:
           if (-not (Select-String -Path $cli -SimpleMatch '2026-09-18.11' -Quiet)) {
             throw 'Runtime v11 fingerprint missing.'
           }
-          if (-not (Select-String -Path $panel -SimpleMatch 'ĐÃ XỬ LÝ — KIỂM TRA LẠI' -Quiet)) {
-            throw 'Owner recheck button missing.'
+          if (-not (Select-String -Path $panel -SimpleMatch 'OWNER_RESOLVED.request.json' -Quiet)) {
+            throw 'Owner recheck control marker missing.'
           }
           if (-not (Select-String -Path $cli -SimpleMatch 'OWNER_RESOLVED.request.json' -Quiet)) {
             throw 'Owner recheck marker path missing.'
