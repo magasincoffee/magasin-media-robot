@@ -44,7 +44,7 @@ jobs:
           if (-not (Select-String -Path $cli -SimpleMatch '2026-09-18.15' -Quiet)) { throw 'Runtime v15 missing.' }
           if (-not (Test-Path $diag)) { throw 'diagnostics.mjs missing.' }
           if (-not (Test-Path $collector)) { throw 'diagnostic collector missing.' }
-          if (-not (Select-String -Path $panel -SimpleMatch 'MỞ LOG LỖI' -Quiet)) { throw 'Diagnostics button missing.' }
+          if (-not (Select-String -Path $panel -SimpleMatch '$diagnosticsButton' -Quiet)) { throw 'Diagnostics button wiring missing.' }
 
           $diagnosticsRoot = Join-Path $root 'diagnostics'
           for ($i = 0; $i -lt 10; $i++) {
