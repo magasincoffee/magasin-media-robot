@@ -60,6 +60,12 @@ Last updated: 2026-09-18
 
 ## Supervisor status + heartbeat
 
+- Unified Windows control panel added: `02_VOICE_ENGINE/tools/saydi_control_panel.py`.
+- The panel owns START/STOP, runner ONLINE/OFFLINE/BUSY state, current task, next action, last completed step, heartbeat age, job/workflow metadata, operator-required errors, and recent runner/control logs.
+- `START ROBOT` launches `C:\\actions-runner\\run.cmd` hidden; the operator no longer needs to keep a separate PowerShell window for normal use.
+- Desktop installation now creates one `SAYDI CONTROL` shortcut and removes the old separate START/STOP launchers.
+- Execution bridge is explicit: ChatGPT ↔ GitHub Actions ↔ MAGASIN-PC. When the panel shows Runner ONLINE, jobs sent from this project can execute on the local machine.
+
 - PR #20 was merged into the active production-provider branch.
 - Local state is written to `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\supervisor_state.json`.
 - Local dashboard is rendered to `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\saydi_status.html`.
