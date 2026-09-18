@@ -1,0 +1,144 @@
+name: Repair Supervisor Diagnostics V12
+
+on:
+  push:
+    branches:
+      - ops/repair-supervisor-diagnostics-v12
+    paths:
+      - '.github/workflows/repair-supervisor-diagnostics-v12.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repair-supervisor-diagnostics-v12
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Fetch canonical Business OS
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'magasin-business-os-v12'
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          git clone --depth 1 https://github.com/magasincoffee/magasincoffee.github.io.git $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "BUSINESS_OS_REPO=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $state = Get-Content (Join-Path $dest '01_DOCS\MAGASIN\00_PROJECT_STATE.json') -Raw | ConvertFrom-Json
+          Write-Host "CANONICAL_TASK=$($state.current_task)"
+          Write-Host "CANONICAL_STATUS=$($state.status)"
+          Write-Host "CANONICAL_REQUIRES_USER=$($state.requires_user)"
+
+      - name: Repair Supervisor v12
+        run: |
+          $repair = Join-Path $env:BUSINESS_OS_REPO '08_INTEGRATIONS\supervisor\windows\repair-supervisor.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipGitPull
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify v12 runtime and diagnostics
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $cli = Join-Path $runtime 'src\runtime\supervisor-loop-cli.mjs'
+          $diag = Join-Path $runtime 'src\runtime\diagnostics.mjs'
+          $panel = Join-Path $runtime 'windows\control-panel.ps1'
+          $collector = Join-Path $runtime 'windows\collect-supervisor-diagnostics.ps1'
+
+          if (-not (Select-String -Path $cli -SimpleMatch '2026-09-18.12' -Quiet)) {
+            throw 'Runtime v12 fingerprint missing.'
+          }
+          if (-not (Test-Path $diag)) { throw 'diagnostics.mjs missing.' }
+          if (-not (Select-String -Path $panel -SimpleMatch 'diagnosticsRoot' -Quiet)) {
+            throw 'Control Panel diagnostics button missing.'
+          }
+          if (-not (Test-Path $collector)) { throw 'diagnostic collector missing.' }
+
+          Write-Host 'RUNTIME_V12_FINGERPRINT=PASS'
+
+      - name: Re-arm the Owner recheck requested in this incident
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $marker = Join-Path $root 'OWNER_RESOLVED.request.json'
+          $state = Get-Content (Join-Path $env:BUSINESS_OS_REPO '01_DOCS\MAGASIN\00_PROJECT_STATE.json') -Raw | ConvertFrom-Json
+
+          if ($state.status -eq 'WAIT_USER' -and -not $state.blocked) {
+            $request = [ordered]@{
+              requested_at = [DateTimeOffset]::UtcNow.ToString('o')
+              current_task = [string]$state.current_task
+              project_status = [string]$state.status
+              intent = 'OWNER_RESOLVED_RECHECK'
+              source = 'field_verification_after_owner_click'
+            }
+            $request | ConvertTo-Json | Set-Content -Path $marker -Encoding UTF8
+            Write-Host 'OWNER_RECHECK_MARKER=ARMED'
+          } else {
+            Write-Host 'OWNER_RECHECK_MARKER=NOT_NEEDED'
+          }
+
+      - name: Verify recheck escapes stale progress latch and diagnostics are written
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $log = Join-Path $root 'supervisor.log'
+          $marker = Join-Path $root 'OWNER_RESOLVED.request.json'
+          $latest = Join-Path $root 'diagnostics\latest.json'
+
+          $bootLine = Get-Content $log -Tail 220 -Encoding UTF8 |
+            Where-Object { $_ -match '"type":"RUNTIME_BOOT"' -and $_ -match 'version=2026-09-18.12' } |
+            Select-Object -Last 1
+          if (-not $bootLine) { throw 'Runtime v12 boot marker not found.' }
+
+          $boot = $bootLine | ConvertFrom-Json
+          $bootAt = [DateTimeOffset]::Parse($boot.timestamp)
+          $sent = $false
+          $latchReleased = $false
+
+          for ($i = 0; $i -lt 24; $i++) {
+            Start-Sleep -Seconds 5
+
+            if (Test-Path $log) {
+              $events = @(
+                Get-Content $log -Tail 260 -Encoding UTF8 |
+                  ForEach-Object { try { $_ | ConvertFrom-Json } catch { $null } } |
+                  Where-Object {
+                    $_ -and ([DateTimeOffset]::Parse($_.timestamp) -ge $bootAt)
+                  }
+              )
+
+              if ($events | Where-Object { $_.type -eq 'OWNER_RECHECK_PROGRESS_LATCH_RELEASED' }) {
+                $latchReleased = $true
+              }
+              if ($events | Where-Object { $_.type -eq 'OWNER_RECONCILE_SENT' -and $_.executed -eq $true }) {
+                $sent = $true
+                break
+              }
+            }
+          }
+
+          Write-Host "OWNER_RECHECK_LATCH_RELEASED=$latchReleased"
+          Write-Host "OWNER_RECONCILE_SENT=$sent"
+          Write-Host "OWNER_RECHECK_MARKER_EXISTS=$(Test-Path $marker)"
+          Write-Host "DIAGNOSTICS_LATEST_EXISTS=$(Test-Path $latest)"
+
+          if (-not $sent) {
+            throw 'Owner recheck did not send a reconciliation within the bounded window.'
+          }
+          if (Test-Path $marker) {
+            throw 'Owner recheck marker was not consumed after send.'
+          }
+          if (-not (Test-Path $latest)) {
+            throw 'Persistent diagnostics latest.json was not created.'
+          }
+
+          Write-Host 'FIELD_RECHECK_V12=PASS'
+
+      - name: Print safe diagnostic evidence
+        run: |
+          $collector = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime\windows\collect-supervisor-diagnostics.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $collector
