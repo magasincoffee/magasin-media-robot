@@ -6,7 +6,6 @@ import json
 import os
 import socket
 import threading
-import time
 import webbrowser
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -239,6 +238,7 @@ _STATUS_META = {
 
 def render_dashboard(state: SupervisorState) -> str:
     symbol, color, label = _STATUS_META.get(state.status, ("●", "#64748b", state.status))
+
     def esc(value: Any) -> str:
         return html.escape("" if value is None else str(value))
 
@@ -279,8 +279,8 @@ h1{{margin:0 0 18px;font-size:28px;letter-spacing:.03em}}
 <div class="key">Workflow</div><div class="value">{esc(state.workflow) or "local"}</div>
 <div class="key">Run ID</div><div class="value">{esc(state.run_id) or "—"}</div>
 </div>
-<div id="freshness" data-heartbeat="{heartbeat}">Last heartbeat: {heartbeat or "—"}</div>
-<div class="small">Auto-refresh: 5s · Heartbeat target: 30s · STALE threshold: 90s. No prompts, cookies, tokens, or generated audio are stored here.</div>
+<div id="freshness" data-heartbeat="{heartbeat}" data-status="{esc(state.status)}">Last heartbeat: {heartbeat or "—"}</div>
+<div class="small">Auto-refresh: 5s · Heartbeat target: 30s · STALE threshold: 90s while RUNNING/RETRYING. No prompts, cookies, tokens, or generated audio are stored here.</div>
 </div>
 <script>
 (function(){{
@@ -291,7 +291,8 @@ h1{{margin:0 0 18px;font-size:28px;letter-spacing:.03em}}
  if(Number.isNaN(t)) return;
  const age=Math.max(0,Math.floor((Date.now()-t)/1000));
  box.textContent='Last heartbeat: '+raw+' ('+age+'s ago)';
- if(age>90){{box.classList.add('stale');box.textContent+=' — STALE';}}
+ const active=['RUNNING','RETRYING'].includes(box.dataset.status);
+ if(active && age>90){{box.classList.add('stale');box.textContent+=' — STALE';}}
 }})();
 </script>
 </body>
