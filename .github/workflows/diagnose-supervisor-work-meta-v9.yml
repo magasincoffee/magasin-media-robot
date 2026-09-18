@@ -1,0 +1,133 @@
+name: Diagnose Supervisor Work Meta V9
+
+on:
+  push:
+    branches:
+      - ops/diagnose-supervisor-work-meta-v9
+    paths:
+      - '.github/workflows/diagnose-supervisor-work-meta-v9.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Inspect privacy-safe Work DOM metadata
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $profile = Join-Path $root 'browser_profile'
+          $port = $null
+
+          foreach ($candidate in 9222..9232) {
+            $listener = Get-NetTCPConnection -State Listen -LocalPort $candidate -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $listener) { continue }
+            $owner = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)" -ErrorAction SilentlyContinue
+            if ($owner -and $owner.Name -eq 'chrome.exe' -and $owner.CommandLine -and $owner.CommandLine -like "*$profile*") {
+              $port = $candidate
+              break
+            }
+          }
+          if (-not $port) { throw 'Dedicated Supervisor CDP port not found.' }
+
+          $env:MAGASIN_RUNTIME = $runtime
+          $env:MAGASIN_CDP = "http://127.0.0.1:$port"
+
+          $script = @'
+          import path from "node:path";
+          import { pathToFileURL } from "node:url";
+
+          const runtime = process.env.MAGASIN_RUNTIME;
+          const { ChatGptUiAdapter } = await import(
+            pathToFileURL(path.join(runtime, "src", "ui", "playwright-adapter.mjs")).href
+          );
+          const adapter = new ChatGptUiAdapter({
+            cdpUrl: process.env.MAGASIN_CDP,
+            settleMs: 0,
+            timeoutMs: 15000
+          });
+          const page = await adapter.open();
+
+          const meta = await page.evaluate(() => {
+            const visible = (el) => {
+              const style = getComputedStyle(el);
+              const box = el.getBoundingClientRect();
+              return style.display !== "none" &&
+                style.visibility !== "hidden" &&
+                box.width > 0 &&
+                box.height > 0;
+            };
+            const main = document.querySelector("main");
+            if (!main) return { main: false };
+
+            const nodes = Array.from(main.querySelectorAll("*")).filter(visible);
+            const testIds = {};
+            const roles = {};
+            const states = {};
+            const busy = {};
+            const live = {};
+            const tags = {};
+            const classTokens = {};
+
+            for (const el of nodes) {
+              const testId = el.getAttribute("data-testid");
+              const role = el.getAttribute("role");
+              const state = el.getAttribute("data-state");
+              const ariaBusy = el.getAttribute("aria-busy");
+              const ariaLive = el.getAttribute("aria-live");
+              const tag = el.tagName.toLowerCase();
+
+              if (testId) testIds[testId] = (testIds[testId] || 0) + 1;
+              if (role) roles[role] = (roles[role] || 0) + 1;
+              if (state) states[state] = (states[state] || 0) + 1;
+              if (ariaBusy) busy[ariaBusy] = (busy[ariaBusy] || 0) + 1;
+              if (ariaLive) live[ariaLive] = (live[ariaLive] || 0) + 1;
+              tags[tag] = (tags[tag] || 0) + 1;
+
+              for (const token of Array.from(el.classList || []).slice(0, 8)) {
+                if (/^[A-Za-z][A-Za-z0-9_-]{2,80}$/.test(token)) {
+                  classTokens[token] = (classTokens[token] || 0) + 1;
+                }
+              }
+            }
+
+            const top = (obj, limit = 100) =>
+              Object.entries(obj)
+                .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+                .slice(0, limit);
+
+            return {
+              main: true,
+              elementCount: nodes.length,
+              testIds: top(testIds, 120),
+              roles: top(roles, 40),
+              states: top(states, 40),
+              busy: top(busy, 20),
+              live: top(live, 20),
+              tags: top(tags, 40),
+              classTokens: top(classTokens, 120),
+              disabledButtons: nodes.filter((el) => el.tagName === "BUTTON" && el.disabled).length,
+              enabledButtons: nodes.filter((el) => el.tagName === "BUTTON" && !el.disabled).length,
+              ariaBusyTrue: nodes.filter((el) => el.getAttribute("aria-busy") === "true").length,
+              progressBars: nodes.filter((el) => el.getAttribute("role") === "progressbar").length,
+              statusRoles: nodes.filter((el) => el.getAttribute("role") === "status").length,
+              alertRoles: nodes.filter((el) => el.getAttribute("role") === "alert").length
+            };
+          });
+
+          console.log("WORK_META=" + JSON.stringify(meta));
+          await adapter.close();
+          process.exit(0);
+          '@
+
+          $diag = Join-Path $env:RUNNER_TEMP 'magasin-work-meta-v9.mjs'
+          Set-Content -Path $diag -Value $script -Encoding UTF8
+          node $diag
