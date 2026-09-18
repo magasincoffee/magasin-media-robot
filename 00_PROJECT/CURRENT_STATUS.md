@@ -4,7 +4,7 @@ Last updated: 2026-09-18
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery is functionally complete for the authenticated Windows path. The production Voice Engine is implemented on `feat/saydi-production-provider`, and Saydi now has a local supervisor status/heartbeat layer so operator-visible state no longer depends on the ChatGPT conversation remaining open. The remaining production gate is still one read-only authenticated backend preflight on `MAGASIN-PC`; no additional live generation is required for ordinary implementation work.**
+**Phase 0 — SaydiVoice Discovery is functionally complete for the authenticated Windows path. The production Voice Engine is implemented on `feat/saydi-production-provider`, and Saydi now has a local supervisor status/heartbeat layer so operator-visible state no longer depends on the ChatGPT conversation remaining open. TASK-042 offline acceptance is verified at GitHub-hosted run `35370559918` with 23 tests PASS and the no-authenticated-profile guard PASS. The remaining production merge gate is still one read-only authenticated backend preflight on `MAGASIN-PC`; it was not executed by TASK-042, and no additional live generation is required for ordinary implementation work.**
 
 ## Completed
 
@@ -112,6 +112,7 @@ The production path therefore reuses the authenticated persistent Chrome profile
   - five frozen application-level style presets;
   - supervisor state, heartbeat, and local dashboard.
 - Latest hosted Voice Engine CI run `35304115327`: PASS, **22 tests**.
+- TASK-042 night-run offline acceptance run `35370559918`: PASS, **23 tests**; request-text/backend-error privacy regression PASS; hosted runner confirmed unable to perform live provider actions.
 - Hosted CI verified it has no authenticated Saydi profile, so ordinary unit CI cannot perform live provider side effects.
 - Production backend read-only live preflight remains the final smoke gate. It now reports `RUNNING` / `WAIT_USER` / `FAILED` / `DONE` into the local supervisor dashboard and still contains no Generate or Download authorization.
 
@@ -130,4 +131,6 @@ The repository is public. Never commit passwords, cookies, browser profiles, aut
 
 ## Current active objective
 
-Use the local `SAYDI CONTROL` dashboard to observe the next read-only production `SaydiPlaywrightBackend` preflight on `MAGASIN-PC`. Confirm the smoke result, then remove the temporary preflight workflow and merge the provider adapter. Do not Generate or Download during this gate, and do not spend another generation unless a later production acceptance test is explicitly authorized.
+TASK-042 night-run offline acceptance is complete. For the active MAGASIN night run, hand control back to the Business OS cursor for TASK-043; do **not** run the live/read-only preflight, Generate, or Download as part of this handoff.
+
+Outside this offline night-run boundary, the normal Media Robot production gate remains: use the local `SAYDI CONTROL` dashboard to observe one read-only production `SaydiPlaywrightBackend` preflight on `MAGASIN-PC`, then remove the temporary preflight workflow and merge the provider adapter if that smoke and PR CI pass. Do not Generate or Download during that gate, and do not spend another generation unless a later production acceptance test is explicitly authorized.
