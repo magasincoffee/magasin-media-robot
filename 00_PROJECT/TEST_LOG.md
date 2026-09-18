@@ -1,5 +1,27 @@
 # Test Log
 
+## 2026-09-18 — Production SaydiVoiceProvider offline acceptance gate
+
+Scope: freeze the field-verified Saydi contracts behind a production provider boundary without consuming generation quota or downloading live audio.
+
+- Branch: `feat/saydivoice-production-adapter-offline`.
+- Discovery Tests run `35370775036`: **PASS**.
+- Package compile: PASS.
+- Pytest: **83 passed**.
+- No self-hosted/live Saydi workflow invoked.
+- No Generate click.
+- No Download click.
+- Request validation resolves presets before runtime/browser access.
+- Invalid preset/text/output path: fail as `fix_input` with zero preflight/control/generation calls.
+- Login/session preflight failure: `PREFLIGHT_BLOCKED / re_auth` with zero side effects.
+- Voice/format overrides are verified before Generate.
+- Provider adapter makes exactly one `generate_once` call and exposes retry metadata instead of performing an implicit retry.
+- Timeout/provider failure classification covered.
+- Download is explicit (`download_requested`) and returns local path / byte count / SHA-256 metadata.
+- Sensitive error strings are redacted through the existing runtime sanitizer.
+- `PlaywrightSaydiRuntime` reuses existing field-verified page classifier, preset controls, generation trace/network recorder and safe download filename behavior.
+- Raw audio, cookies, credentials, authorization headers and browser profile data remain outside Git.
+
 ## 2026-09-17 — Voice/style controls, preset roundtrip, preflight, and real preset generation
 
 Scope: verify that production-relevant SaydiVoice voice/style controls can be applied deterministically before Generate, without inventing an unsupported discrete mood API.
