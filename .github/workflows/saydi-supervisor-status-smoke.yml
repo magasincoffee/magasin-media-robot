@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: saydi-supervisor-status-\${{ github.repository }}
+  group: saydi-supervisor-status-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
