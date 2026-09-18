@@ -94,4 +94,44 @@ jobs:
             Write-Host "SAFE_LOG_TAIL_END"
           }
 
+      - name: Probe current ChatGPT UI without reading message bodies
+        run: |
+          $runtime = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime'
+          Push-Location $runtime
+          try {
+            @'
+            import { SupervisorSession } from "./src/runtime/session.mjs";
+
+            const session = new SupervisorSession({
+              cdpUrl: "http://127.0.0.1:9222",
+              maxConnectRetries: 0
+            });
+            try {
+              const adapter = await session.connect();
+              const page = adapter.getActivePage();
+              const url = new URL(page.url());
+              const probe = await session.probe();
+              const s = probe.snapshot;
+              console.log("HOST=" + url.hostname);
+              console.log("PATH_KIND=" + (s.pathKind || ""));
+              console.log("CONVERSATION_PATH=" + Boolean(s.conversationPath));
+              console.log("COMPOSER_READY=" + Boolean(s.composerReady));
+              console.log("LOGIN_REQUIRED=" + Boolean(s.loginRequired));
+              console.log("HAS_CAPTCHA=" + Boolean(s.hasCaptcha));
+              console.log("RESPONSE_RUNNING=" + Boolean(s.responseRunning));
+              console.log("HAS_CONTINUE_CONTROL=" + Boolean(s.hasContinueControl));
+              console.log("HAS_RETRY_CONTROL=" + Boolean(s.hasRetryControl));
+              console.log("ASSISTANT_MESSAGE_COUNT=" + Number(s.assistantMessageCount || 0));
+              console.log("USER_MESSAGE_COUNT=" + Number(s.userMessageCount || 0));
+              console.log("UI_STATE=" + probe.classification.uiState);
+              console.log("OBSERVATION=" + probe.classification.observation);
+            } finally {
+              await session.disconnect().catch(() => {});
+            }
+            '@ | node --input-type=module -
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            Pop-Location
+          }
+
 # second pass: verify steady-state after browser startup
