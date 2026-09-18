@@ -1,0 +1,146 @@
+name: Repair Supervisor Turn Rearm V13
+
+on:
+  push:
+    branches:
+      - ops/repair-supervisor-turn-rearm-v13
+    paths:
+      - '.github/workflows/repair-supervisor-turn-rearm-v13.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repair-supervisor-turn-rearm-v13
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Fetch canonical Business OS
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'magasin-business-os-v13'
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          git clone --depth 1 https://github.com/magasincoffee/magasincoffee.github.io.git $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "BUSINESS_OS_REPO=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Repair Supervisor v13
+        run: |
+          $repair = Join-Path $env:BUSINESS_OS_REPO '08_INTEGRATIONS\supervisor\windows\repair-supervisor.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipGitPull
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify v13 fingerprint
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $loop = Join-Path $root 'runtime\src\runtime\supervisor-loop-cli.mjs'
+          $controller = Join-Path $root 'runtime\src\runtime\loop.mjs'
+          if (-not (Select-String -Path $loop -SimpleMatch '2026-09-18.13' -Quiet)) {
+            throw 'Runtime v13 fingerprint missing.'
+          }
+          if (-not (Select-String -Path $controller -SimpleMatch 'turnOrdinalAtAction' -Quiet)) {
+            throw 'Semantic turn rearm missing.'
+          }
+          if (-not (Select-String -Path $controller -SimpleMatch 'ownerReconcileAwaitingResponse' -Quiet)) {
+            throw 'Owner response settle gate missing.'
+          }
+          Write-Host 'RUNTIME_V13_FINGERPRINT=PASS'
+
+      - name: Verify reconcile response settles without stale latch
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $log = Join-Path $root 'supervisor.log'
+          $latest = Join-Path $root 'diagnostics\latest.json'
+
+          $bootLine = Get-Content $log -Tail 260 -Encoding UTF8 |
+            Where-Object { $_ -match '"type":"RUNTIME_BOOT"' -and $_ -match 'version=2026-09-18.13' } |
+            Select-Object -Last 1
+          if (-not $bootLine) { throw 'Runtime v13 boot marker missing.' }
+
+          $boot = $bootLine | ConvertFrom-Json
+          $bootAt = [DateTimeOffset]::Parse($boot.timestamp)
+          $sentAt = $null
+          $settled = $false
+
+          for ($i = 0; $i -lt 36; $i++) {
+            Start-Sleep -Seconds 5
+            $events = @(
+              Get-Content $log -Tail 360 -Encoding UTF8 |
+                ForEach-Object { try { $_ | ConvertFrom-Json } catch { $null } } |
+                Where-Object {
+                  $_ -and ([DateTimeOffset]::Parse($_.timestamp) -ge $bootAt)
+                }
+            )
+
+            if (-not $sentAt) {
+              $sent = $events |
+                Where-Object { $_.type -eq 'OWNER_RECONCILE_SENT' -and $_.executed -eq $true } |
+                Select-Object -First 1
+              if ($sent) {
+                $sentAt = [DateTimeOffset]::Parse($sent.timestamp)
+                Write-Host "OWNER_RECONCILE_SENT_AT=$sentAt"
+              }
+            }
+
+            if ($sentAt) {
+              $settle = $events |
+                Where-Object {
+                  $_.type -eq 'OWNER_RECONCILE_SETTLED' -and
+                  ([DateTimeOffset]::Parse($_.timestamp) -gt $sentAt)
+                } |
+                Select-Object -First 1
+              if ($settle) {
+                $settled = $true
+                break
+              }
+            }
+
+            if (Test-Path $latest) {
+              try {
+                $d = Get-Content $latest -Raw -Encoding UTF8 | ConvertFrom-Json
+                Write-Host ("LIVE=" + $d.project.status +
+                  " obs=" + $d.ui.observation +
+                  " action=" + $d.step.decision_action +
+                  " executed=" + $d.step.execution_executed +
+                  " reason=" + $d.step.execution_reason +
+                  " armed=" + $d.controller.armed +
+                  " turnAtAction=" + $d.controller.turn_ordinal_at_action +
+                  " awaiting=" + $d.owner_reconcile.awaiting_response)
+              } catch {}
+            }
+          }
+
+          Write-Host "OWNER_RECONCILE_SETTLED=$settled"
+          if (-not $sentAt) { throw 'v13 never sent the bounded Owner reconciliation.' }
+          if (-not $settled) { throw 'v13 did not settle the Owner reconciliation response.' }
+
+          Start-Sleep -Seconds 5
+          $d = Get-Content $latest -Raw -Encoding UTF8 | ConvertFrom-Json
+          Write-Host "FINAL_PROJECT=$($d.project.status)"
+          Write-Host "FINAL_OBS=$($d.ui.observation)"
+          Write-Host "FINAL_ACTION=$($d.step.decision_action)"
+          Write-Host "FINAL_EXECUTED=$($d.step.execution_executed)"
+          Write-Host "FINAL_REASON=$($d.step.execution_reason)"
+          Write-Host "FINAL_ARMED=$($d.controller.armed)"
+          Write-Host "FINAL_AWAITING=$($d.owner_reconcile.awaiting_response)"
+
+          if (
+            $d.step.execution_reason -eq 'awaiting observable assistant progress' -and
+            $d.owner_reconcile.awaiting_response
+          ) {
+            throw 'Post-reconcile stale progress latch still present.'
+          }
+
+          Write-Host 'FIELD_TURN_REARM_V13=PASS'
+
+      - name: Print safe diagnostics
+        run: |
+          $collector = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime\windows\collect-supervisor-diagnostics.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $collector
