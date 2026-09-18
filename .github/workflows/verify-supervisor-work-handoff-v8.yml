@@ -1,0 +1,102 @@
+name: Verify Supervisor Work Handoff V8
+
+on:
+  push:
+    branches:
+      - ops/verify-supervisor-work-handoff-v8
+    paths:
+      - '.github/workflows/verify-supervisor-work-handoff-v8.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 8
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Verify live Supervisor state
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $log = Join-Path $root 'supervisor.log'
+          $statusFile = Join-Path $root 'runtime-status.json'
+          $runtimeLoop = Join-Path $root 'runtime\src\runtime\supervisor-loop-cli.mjs'
+
+          if (-not (Test-Path $runtimeLoop)) { throw 'Installed runtime missing.' }
+          if (-not (Select-String -Path $runtimeLoop -SimpleMatch '2026-09-18.8' -Quiet)) {
+            throw 'Installed runtime is not 2026-09-18.8.'
+          }
+
+          $bootLine = Get-Content $log -Tail 220 -Encoding UTF8 |
+            Where-Object { $_ -match '"type":"RUNTIME_BOOT"' -and $_ -match 'version=2026-09-18.8' } |
+            Select-Object -Last 1
+          if (-not $bootLine) { throw 'v8 boot marker missing.' }
+
+          $boot = $bootLine | ConvertFrom-Json
+          $bootAt = [DateTimeOffset]::Parse($boot.timestamp)
+          $events = @(
+            Get-Content $log -Tail 260 -Encoding UTF8 |
+              ForEach-Object {
+                try { $_ | ConvertFrom-Json } catch { $null }
+              } |
+              Where-Object {
+                $_ -and ([DateTimeOffset]::Parse($_.timestamp) -ge $bootAt)
+              }
+          )
+
+          $idleCount = @($events | Where-Object { $_.type -eq 'HANDOFF_IDLE_CONFIRMED' }).Count
+          $handoffEvents = @($events | Where-Object {
+            $_.type -eq 'HANDOFF_RECONCILED' -and $_.executed -eq $true
+          })
+          $handoffCount = $handoffEvents.Count
+
+          Write-Host "HANDOFF_IDLE_COUNT=$idleCount"
+          Write-Host "HANDOFF_RECONCILED_COUNT=$handoffCount"
+
+          if ($idleCount -lt 1) { throw 'No HANDOFF_IDLE_CONFIRMED event after v8 boot.' }
+          if ($handoffCount -ne 1) {
+            throw "Expected exactly one HANDOFF_RECONCILED event, found $handoffCount."
+          }
+
+          if (Test-Path $statusFile) {
+            $status = Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            Write-Host "CURRENT_RUNTIME_STATUS=$($status.status)"
+            Write-Host "CURRENT_PROJECT_STATUS=$($status.project_status)"
+            Write-Host "CURRENT_TASK=$($status.current_task)"
+            Write-Host "CURRENT_UI=$($status.ui_state)"
+            Write-Host "CURRENT_OBS=$($status.observation)"
+            Write-Host "CURRENT_ACTION=$($status.action)"
+
+            if ($status.current_task -ne 'TASK-029') {
+              throw "Unexpected current task: $($status.current_task)"
+            }
+          } else {
+            throw 'runtime-status.json missing.'
+          }
+
+          $wrappers = @(
+            Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+              Where-Object {
+                $_.CommandLine -and
+                $_.CommandLine -like '*run-supervisor.ps1*' -and
+                $_.CommandLine -like "*$root*"
+              }
+          )
+          $nodes = @(
+            Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
+              Where-Object { $_.CommandLine -and $_.CommandLine -like '*supervisor-loop-cli.mjs*' }
+          )
+
+          Write-Host "WRAPPER_COUNT=$($wrappers.Count)"
+          Write-Host "NODE_LOOP_COUNT=$($nodes.Count)"
+          if ($wrappers.Count -ne 1 -or $nodes.Count -ne 1) {
+            throw "Singleton verification failed: wrappers=$($wrappers.Count), nodes=$($nodes.Count)"
+          }
+
+          Write-Host 'LIVE_HANDOFF_VERIFICATION=PASS'
