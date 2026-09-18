@@ -1,5 +1,18 @@
 # Test Log
 
+## 2026-09-18 — TASK-042 night-run offline acceptance
+
+- Scope: production `SaydiVoiceProvider` offline/unit verification only; no live preflight, Generate, or Download.
+- Branch: `feat/saydi-production-provider`.
+- Privacy regression commit: `8c679734c17ddc004e71c188384508e747959c5c`.
+- GitHub-hosted Windows run `35370559918`: **PASS**.
+- Python compile: PASS.
+- Pytest: **23 tests PASS**.
+- Covered: request/result validation, preset resolution before side effects, authenticated-preflight failure classification, explicit Generate/Download gates, exactly-one Generate attempt, no automatic retry, bounded error/timeout helpers, output path/byte count/SHA-256 contract, collision-safe filenames, supervisor status behavior, and privacy regression proving request text/backend error detail are absent from status JSON/dashboard.
+- CI guard: PASS — hosted runner has no authenticated Saydi profile and cannot perform live provider actions.
+- Remaining live smoke / BUG-20260917-011 verification is intentionally **not** part of TASK-042 and remains pending separate authorization/normal project flow.
+
+
 ## 2026-09-18 — Production Voice Engine offline verification
 
 - Branch: `feat/saydi-production-provider`.
