@@ -88,7 +88,7 @@ class FakeBackend:
 
 def test_no_generate_without_explicit_authorization(tmp_path):
     backend = FakeBackend()
-    result = SaydiVoiceProvider(backend).run(
+    result = SaydiVoiceProvider(backend, enable_status=False).run(
         VoiceRequest(text="Xin chào", output_directory=tmp_path, allow_generate=False)
     )
     assert result.status == RunState.ACTION_REQUIRED
@@ -102,7 +102,7 @@ def test_no_generate_without_explicit_authorization(tmp_path):
 
 def test_successful_generation_is_exactly_one_attempt_and_no_download_by_default(tmp_path):
     backend = FakeBackend()
-    result = SaydiVoiceProvider(backend).run(
+    result = SaydiVoiceProvider(backend, enable_status=False).run(
         VoiceRequest(
             text="Xin chào",
             preset_key="tiktok_energetic",
@@ -122,7 +122,7 @@ def test_successful_generation_is_exactly_one_attempt_and_no_download_by_default
 
 def test_successful_generate_and_download_returns_local_metadata(tmp_path):
     backend = FakeBackend()
-    result = SaydiVoiceProvider(backend).run(
+    result = SaydiVoiceProvider(backend, enable_status=False).run(
         VoiceRequest(
             text="Xin chào",
             output_directory=tmp_path,
@@ -148,7 +148,7 @@ def test_generation_failure_is_not_retried_or_downloaded(tmp_path):
             disposition=FailureDisposition.RETRY,
         )
     )
-    result = SaydiVoiceProvider(backend).run(
+    result = SaydiVoiceProvider(backend, enable_status=False).run(
         VoiceRequest(
             text="Xin chào",
             output_directory=tmp_path,
@@ -173,7 +173,7 @@ def test_preflight_reauth_stops_before_setting_mutation(tmp_path):
             disposition=FailureDisposition.RE_AUTH,
         )
     )
-    result = SaydiVoiceProvider(backend).run(
+    result = SaydiVoiceProvider(backend, enable_status=False).run(
         VoiceRequest(text="Xin chào", output_directory=tmp_path, allow_generate=True)
     )
     assert result.status == RunState.ACTION_REQUIRED
@@ -184,7 +184,7 @@ def test_preflight_reauth_stops_before_setting_mutation(tmp_path):
 
 def test_invalid_request_never_opens_provider(tmp_path):
     backend = FakeBackend()
-    result = SaydiVoiceProvider(backend).run(
+    result = SaydiVoiceProvider(backend, enable_status=False).run(
         VoiceRequest(text="", output_directory=tmp_path, allow_generate=True)
     )
     assert result.status == RunState.ACTION_REQUIRED
@@ -195,7 +195,7 @@ def test_invalid_request_never_opens_provider(tmp_path):
 
 def test_unknown_preset_is_fix_input(tmp_path):
     backend = FakeBackend()
-    result = SaydiVoiceProvider(backend).run(
+    result = SaydiVoiceProvider(backend, enable_status=False).run(
         VoiceRequest(
             text="Xin chào",
             preset_key="missing",
@@ -206,3 +206,55 @@ def test_unknown_preset_is_fix_input(tmp_path):
     assert result.status == RunState.ACTION_REQUIRED
     assert result.error_class == FailureDisposition.FIX_INPUT
     assert backend.preflight_calls == 0
+
+
+def test_provider_publishes_terminal_done_state(tmp_path):
+    from magasin_voice_engine.supervisor_status import RobotStatus, SupervisorStateStore
+
+    backend = FakeBackend()
+    store = SupervisorStateStore(tmp_path / "status")
+    result = SaydiVoiceProvider(
+        backend,
+        status_store=store,
+        job_id="test-job",
+        heartbeat_seconds=1,
+    ).run(
+        VoiceRequest(
+            text="Xin chào",
+            output_directory=tmp_path,
+            allow_generate=True,
+        )
+    )
+
+    state = store.load()
+    assert result.status == RunState.SUCCESS
+    assert state.status == RobotStatus.DONE.value
+    assert state.job_id == "test-job"
+    assert state.current_step == "complete"
+    assert state.last_completed_step == "generate"
+    assert state.requires_user is False
+
+
+def test_provider_publishes_wait_user_without_generate_authorization(tmp_path):
+    from magasin_voice_engine.supervisor_status import RobotStatus, SupervisorStateStore
+
+    backend = FakeBackend()
+    store = SupervisorStateStore(tmp_path / "status")
+    result = SaydiVoiceProvider(
+        backend,
+        status_store=store,
+        job_id="test-job",
+        heartbeat_seconds=1,
+    ).run(
+        VoiceRequest(
+            text="Xin chào",
+            output_directory=tmp_path,
+            allow_generate=False,
+        )
+    )
+
+    state = store.load()
+    assert result.status == RunState.ACTION_REQUIRED
+    assert state.status == RobotStatus.WAIT_USER.value
+    assert state.requires_user is True
+    assert state.last_completed_step == "provider_preflight"

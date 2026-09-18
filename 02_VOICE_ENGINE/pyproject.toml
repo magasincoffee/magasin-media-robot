@@ -11,6 +11,9 @@ dependencies = [
   "playwright==1.57.0",
 ]
 
+[project.scripts]
+magasin-saydi-status = "magasin_voice_engine.supervisor_status:_main"
+
 [project.optional-dependencies]
 dev = [
   "pytest==9.0.2",
