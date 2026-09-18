@@ -1,0 +1,189 @@
+name: Repair Supervisor Work Handoff V9
+
+on:
+  push:
+    branches:
+      - ops/repair-supervisor-work-handoff-v9
+    paths:
+      - '.github/workflows/repair-supervisor-work-handoff-v9.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repair-supervisor-work-handoff-v9
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Fetch latest canonical Business OS
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'magasin-business-os-v9'
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          git clone --depth 1 https://github.com/magasincoffee/magasincoffee.github.io.git $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "BUSINESS_OS_REPO=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $state = Get-Content (Join-Path $dest '01_DOCS\MAGASIN\00_PROJECT_STATE.json') -Raw | ConvertFrom-Json
+          Write-Host "CANONICAL_TASK=$($state.current_task) - $($state.current_task_title)"
+          Write-Host "CANONICAL_STATUS=$($state.status)"
+          Write-Host "CANONICAL_AUTONOMY=$($state.autonomy)"
+
+      - name: Repair and boot Supervisor 2026-09-18.9
+        run: |
+          $repair = Join-Path $env:BUSINESS_OS_REPO '08_INTEGRATIONS\supervisor\windows\repair-supervisor.ps1'
+          if (-not (Test-Path $repair)) { throw "Repair script missing: $repair" }
+
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipGitPull
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify v9 runtime fingerprint
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $loop = Join-Path $runtime 'src\runtime\supervisor-loop-cli.mjs'
+          $controller = Join-Path $runtime 'src\runtime\loop.mjs'
+
+          if (-not (Select-String -Path $loop -SimpleMatch '2026-09-18.9' -Quiet)) {
+            throw 'Installed loop is not runtime 2026-09-18.9.'
+          }
+          if (-not (Select-String -Path $controller -SimpleMatch 'WORK_UI_IDLE_CONFIRMED' -Quiet)) {
+            throw 'Installed controller is missing Work UI idle confirmation.'
+          }
+          if (-not (Select-String -Path $controller -SimpleMatch 'REARMED_AFTER_WORK_UI' -Quiet)) {
+            throw 'Installed controller is missing Work UI rearm telemetry.'
+          }
+          if (-not (Select-String -Path $controller -SimpleMatch 'userPendingSawProgress' -Quiet)) {
+            throw 'Installed controller is missing post-send Work progress tracking.'
+          }
+
+          Write-Host 'RUNTIME_V9_FINGERPRINT=PASS'
+
+      - name: Verify startup handoff and autonomous continuation
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $log = Join-Path $root 'supervisor.log'
+          $statusFile = Join-Path $root 'runtime-status.json'
+
+          $bootLine = Get-Content $log -Tail 220 -Encoding UTF8 |
+            Where-Object { $_ -match '"type":"RUNTIME_BOOT"' -and $_ -match 'version=2026-09-18.9' } |
+            Select-Object -Last 1
+          if (-not $bootLine) { throw 'Runtime v9 boot marker not found.' }
+
+          $boot = $bootLine | ConvertFrom-Json
+          $bootAt = [DateTimeOffset]::Parse($boot.timestamp)
+          $handoffAt = $null
+          $postHandoffContinue = $false
+          $rearmed = $false
+
+          for ($i = 0; $i -lt 36; $i++) {
+            Start-Sleep -Seconds 5
+
+            $events = @(
+              Get-Content $log -Tail 320 -Encoding UTF8 |
+                ForEach-Object {
+                  try { $_ | ConvertFrom-Json } catch { $null }
+                } |
+                Where-Object {
+                  $_ -and ([DateTimeOffset]::Parse($_.timestamp) -ge $bootAt)
+                }
+            )
+
+            if (-not $handoffAt) {
+              $handoff = $events |
+                Where-Object { $_.type -eq 'HANDOFF_RECONCILED' -and $_.executed -eq $true } |
+                Select-Object -First 1
+              if ($handoff) {
+                $handoffAt = [DateTimeOffset]::Parse($handoff.timestamp)
+                Write-Host "HANDOFF_RECONCILED_AT=$handoffAt"
+              }
+            }
+
+            if ($handoffAt) {
+              if ($events | Where-Object {
+                ([DateTimeOffset]::Parse($_.timestamp) -gt $handoffAt) -and
+                $_.type -in @('REARMED_AFTER_WORK_UI','REARMED_AFTER_RESPONSE')
+              }) {
+                $rearmed = $true
+              }
+
+              if ($events | Where-Object {
+                ([DateTimeOffset]::Parse($_.timestamp) -gt $handoffAt) -and
+                $_.type -eq 'STEP' -and
+                $_.action -eq 'CONTINUE' -and
+                $_.executed -eq $true
+              }) {
+                $postHandoffContinue = $true
+                break
+              }
+            }
+
+            if (Test-Path $statusFile) {
+              try {
+                $status = Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json
+                Write-Host ("LIVE_STATUS=" + $status.status +
+                  " task=" + $status.current_task +
+                  " ui=" + $status.ui_state +
+                  " obs=" + $status.observation +
+                  " action=" + $status.action)
+              } catch {}
+            }
+          }
+
+          Write-Host "POST_HANDOFF_REARMED=$rearmed"
+          Write-Host "POST_HANDOFF_CONTINUE=$postHandoffContinue"
+
+          if (-not $handoffAt) {
+            throw 'Startup HANDOFF_RECONCILED did not execute within the bounded verification window.'
+          }
+          if (-not $rearmed) {
+            throw 'Supervisor did not rearm after observable ChatGPT response/Work progress.'
+          }
+          if (-not $postHandoffContinue) {
+            throw 'Supervisor did not execute a normal continuation after the handoff response completed.'
+          }
+
+      - name: Verify singleton and final safe state
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $statusFile = Join-Path $root 'runtime-status.json'
+
+          $wrappers = @(
+            Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+              Where-Object {
+                $_.CommandLine -and
+                $_.CommandLine -like '*run-supervisor.ps1*' -and
+                $_.CommandLine -like "*$root*"
+              }
+          )
+          $nodes = @(
+            Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
+              Where-Object { $_.CommandLine -and $_.CommandLine -like '*supervisor-loop-cli.mjs*' }
+          )
+
+          Write-Host "WRAPPER_COUNT=$($wrappers.Count)"
+          Write-Host "NODE_LOOP_COUNT=$($nodes.Count)"
+
+          if ($wrappers.Count -ne 1 -or $nodes.Count -ne 1) {
+            throw "Supervisor singleton failed: wrappers=$($wrappers.Count), nodes=$($nodes.Count)"
+          }
+
+          if (Test-Path $statusFile) {
+            $status = Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            Write-Host "FINAL_RUNTIME_STATUS=$($status.status)"
+            Write-Host "FINAL_PROJECT_STATUS=$($status.project_status)"
+            Write-Host "FINAL_TASK=$($status.current_task)"
+            Write-Host "FINAL_UI=$($status.ui_state)"
+            Write-Host "FINAL_OBS=$($status.observation)"
+            Write-Host "FINAL_ACTION=$($status.action)"
+          }
+
+          Write-Host 'FIELD_VERIFICATION_V9=PASS'
