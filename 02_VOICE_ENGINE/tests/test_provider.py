@@ -235,6 +235,47 @@ def test_provider_publishes_terminal_done_state(tmp_path):
     assert state.requires_user is False
 
 
+
+def test_status_artifacts_exclude_request_text_and_backend_error_detail(tmp_path):
+    from magasin_voice_engine.supervisor_status import SupervisorStateStore
+
+    secret_request = "PRIVATE SCRIPT SHOULD NEVER BE STORED"
+    secret_backend_detail = "token=secret-value provider-body-private"
+    backend = FakeBackend(
+        preflight_result=PreflightResult(
+            ready=False,
+            page_state="TTS_NOT_READY",
+            auth_state="LOGIN_REQUIRED",
+            error_message=secret_backend_detail,
+            disposition=FailureDisposition.RE_AUTH,
+        )
+    )
+    store = SupervisorStateStore(tmp_path / "status")
+
+    result = SaydiVoiceProvider(
+        backend,
+        status_store=store,
+        job_id="privacy-test",
+        heartbeat_seconds=1,
+    ).run(
+        VoiceRequest(
+            text=secret_request,
+            output_directory=tmp_path,
+            allow_generate=True,
+        )
+    )
+
+    persisted = (
+        store.state_path.read_text(encoding="utf-8")
+        + store.dashboard_path.read_text(encoding="utf-8")
+    )
+    assert result.status == RunState.ACTION_REQUIRED
+    assert secret_request not in persisted
+    assert secret_backend_detail not in persisted
+    assert "secret-value" not in persisted
+    assert "PREFLIGHT_FAILED" in persisted
+
+
 def test_provider_publishes_wait_user_without_generate_authorization(tmp_path):
     from magasin_voice_engine.supervisor_status import RobotStatus, SupervisorStateStore
 
