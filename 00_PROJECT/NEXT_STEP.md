@@ -1,5 +1,13 @@
 # Next Step
 
+## Night-run handoff — TASK-042 offline gate complete
+
+- Offline acceptance run `35370559918`: **23 tests PASS** plus compile PASS.
+- CI confirms the hosted runner has no authenticated Saydi profile and cannot perform live provider actions.
+- Request text/backend error detail privacy regression is verified.
+- No live preflight, Generate, or Download was executed.
+- During the active MAGASIN night run, return to the Business OS cursor for TASK-043. Do not auto-run the pending MAGASIN-PC live smoke.
+
 ## Immediate next step — observe one read-only production backend smoke, then merge Voice Engine
 
 Phase 0 SaydiVoice discovery and the reusable voice/style preset layer are complete. The production `02_VOICE_ENGINE` adapter and the supervisor status/heartbeat layer are implemented and pass hosted CI. The remaining gate before merge is a **read-only** authenticated preflight using the production backend on `MAGASIN-PC`.
