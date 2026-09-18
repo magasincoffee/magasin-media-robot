@@ -1,0 +1,136 @@
+name: Diagnose Supervisor Recovery And Rollover
+
+on:
+  push:
+    branches:
+      - ops/diagnose-supervisor-rollover
+    paths:
+      - '.github/workflows/diagnose-supervisor-rollover.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Inspect local Supervisor state and ChatGPT surface safely
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $target = Join-Path $root 'target.json'
+          $status = Join-Path $root 'runtime-status.json'
+          $log = Join-Path $root 'supervisor.log'
+
+          if (Test-Path $target) {
+            $t = Get-Content $target -Raw | ConvertFrom-Json
+            Write-Host "TARGET_ORIGIN=$($t.origin)"
+            Write-Host "TARGET_PATH=$($t.pathname)"
+          } else {
+            Write-Host "TARGET_MISSING=True"
+          }
+
+          if (Test-Path $status) {
+            $s = Get-Content $status -Raw | ConvertFrom-Json
+            Write-Host "RUNTIME_STATUS=$($s.status)"
+            Write-Host "UI_STATE=$($s.ui_state)"
+            Write-Host "OBSERVATION=$($s.observation)"
+            Write-Host "DECISION=$($s.decision_action)"
+            Write-Host "EXECUTED=$($s.execution_executed)"
+            Write-Host "EXEC_REASON=$($s.execution_reason)"
+            Write-Host "ERROR=$($s.error_name)"
+            Write-Host "UPDATED_AT=$($s.updated_at)"
+          }
+
+          if (Test-Path $log) {
+            Write-Host "SAFE_LOG_BEGIN"
+            Get-Content $log -Tail 60
+            Write-Host "SAFE_LOG_END"
+          }
+
+          try {
+            $version = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/version' -TimeoutSec 2
+            Write-Host "CDP=True"
+            Write-Host "BROWSER=$($version.Browser)"
+          } catch {
+            Write-Host "CDP=False"
+            exit 0
+          }
+
+          Push-Location $runtime
+          try {
+            $js = @"
+import { chromium } from "playwright-core";
+const browser = await chromium.connectOverCDP("http://127.0.0.1:9222");
+try {
+  const contexts = browser.contexts();
+  const pages = contexts.flatMap(c => c.pages()).filter(p => !p.isClosed());
+  console.log("PAGE_COUNT=" + pages.length);
+  for (let i = 0; i < pages.length; i++) {
+    const p = pages[i];
+    const u = new URL(p.url());
+    console.log("PAGE_" + i + "_HOST=" + u.hostname);
+    console.log("PAGE_" + i + "_PATH=" + u.pathname);
+  }
+
+  const chatPages = pages.filter(p => {
+    try { const u = new URL(p.url()); return u.hostname === "chatgpt.com" || u.hostname.endsWith(".chatgpt.com"); }
+    catch { return false; }
+  });
+  const page = chatPages.at(-1);
+  if (!page) {
+    console.log("ACTIVE_CHATGPT=False");
+    process.exit(0);
+  }
+
+  console.log("ACTIVE_CHATGPT=True");
+  const u = new URL(page.url());
+  console.log("ACTIVE_PATH=" + u.pathname);
+  const safe = await page.evaluate(() => {
+    const visible = (el) => {
+      if (!el) return false;
+      const s = getComputedStyle(el), r = el.getBoundingClientRect();
+      return s.display !== "none" && s.visibility !== "hidden" && r.width > 0 && r.height > 0;
+    };
+    const controls = Array.from(document.querySelectorAll("button,[role='button'],[role='alert']"))
+      .filter(visible)
+      .slice(0, 180)
+      .map(el => ({
+        tag: el.tagName.toLowerCase(),
+        role: el.getAttribute("role") || "",
+        text: String(el.innerText || el.textContent || "").replace(/\s+/g," ").trim().slice(0,120),
+        aria: String(el.getAttribute("aria-label") || "").replace(/\s+/g," ").trim().slice(0,120),
+        testId: el.getAttribute("data-testid") || ""
+      }))
+      .filter(x => /retry|try again|thử lại|continue|tiếp tục|new chat|đoạn chat mới|conversation|chat|reload|refresh|tải lại|stop|dừng|send|gửi|limit|maximum|too long|full|đầy/i.test([x.text,x.aria,x.testId].join(" ")));
+    const composer = Array.from(document.querySelectorAll("#prompt-textarea,textarea,[contenteditable='true']")).find(visible);
+    const assistant = document.querySelectorAll("[data-message-author-role='assistant']").length;
+    const user = document.querySelectorAll("[data-message-author-role='user']").length;
+    return {
+      composerReady: Boolean(composer),
+      assistantCount: assistant,
+      userCount: user,
+      title: document.title,
+      controls
+    };
+  });
+  console.log("COMPOSER_READY=" + safe.composerReady);
+  console.log("ASSISTANT_COUNT=" + safe.assistantCount);
+  console.log("USER_COUNT=" + safe.userCount);
+  console.log("PAGE_TITLE=" + safe.title);
+  console.log("SAFE_CONTROLS=" + JSON.stringify(safe.controls));
+} finally {
+  await browser.close().catch(() => {});
+}
+"@
+            $js | node --input-type=module -
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            Pop-Location
+          }
