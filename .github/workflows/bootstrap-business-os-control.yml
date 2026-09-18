@@ -67,3 +67,5 @@ jobs:
           Write-Host "SAYDI/media control is no longer the canonical project control."
 
 # reinstall marker 2026-09-18
+
+# reinstall visible-composer fix 2026-09-18
