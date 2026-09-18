@@ -1,0 +1,95 @@
+name: Diagnose Business OS Supervisor Start
+
+on:
+  push:
+    branches:
+      - ops/diagnose-supervisor-start
+    paths:
+      - '.github/workflows/diagnose-supervisor-start.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-start:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Inspect and start Supervisor safely
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $start = Join-Path $runtime 'windows\start-supervisor.ps1'
+          $target = Join-Path $root 'target.json'
+          $pidFile = Join-Path $root 'supervisor.pid'
+          $statusFile = Join-Path $root 'runtime-status.json'
+          $logFile = Join-Path $root 'supervisor.log'
+
+          Write-Host "RUNTIME_EXISTS=$(Test-Path $runtime)"
+          Write-Host "START_SCRIPT_EXISTS=$(Test-Path $start)"
+          Write-Host "TARGET_EXISTS=$(Test-Path $target)"
+          Write-Host "NODE=$((Get-Command node.exe -ErrorAction SilentlyContinue).Source)"
+
+          $chromeCandidates = @(
+            "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+            "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+          )
+          $chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          Write-Host "CHROME_EXISTS=$([bool]$chrome)"
+          if ($chrome) { Write-Host "CHROME_PATH=$chrome" }
+
+          try {
+            $v = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/version' -TimeoutSec 2
+            Write-Host "CDP_BEFORE=True"
+          } catch {
+            Write-Host "CDP_BEFORE=False"
+          }
+
+          if (-not (Test-Path $start)) { throw "Start script missing" }
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $start -Hidden
+          if ($LASTEXITCODE -ne 0) { Write-Host "START_EXIT=$LASTEXITCODE" }
+
+          Start-Sleep -Seconds 10
+
+          if (Test-Path $pidFile) {
+            $pidValue = Get-Content $pidFile | Select-Object -First 1
+            $p = Get-Process -Id $pidValue -ErrorAction SilentlyContinue
+            Write-Host "SUPERVISOR_PID_PRESENT=True"
+            Write-Host "SUPERVISOR_PROCESS_ALIVE=$([bool]$p)"
+          } else {
+            Write-Host "SUPERVISOR_PID_PRESENT=False"
+          }
+
+          try {
+            $v = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/version' -TimeoutSec 2
+            Write-Host "CDP_AFTER=True"
+            Write-Host "CDP_BROWSER=$($v.Browser)"
+          } catch {
+            Write-Host "CDP_AFTER=False"
+            Write-Host "CDP_ERROR=$($_.Exception.GetType().Name)"
+          }
+
+          if (Test-Path $statusFile) {
+            $s = Get-Content $statusFile -Raw | ConvertFrom-Json
+            Write-Host "STATUS=$($s.status)"
+            Write-Host "CURRENT_TASK=$($s.current_task)"
+            Write-Host "UI_STATE=$($s.ui_state)"
+            Write-Host "OBSERVATION=$($s.observation)"
+            Write-Host "DECISION=$($s.decision_action)"
+            Write-Host "ERROR_NAME=$($s.error_name)"
+            Write-Host "UPDATED_AT=$($s.updated_at)"
+          } else {
+            Write-Host "STATUS_FILE_EXISTS=False"
+          }
+
+          if (Test-Path $logFile) {
+            Write-Host "SAFE_LOG_TAIL_BEGIN"
+            Get-Content $logFile -Tail 20
+            Write-Host "SAFE_LOG_TAIL_END"
+          }
