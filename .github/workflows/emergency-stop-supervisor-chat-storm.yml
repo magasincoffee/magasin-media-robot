@@ -1,0 +1,46 @@
+name: Emergency Stop Supervisor Chat Storm
+on:
+  push:
+    branches:
+      - ops/emergency-stop-supervisor-chat-storm
+    paths:
+      - '.github/workflows/emergency-stop-supervisor-chat-storm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stop:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Stop Supervisor immediately
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $stop = Join-Path $runtime 'windows\stop-supervisor.ps1'
+          $pidFile = Join-Path $root 'supervisor.pid'
+          $sentinel = Join-Path $root 'STOP'
+
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          Set-Content -Path $sentinel -Value 'stop chat storm' -Encoding UTF8
+
+          if (Test-Path $stop) {
+            & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $stop
+          }
+
+          Start-Sleep -Seconds 3
+          if (Test-Path $pidFile) {
+            $pid = Get-Content $pidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($pid) {
+              $p = Get-Process -Id $pid -ErrorAction SilentlyContinue
+              if ($p) {
+                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+              }
+            }
+          }
+          Write-Host "SUPERVISOR_EMERGENCY_STOPPED=True"
