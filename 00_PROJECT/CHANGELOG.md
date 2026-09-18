@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-18 — TASK-042 offline acceptance hardening
+
+### Verified
+
+- Production `SaydiVoiceProvider` satisfies the night-run offline gate without contacting the live provider.
+- Added regression proving supervisor status artifacts exclude request text and backend error details.
+- GitHub-hosted Windows run `35370559918`: **23 tests PASS** plus compile PASS.
+- Offline CI guard confirms no authenticated Saydi profile exists on the hosted runner.
+
+### Boundary
+
+- No live preflight, Generate, or Download was executed for TASK-042.
+- PR #17 remains open; the previously documented read-only live-preflight smoke and BUG-20260917-011 verification remain separate pending work.
+- No production acceptance Generate/Download is authorized by this change.
+
+
 ## 2026-09-18 — Saydi supervisor status, heartbeat, and local dashboard
 
 ### Added
