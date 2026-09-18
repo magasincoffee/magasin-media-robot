@@ -1,0 +1,103 @@
+name: Saydi Supervisor Status Smoke
+
+on:
+  push:
+    branches:
+      - feat/saydi-supervisor-status
+    paths:
+      - '02_VOICE_ENGINE/**'
+      - '.github/workflows/saydi-supervisor-status-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-supervisor-status-\${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  status-smoke:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve installed Python
+        run: |
+          $python=$null
+          $py=Get-Command py.exe -ErrorAction SilentlyContinue
+          if($py){
+            $candidate=(& $py.Source -3 -c "import sys; print(sys.executable)").Trim()
+            if($LASTEXITCODE -eq 0 -and (Test-Path $candidate)){$python=$candidate}
+          }
+          if(-not $python){
+            $cmd=Get-Command python.exe -ErrorAction SilentlyContinue
+            if($cmd){$python=$cmd.Source}
+          }
+          if(-not $python){throw "Python not found"}
+          "SAYDI_STATUS_PYTHON=$python" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "PYTHONPATH=$env:GITHUB_WORKSPACE\02_VOICE_ENGINE\src" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify heartbeat and render dashboard
+        run: |
+          @'
+          import json
+          import time
+          from magasin_voice_engine.supervisor_status import (
+              HeartbeatWorker,
+              RobotStatus,
+              SupervisorStateStore,
+              default_job_id,
+          )
+
+          store = SupervisorStateStore()
+          state = store.publish(
+              RobotStatus.RUNNING,
+              job_id=default_job_id(),
+              current_step="supervisor_status_smoke",
+              next_action="Verify heartbeat and local dashboard.",
+              requires_user=False,
+              message="Supervisor status smoke is running.",
+          )
+          first = state.last_heartbeat
+          with HeartbeatWorker(store, interval_seconds=1):
+              time.sleep(2.2)
+          second = store.load().last_heartbeat
+          if not second or second <= first:
+              raise SystemExit("heartbeat did not advance")
+          final = store.publish(
+              RobotStatus.DONE,
+              job_id=default_job_id(),
+              current_step="complete",
+              last_completed_step="supervisor_status_smoke",
+              requires_user=False,
+              message="Supervisor status smoke passed.",
+          )
+          print(json.dumps(final.to_dict(), ensure_ascii=True, indent=2))
+          print(f"DASHBOARD={store.dashboard_path}")
+          '@ | & "$env:SAYDI_STATUS_PYTHON" -
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+
+      - name: Create desktop shortcut
+        run: |
+          $dashboard=Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydi\saydi_status.html"
+          if(-not(Test-Path $dashboard)){throw "Dashboard was not created: $dashboard"}
+          $desktop=[Environment]::GetFolderPath("Desktop")
+          if(-not $desktop){throw "Desktop path unavailable"}
+          $shortcutPath=Join-Path $desktop "SAYDI CONTROL.lnk"
+          $shell=New-Object -ComObject WScript.Shell
+          $shortcut=$shell.CreateShortcut($shortcutPath)
+          $shortcut.TargetPath=$dashboard
+          $shortcut.WorkingDirectory=(Split-Path $dashboard)
+          $shortcut.Description="SAYDI robot status and heartbeat"
+          $shortcut.Save()
+          Write-Host "Dashboard shortcut: $shortcutPath"
+          Write-Host "PASS: no Saydi provider call, no Generate, and no Download occurred."
