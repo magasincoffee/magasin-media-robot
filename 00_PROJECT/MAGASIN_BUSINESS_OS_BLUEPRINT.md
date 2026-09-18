@@ -1,4 +1,9 @@
-# MAGASIN Business OS — Canonical Blueprint
+# MAGASIN Business OS — Historical Bootstrap Blueprint
+
+> **MOVED / NON-CANONICAL — 2026-09-18**  
+> MAGASIN Business OS execution now lives in `magasincoffee/magasincoffee.github.io`.  
+> Canonical files: `01_DOCS/MAGASIN/00_BUSINESS_OS_BLUEPRINT.md`, `00_CURRENT_STATE.md`, `00_PROJECT_STATE.json`, and `00_TASK_QUEUE.md`.  
+> This copy remains only as historical bootstrap context. Do not continue Business OS implementation from this repository.
 
 Last updated: 2026-09-18
 
