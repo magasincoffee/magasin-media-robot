@@ -1,10 +1,10 @@
 # Current Status
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 ## Overall state
 
-**Phase 0 — SaydiVoice Discovery is functionally complete for the authenticated Windows path. D1–D4 generation/download, voice/style controls, reversible preset application, authenticated preflight, and one real `tiktok_energetic` preset generation are field-verified on `MAGASIN-PC`. The next objective is to freeze these verified contracts into a production SaydiVoice provider adapter; no additional live generation is required for ordinary implementation work.**
+**Phase 0 — SaydiVoice Discovery is functionally complete for the authenticated Windows path. The production Voice Engine is implemented on `feat/saydi-production-provider`, and Saydi now has a local supervisor status/heartbeat layer so operator-visible state no longer depends on the ChatGPT conversation remaining open. The remaining production gate is still one read-only authenticated backend preflight on `MAGASIN-PC`; no additional live generation is required for ordinary implementation work.**
 
 ## Completed
 
@@ -58,6 +58,19 @@ Last updated: 2026-09-17
   - `POST /api/library/history` returned 201;
   - terminal state `SUCCESS_SIGNAL`.
 
+## Supervisor status + heartbeat
+
+- PR #20 was merged into the active production-provider branch.
+- Local state is written to `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\supervisor_state.json`.
+- Local dashboard is rendered to `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\saydi_status.html`.
+- Status vocabulary is frozen as `IDLE`, `RUNNING`, `WAIT_USER`, `RETRYING`, `FAILED`, and `DONE`.
+- Active provider jobs emit a 30-second heartbeat; the dashboard marks an active heartbeat stale after 90 seconds.
+- Provider progress now publishes step-level state for request validation, preflight, settings, Generate, Download, completion, and user-required states.
+- Retryable provider failures remain `WAIT_USER` because Generate is never retried automatically; `RETRYING` is reserved for an explicit outer-supervisor retry.
+- Status storage excludes request text, cookies, auth tokens, provider bodies, and generated audio.
+- A self-hosted status-only smoke workflow can create a desktop `SAYDI CONTROL` shortcut without contacting Saydi.
+- The production read-only live-preflight workflow now publishes its own state into the same dashboard.
+
 ## Anonymous-provider limitation
 
 Anonymous diagnostics remain historical characterization only:
@@ -78,6 +91,7 @@ The production path therefore reuses the authenticated persistent Chrome profile
 - Generation: one-shot, explicit authorization boundary, no automatic retry.
 - Download: explicit separate action; raw audio remains local unless intentionally consumed by the downstream pipeline.
 - Voice styling: deterministic application-level preset mapped to verified provider controls.
+- Operator state: local JSON + self-refreshing HTML dashboard with heartbeat.
 
 ## Phase 1 implementation progress
 
@@ -89,15 +103,17 @@ The production path therefore reuses the authenticated persistent Chrome profile
   - no automatic Generate retry;
   - `SaydiPlaywrightBackend` using installed Chrome and the local authenticated profile;
   - local download metadata (`path`, byte count, SHA-256);
-  - five frozen application-level style presets.
-- Offline Voice Engine CI run `35243425623`: PASS, **15 tests**.
+  - five frozen application-level style presets;
+  - supervisor state, heartbeat, and local dashboard.
+- Latest hosted Voice Engine CI run `35304115327`: PASS, **22 tests**.
 - Hosted CI verified it has no authenticated Saydi profile, so ordinary unit CI cannot perform live provider side effects.
-- Production backend read-only live preflight is the remaining smoke gate. First attempt exposed Windows stdout encoding only; the UTF-8 fix is committed. The subsequent self-hosted run ended abnormally before a complete log could be retained, so live preflight remains pending and no Generate/Download was authorized.
+- Production backend read-only live preflight remains the final smoke gate. It now reports `RUNNING` / `WAIT_USER` / `FAILED` / `DONE` into the local supervisor dashboard and still contains no Generate or Download authorization.
 
 ## Not yet completed
 
-- Complete one read-only production-backend preflight on `MAGASIN-PC`.
-- Merge the production Voice Engine PR after that smoke gate and PR CI pass.
+- Confirm one read-only production-backend preflight on `MAGASIN-PC`.
+- Remove or disable the temporary branch-only live-preflight workflow after that gate.
+- Merge the production Voice Engine PR after the smoke gate and PR CI pass.
 - Final production Generate/Download acceptance test, only with separate explicit authorization.
 - Production local audio handoff from provider adapter to media pipeline.
 - Downstream media pipeline phases.
@@ -108,4 +124,4 @@ The repository is public. Never commit passwords, cookies, browser profiles, aut
 
 ## Current active objective
 
-Complete the read-only production `SaydiPlaywrightBackend` preflight on `MAGASIN-PC`, then merge the provider adapter after PR CI passes. Do not Generate or Download during this gate, and do not spend another generation unless a later production acceptance test is explicitly authorized.
+Use the local `SAYDI CONTROL` dashboard to observe the next read-only production `SaydiPlaywrightBackend` preflight on `MAGASIN-PC`. Confirm the smoke result, then remove the temporary preflight workflow and merge the provider adapter. Do not Generate or Download during this gate, and do not spend another generation unless a later production acceptance test is explicitly authorized.
