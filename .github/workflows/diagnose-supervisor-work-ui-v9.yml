@@ -1,0 +1,119 @@
+name: Diagnose Supervisor Work UI V9
+
+on:
+  push:
+    branches:
+      - ops/diagnose-supervisor-work-ui-v9
+    paths:
+      - '.github/workflows/diagnose-supervisor-work-ui-v9.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 6
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Sample privacy-safe ChatGPT UI state
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $profile = Join-Path $root 'browser_profile'
+          $port = $null
+
+          foreach ($candidate in 9222..9232) {
+            $listener = Get-NetTCPConnection -State Listen -LocalPort $candidate -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $listener) { continue }
+            $owner = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)" -ErrorAction SilentlyContinue
+            if (
+              $owner -and
+              $owner.Name -eq 'chrome.exe' -and
+              $owner.CommandLine -and
+              $owner.CommandLine -like "*$profile*"
+            ) {
+              $port = $candidate
+              break
+            }
+          }
+
+          if (-not $port) { throw 'Dedicated Supervisor CDP port not found.' }
+
+          $env:MAGASIN_RUNTIME = $runtime
+          $env:MAGASIN_CDP = "http://127.0.0.1:$port"
+
+          $script = @'
+          import path from "node:path";
+          import { pathToFileURL } from "node:url";
+          import { setTimeout as delay } from "node:timers/promises";
+
+          const runtime = process.env.MAGASIN_RUNTIME;
+          const cdp = process.env.MAGASIN_CDP;
+
+          const { chromium } = await import(
+            pathToFileURL(path.join(runtime, "node_modules", "playwright-core", "index.js")).href
+          );
+          const { resolveCdpEndpoint } = await import(
+            pathToFileURL(path.join(runtime, "src", "ui", "playwright-adapter.mjs")).href
+          );
+          const { collectSafeUiSnapshot } = await import(
+            pathToFileURL(path.join(runtime, "src", "ui", "snapshot.mjs")).href
+          );
+          const { classifyUiSnapshot } = await import(
+            pathToFileURL(path.join(runtime, "src", "ui", "classifier.mjs")).href
+          );
+
+          const ws = await resolveCdpEndpoint(cdp);
+          const browser = await chromium.connectOverCDP(ws);
+          const context = browser.contexts()[0];
+          const pages = context.pages().filter((p) => !p.isClosed());
+
+          const chatPages = pages.filter((p) => {
+            try { return new URL(p.url()).hostname === "chatgpt.com"; }
+            catch { return false; }
+          });
+
+          console.log("CHAT_PAGE_COUNT=" + chatPages.length);
+          chatPages.forEach((p, i) => {
+            let pathName = "invalid";
+            try { pathName = new URL(p.url()).pathname; } catch {}
+            console.log("CHAT_PAGE_" + i + "_PATH=" + pathName);
+          });
+
+          const page = chatPages.at(-1);
+          if (!page) throw new Error("No ChatGPT page found.");
+
+          for (let i = 0; i < 9; i += 1) {
+            const s = await collectSafeUiSnapshot(page);
+            const c = classifyUiSnapshot(s);
+            console.log("SAMPLE_" + i + "=" + JSON.stringify({
+              pathKind: s.pathKind,
+              composerReady: s.composerReady,
+              assistantMessageCount: s.assistantMessageCount,
+              userMessageCount: s.userMessageCount,
+              lastMessageRole: s.lastMessageRole,
+              lastMessageCharCount: s.lastMessageCharCount,
+              lastAssistantCharCount: s.lastAssistantCharCount,
+              mainBusy: s.mainBusy,
+              mainTextCharCount: s.mainTextCharCount,
+              mainElementCount: s.mainElementCount,
+              responseRunning: s.responseRunning,
+              hasTransientError: s.hasTransientError,
+              uiState: c.uiState,
+              observation: c.observation
+            }));
+            await delay(5000);
+          }
+
+          await browser.close();
+          '@
+
+          $diag = Join-Path $env:RUNNER_TEMP 'magasin-work-ui-v9-diag.mjs'
+          Set-Content -Path $diag -Value $script -Encoding UTF8
+          node $diag
