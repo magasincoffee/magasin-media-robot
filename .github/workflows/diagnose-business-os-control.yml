@@ -1,0 +1,58 @@
+name: Diagnose MAGASIN Business OS Control
+
+on:
+  push:
+    branches:
+      - ops/diagnose-business-os-control
+    paths:
+      - '.github/workflows/diagnose-business-os-control.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 8
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Inspect installed control panel
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $panel = Join-Path $root 'runtime\windows\control-panel.ps1'
+          $shortcut = Join-Path ([Environment]::GetFolderPath('Desktop')) 'MAGASIN BUSINESS OS CONTROL.lnk'
+          Write-Host "PANEL_EXISTS=$(Test-Path $panel)"
+          Write-Host "SHORTCUT_EXISTS=$(Test-Path $shortcut)"
+          if (Test-Path $panel) {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($panel, [ref]$null, [ref]$errors) | Out-Null
+            Write-Host "PARSE_ERROR_COUNT=$($errors.Count)"
+            foreach ($e in $errors) { Write-Host "PARSE_ERROR=$($e.Message) AT $($e.Extent.StartLineNumber):$($e.Extent.StartColumnNumber)" }
+          }
+          if (Test-Path $shortcut) {
+            $wsh = New-Object -ComObject WScript.Shell
+            $sc = $wsh.CreateShortcut($shortcut)
+            Write-Host "SHORTCUT_TARGET=$($sc.TargetPath)"
+            Write-Host "SHORTCUT_ARGS=$($sc.Arguments)"
+            Write-Host "SHORTCUT_WORKDIR=$($sc.WorkingDirectory)"
+          }
+
+      - name: Launch panel visibly for diagnostic
+        run: |
+          $panel = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime\windows\control-panel.ps1'
+          if (-not (Test-Path $panel)) { throw "Missing panel: $panel" }
+          $env:RUNNER_TRACKING_ID = 'MAGASIN_BUSINESS_OS_CONTROL_DIAGNOSTIC'
+          $p = Start-Process powershell.exe -PassThru -ArgumentList @(
+            '-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $panel + '"')
+          )
+          Start-Sleep -Seconds 4
+          $proc = Get-Process -Id $p.Id -ErrorAction SilentlyContinue
+          Write-Host "PANEL_PROCESS_ALIVE=$([bool]$proc)"
+          if ($proc) {
+            Write-Host "PANEL_PID=$($proc.Id)"
+            Write-Host "PANEL_WINDOW_TITLE=$($proc.MainWindowTitle)"
+            Write-Host "PANEL_RESPONDING=$($proc.Responding)"
+          }
