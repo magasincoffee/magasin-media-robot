@@ -27,6 +27,8 @@ Safety impact: none. The workflow contains no Generate or Download operation; th
 
 Regression: pending rerun on `MAGASIN-PC`.
 
+TASK-042 night-run note (2026-09-18): offline Voice Engine run `35370559918` passed 23 tests plus the no-authenticated-profile CI guard. This does **not** close BUG-20260917-011 because no live/read-only MAGASIN-PC preflight was run; the bug remains pending and non-blocking for the offline adapter acceptance gate.
+
 ### BUG-20260917-009 — Anonymous Saydi session bootstrap rejected before generation
 
 Status: OPEN — authenticated persistent-profile path prepared in PR #9.
