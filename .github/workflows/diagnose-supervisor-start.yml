@@ -79,3 +79,5 @@ jobs:
             Get-Content $logFile -Tail 35
             Write-Host "SAFE_LOG_TAIL_END"
           }
+
+# verify target-adoption build 2026-09-18
