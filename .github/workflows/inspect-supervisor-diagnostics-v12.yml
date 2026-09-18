@@ -1,0 +1,56 @@
+name: Inspect Supervisor Diagnostics V12
+
+on:
+  push:
+    branches:
+      - ops/inspect-supervisor-diagnostics-v12
+    paths:
+      - '.github/workflows/inspect-supervisor-diagnostics-v12.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Wait for current ChatGPT reconciliation to settle
+        run: Start-Sleep -Seconds 30
+
+      - name: Collect safe Supervisor diagnostics
+        run: |
+          $collector = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime\windows\collect-supervisor-diagnostics.ps1'
+          if (-not (Test-Path $collector)) { throw 'Diagnostic collector missing.' }
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $collector
+
+      - name: Assert no repeated stale progress-latch loop
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $latest = Join-Path $root 'diagnostics\latest.json'
+          if (-not (Test-Path $latest)) { throw 'latest.json missing.' }
+          $d = Get-Content $latest -Raw -Encoding UTF8 | ConvertFrom-Json
+
+          Write-Host "LATEST_RUNTIME=$($d.runtime_version)"
+          Write-Host "LATEST_PROJECT=$($d.project.status)"
+          Write-Host "LATEST_TASK=$($d.project.current_task)"
+          Write-Host "LATEST_OBS=$($d.ui.observation)"
+          Write-Host "LATEST_DECISION=$($d.step.decision_action)"
+          Write-Host "LATEST_EXECUTED=$($d.step.execution_executed)"
+          Write-Host "LATEST_EXECUTION_REASON=$($d.step.execution_reason)"
+          Write-Host "LATEST_ARMED=$($d.controller.armed)"
+          Write-Host "LATEST_OWNER_AWAITING=$($d.owner_reconcile.awaiting_response)"
+
+          if (
+            $d.step.execution_reason -eq 'awaiting observable assistant progress' -and
+            $d.ui.observation -eq 'RESPONSE_COMPLETE' -and
+            $d.owner_reconcile.manual_recheck_marker
+          ) {
+            throw 'Explicit Owner recheck is still stuck behind stale progress latch.'
+          }
+
+          Write-Host 'DIAGNOSTIC_INSPECTION_V12=PASS'
