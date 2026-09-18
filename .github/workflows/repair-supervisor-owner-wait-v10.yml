@@ -1,0 +1,131 @@
+name: Repair Supervisor Owner Wait V10
+
+on:
+  push:
+    branches:
+      - ops/repair-supervisor-owner-wait-v10
+    paths:
+      - '.github/workflows/repair-supervisor-owner-wait-v10.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repair-supervisor-owner-wait-v10
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Fetch latest canonical Business OS
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'magasin-business-os-v10'
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          git clone --depth 1 https://github.com/magasincoffee/magasincoffee.github.io.git $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "BUSINESS_OS_REPO=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $state = Get-Content (Join-Path $dest '01_DOCS\MAGASIN\00_PROJECT_STATE.json') -Raw | ConvertFrom-Json
+          Write-Host "CANONICAL_TASK=$($state.current_task) - $($state.current_task_title)"
+          Write-Host "CANONICAL_STATUS=$($state.status)"
+          Write-Host "CANONICAL_AUTONOMY=$($state.autonomy)"
+          Write-Host "CANONICAL_REQUIRES_USER=$($state.requires_user)"
+
+      - name: Repair and boot Supervisor 2026-09-18.10
+        run: |
+          $repair = Join-Path $env:BUSINESS_OS_REPO '08_INTEGRATIONS\supervisor\windows\repair-supervisor.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipGitPull
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify v10 Owner-boundary runtime
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $cli = Join-Path $runtime 'src\runtime\supervisor-loop-cli.mjs'
+          $decision = Join-Path $runtime 'src\decision.mjs'
+          $snapshot = Join-Path $runtime 'src\ui\snapshot.mjs'
+
+          if (-not (Select-String -Path $cli -SimpleMatch '2026-09-18.10' -Quiet)) {
+            throw 'Installed runtime is not 2026-09-18.10.'
+          }
+          if (-not (Select-String -Path $cli -SimpleMatch 'OWNER_BOUNDARY_OBSERVED' -Quiet)) {
+            throw 'Owner-boundary observer missing.'
+          }
+          if (-not (Select-String -Path $cli -SimpleMatch 'OWNER_RECONCILE_SENT' -Quiet)) {
+            throw 'Owner reconcile send path missing.'
+          }
+          if (-not (Select-String -Path $decision -SimpleMatch 'OWNER_DECISION_RECONCILE_INSTRUCTION' -Quiet)) {
+            throw 'Owner reconcile decision instruction missing.'
+          }
+          if (-not (Select-String -Path $snapshot -SimpleMatch 'stop-button' -Quiet)) {
+            throw 'Semantic Work stop-button detector missing.'
+          }
+
+          Write-Host 'RUNTIME_V10_FINGERPRINT=PASS'
+
+      - name: Verify live canonical state is no longer stale WAIT_USER
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $statusFile = Join-Path $root 'runtime-status.json'
+
+          $ok = $false
+          for ($i = 0; $i -lt 24; $i++) {
+            Start-Sleep -Seconds 5
+            if (-not (Test-Path $statusFile)) { continue }
+
+            try {
+              $status = Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json
+              Write-Host ("LIVE_STATUS=" + $status.status +
+                " project=" + $status.project_status +
+                " task=" + $status.current_task +
+                " ui=" + $status.ui_state +
+                " obs=" + $status.observation +
+                " action=" + $status.action)
+
+              if (
+                $status.project_status -eq 'READY' -and
+                $status.current_task -eq 'TASK-033'
+              ) {
+                $ok = $true
+                break
+              }
+            } catch {}
+          }
+
+          if (-not $ok) {
+            throw 'Control/runtime did not converge to canonical READY / TASK-033 within 120 seconds.'
+          }
+
+          Write-Host 'LIVE_CANONICAL_STATE=PASS'
+
+      - name: Verify singleton
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $wrappers = @(
+            Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+              Where-Object {
+                $_.CommandLine -and
+                $_.CommandLine -like '*run-supervisor.ps1*' -and
+                $_.CommandLine -like "*$root*"
+              }
+          )
+          $nodes = @(
+            Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
+              Where-Object { $_.CommandLine -and $_.CommandLine -like '*supervisor-loop-cli.mjs*' }
+          )
+
+          Write-Host "WRAPPER_COUNT=$($wrappers.Count)"
+          Write-Host "NODE_LOOP_COUNT=$($nodes.Count)"
+
+          if ($wrappers.Count -ne 1 -or $nodes.Count -ne 1) {
+            throw "Supervisor singleton failed: wrappers=$($wrappers.Count), nodes=$($nodes.Count)"
+          }
+
+          Write-Host 'FIELD_VERIFICATION_V10=PASS'
