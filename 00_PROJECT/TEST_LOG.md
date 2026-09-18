@@ -1,5 +1,33 @@
 # Test Log
 
+## 2026-09-18 — TASK-042 night-run offline acceptance
+
+- Scope: production `SaydiVoiceProvider` offline/unit verification only; no live preflight, Generate, or Download.
+- Branch: `feat/saydi-production-provider`.
+- Privacy regression commit: `8c679734c17ddc004e71c188384508e747959c5c`.
+- GitHub-hosted Windows run `35370559918`: **PASS**.
+- Python compile: PASS.
+- Pytest: **23 tests PASS**.
+- Covered: request/result validation, preset resolution before side effects, authenticated-preflight failure classification, explicit Generate/Download gates, exactly-one Generate attempt, no automatic retry, bounded error/timeout helpers, output path/byte count/SHA-256 contract, collision-safe filenames, supervisor status behavior, and privacy regression proving request text/backend error detail are absent from status JSON/dashboard.
+- CI guard: PASS — hosted runner has no authenticated Saydi profile and cannot perform live provider actions.
+- Remaining live smoke / BUG-20260917-011 verification is intentionally **not** part of TASK-042 and remains pending separate authorization/normal project flow.
+
+
+## 2026-09-18 — Production Voice Engine offline verification
+
+- Branch: `feat/saydi-production-provider`.
+- Package: `02_VOICE_ENGINE`, version `0.1.0`.
+- GitHub-hosted Windows run `35243425623`: PASS.
+- Python compile: PASS.
+- Pytest: **15 tests PASS**.
+- Covered: preset validation/overrides, invalid input, explicit Generate authorization, exact one-attempt orchestration, no implicit Download, Generate failure retry classification, re-auth preflight stop, output-path collision avoidance, safe filename handling, HTTP failure mapping.
+- CI guard confirmed the hosted runner has no authenticated Saydi profile; ordinary unit CI therefore cannot perform live Saydi side effects.
+
+### Production live-preflight smoke
+
+- Run `35243563844`: production backend reached the read-only preflight path but failed while printing Vietnamese JSON because Windows inherited `cp1258`; no Generate/Download operation exists in the workflow.
+- `BUG-20260917-011` recorded; fix sets `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`, and ASCII-safe JSON logging.
+- Run `35243788651`: self-hosted run ended abnormally while the read-only preflight step was active and GitHub did not retain a complete job-log blob; no Generate/Download was authorized. Smoke gate remains pending.
 ## 2026-09-17 — Voice/style controls, preset roundtrip, preflight, and real preset generation
 
 Scope: verify that production-relevant SaydiVoice voice/style controls can be applied deterministically before Generate, without inventing an unsupported discrete mood API.

@@ -4,6 +4,31 @@ Use one entry per significant reproducible defect. Keep unresolved defects visib
 
 ## Open
 
+### BUG-20260917-011 — Production preflight JSON output used Windows legacy console encoding
+
+Status: OPEN — fix prepared, awaiting rerun verification.
+
+Detected in: Voice Engine Live Preflight run `35243563844`.
+
+Symptom:
+- production backend reached the read-only preflight result;
+- serializing/printing the result containing Vietnamese text raised `UnicodeEncodeError` in Windows `cp1258`;
+- workflow failed before it could print/assert the preflight payload.
+
+Expected: privacy-safe preflight metadata prints deterministically on the Windows self-hosted runner regardless of the inherited console code page.
+
+Root cause: the temporary live-preflight workflow did not set `PYTHONUTF8=1` / `PYTHONIOENCODING=utf-8`, and the script used `ensure_ascii=False`, so Python inherited the legacy Windows stdout encoding.
+
+Fix:
+- force Python UTF-8 mode in the workflow;
+- serialize the preflight payload with ASCII-safe JSON for the workflow log.
+
+Safety impact: none. The workflow contains no Generate or Download operation; the failure occurred while printing the already-computed read-only preflight result.
+
+Regression: pending rerun on `MAGASIN-PC`.
+
+TASK-042 night-run note (2026-09-18): offline Voice Engine run `35370559918` passed 23 tests plus the no-authenticated-profile CI guard. This does **not** close BUG-20260917-011 because no live/read-only MAGASIN-PC preflight was run; the bug remains pending and non-blocking for the offline adapter acceptance gate.
+
 ### BUG-20260917-009 — Anonymous Saydi session bootstrap rejected before generation
 
 Status: OPEN — authenticated persistent-profile path prepared in PR #9.

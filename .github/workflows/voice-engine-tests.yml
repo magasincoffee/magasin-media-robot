@@ -1,0 +1,48 @@
+name: Voice Engine Tests
+
+on:
+  push:
+    paths:
+      - '02_VOICE_ENGINE/**'
+      - '.github/workflows/voice-engine-tests.yml'
+  pull_request:
+    paths:
+      - '02_VOICE_ENGINE/**'
+      - '.github/workflows/voice-engine-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: 02_VOICE_ENGINE
+        shell: powershell
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: '02_VOICE_ENGINE/pyproject.toml'
+
+      - name: Install voice engine with test dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Compile package
+        run: python -m compileall -q src
+
+      - name: Run unit tests
+        run: python -m pytest
+
+      - name: Confirm CI cannot use local authenticated profile
+        run: |
+          $profile = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\browser_profile"
+          if (Test-Path $profile) {
+            throw "GitHub-hosted unit CI unexpectedly contains a Saydi authenticated profile."
+          }
+          Write-Host "PASS: offline CI has no authenticated Saydi profile and cannot perform live provider actions."

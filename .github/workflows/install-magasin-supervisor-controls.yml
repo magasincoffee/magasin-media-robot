@@ -1,0 +1,112 @@
+name: Install SAYDI Control Panel
+
+on:
+  push:
+    branches:
+      - feat/saydi-production-provider
+    paths:
+      - '02_VOICE_ENGINE/tools/saydi_control_panel.py'
+      - '.github/workflows/install-magasin-supervisor-controls.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-saydi-control-panel
+  cancel-in-progress: false
+
+jobs:
+  install-control-panel:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve local Python with Tkinter
+        shell: powershell
+        run: |
+          $python=$null
+          $candidates=@()
+          $py=Get-Command py.exe -ErrorAction SilentlyContinue
+          if($py){
+            $candidate=(& $py.Source -3 -c "import sys; print(sys.executable)").Trim()
+            if($LASTEXITCODE -eq 0 -and (Test-Path $candidate)){$candidates += $candidate}
+          }
+          $cmd=Get-Command python.exe -ErrorAction SilentlyContinue
+          if($cmd){$candidates += $cmd.Source}
+          foreach($candidate in ($candidates | Select-Object -Unique)){
+            & $candidate -c "import tkinter; print(tkinter.TkVersion)" | Out-Null
+            if($LASTEXITCODE -eq 0){$python=$candidate; break}
+          }
+          if(-not $python){throw "Python with Tkinter not found"}
+
+          $pythonw=Join-Path (Split-Path $python) "pythonw.exe"
+          if(-not(Test-Path $pythonw)){throw "pythonw.exe not found next to $python"}
+
+          "SAYDI_PANEL_PYTHON=$python" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "SAYDI_PANEL_PYTHONW=$pythonw" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install unified control panel
+        shell: powershell
+        run: |
+          $controlDir=Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\control"
+          $statusDir=Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydi"
+          $desktop=[Environment]::GetFolderPath("Desktop")
+          if(-not $desktop){throw "Desktop path unavailable"}
+
+          New-Item -ItemType Directory -Force -Path $controlDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $statusDir | Out-Null
+
+          $source=Join-Path $env:GITHUB_WORKSPACE "02_VOICE_ENGINE\tools\saydi_control_panel.py"
+          $target=Join-Path $controlDir "saydi_control_panel.py"
+          Copy-Item -Force $source $target
+
+          & "$env:SAYDI_PANEL_PYTHON" $target --self-test
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+
+          $shortcutPath=Join-Path $desktop "SAYDI CONTROL.lnk"
+          $shell=New-Object -ComObject WScript.Shell
+          $shortcut=$shell.CreateShortcut($shortcutPath)
+          $shortcut.TargetPath=$env:SAYDI_PANEL_PYTHONW
+          $shortcut.Arguments='"' + $target + '"'
+          $shortcut.WorkingDirectory=$controlDir
+          $shortcut.Description="SAYDI Control Panel - START/STOP/status/tasks/errors"
+          $shortcut.Save()
+
+          # One panel replaces the old separate START/STOP desktop launchers.
+          @(
+            "START_MAGASIN_SUPERVISOR.cmd",
+            "STOP_MAGASIN_SUPERVISOR.cmd",
+            "START_MAGASIN_SUPERVISOR.lnk",
+            "STOP_MAGASIN_SUPERVISOR.lnk"
+          ) | ForEach-Object {
+            $old=Join-Path $desktop $_
+            if(Test-Path $old){Remove-Item -Force $old}
+          }
+
+          Write-Host "PASS: SAYDI CONTROL installed."
+          Write-Host "Shortcut: $shortcutPath"
+          Write-Host "Panel: $target"
+          Write-Host "The panel manages Runner.Listener directly and displays supervisor_state.json."
+
+      - name: Launch SAYDI CONTROL
+        shell: powershell
+        run: |
+          $controlDir=Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\control"
+          $target=Join-Path $controlDir "saydi_control_panel.py"
+
+          $existing=Get-CimInstance Win32_Process -Filter "Name='pythonw.exe'" -ErrorAction SilentlyContinue |
+            Where-Object {$_.CommandLine -like "*saydi_control_panel.py*"}
+
+          if(-not $existing){
+            Start-Process -FilePath "$env:SAYDI_PANEL_PYTHONW" -ArgumentList ('"' + $target + '"') -WorkingDirectory $controlDir
+            Start-Sleep -Seconds 2
+          }
+
+          Write-Host "SAYDI CONTROL launch requested."
+          Write-Host "No Saydi Generate or Download operation was performed."

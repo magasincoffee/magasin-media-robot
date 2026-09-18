@@ -1,81 +1,82 @@
 # Next Step
 
-## Immediate next step — freeze preset controls and build the production SaydiVoice provider adapter
+## Night-run handoff — TASK-042 offline gate complete
 
-Authenticated live discovery has now proven the complete control path required for production: session reuse, voice/settings control, one-shot generation, and download lifecycle. The next phase is implementation against those observed contracts rather than further exploratory Generate runs.
+- Offline acceptance run `35370559918`: **23 tests PASS** plus compile PASS.
+- CI confirms the hosted runner has no authenticated Saydi profile and cannot perform live provider actions.
+- Request text/backend error detail privacy regression is verified.
+- No live preflight, Generate, or Download was executed.
+- During the active MAGASIN night run, return to the Business OS cursor for TASK-043. Do not auto-run the pending MAGASIN-PC live smoke.
 
-## Current validated baseline
+## Immediate next step — observe one read-only production backend smoke, then merge Voice Engine
 
-- Runner: `MAGASIN-PC` (`self-hosted`, `Windows`, `X64`).
-- Browser: installed Google Chrome controlled by Playwright.
-- Persistent profile: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile`.
-- Session: `TTS_READY` + `AUTHENTICATED_OR_HIDDEN`.
-- Voice: deterministic selection/verification supported.
-- Style controls: stability/expression ratio, speed ratio, pause enable, and audio format supported.
-- Application-level presets exist for common delivery styles; no separate discrete provider mood selector was observed.
-- One-shot generation returns HTTP 200 `audio/mpeg` and creates history successfully.
-- Download lifecycle is field-verified and raw audio can remain local.
-- `tiktok_energetic` real generation run `35241844708` passed with exactly one Generate and zero Download clicks.
+Phase 0 SaydiVoice discovery and the reusable voice/style preset layer are complete. The production `02_VOICE_ENGINE` adapter and the supervisor status/heartbeat layer are implemented and pass hosted CI. The remaining gate before merge is a **read-only** authenticated preflight using the production backend on `MAGASIN-PC`.
 
-## Production adapter objective
+## Production adapter already implemented
 
-Create a provider boundary that accepts a stable request similar to:
+- Provider-neutral `VoiceRequest` / `VoiceResult` contract.
+- Frozen style presets: `tiktok_energetic`, `review_natural`, `story_warm`, `news_stable`, `slow_emotional`.
+- Explicit `allow_generate` and `allow_download` gates.
+- One-attempt Generate policy; no implicit browser retry.
+- Failure classification: `fix_input`, `re_auth`, `retry`, `do_not_retry`.
+- Installed-Chrome + local persistent-profile backend.
+- Voice, stability/expression, speed, pause-enable and output-format application.
+- Bounded generation terminal-state handling.
+- Local Download handoff with non-overwriting output path, byte count and SHA-256.
+- Local supervisor status file + self-refreshing HTML dashboard.
+- Statuses: `IDLE`, `RUNNING`, `WAIT_USER`, `RETRYING`, `FAILED`, `DONE`.
+- 30-second active heartbeat with 90-second stale detection.
+- GitHub-hosted Windows CI: run `35304115327`, **22 tests PASS**.
+- Ordinary CI verifies no authenticated Saydi profile is present and therefore cannot perform live side effects.
+
+## Unified control panel
+
+Normal operator flow is now intended to be: open `SAYDI CONTROL` → press `START ROBOT` → leave the panel open. The panel starts/stops the self-hosted runner, shows whether it is idle or busy, and reads `supervisor_state.json` for current work, next work, heartbeat, completion, and errors. A separate PowerShell window is no longer part of the intended daily workflow after installation.
+
+The execution bridge is `ChatGPT ↔ GitHub Actions ↔ MAGASIN-PC`; the panel makes the MAGASIN-PC endpoint available to jobs dispatched from this project.
+
+## Operator dashboard
+
+The local state is:
 
 ```text
-text
-preset_key
-voice_override (optional)
-format_override (optional)
-output_directory
+%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\supervisor_state.json
 ```
 
-and returns a structured result similar to:
+The dashboard is:
 
 ```text
-status
-provider
-voice
-preset_key
-format
-local_audio_path
-byte_count
-sha256
-provider_history_created
-error_class
-retryable
+%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\saydi_status.html
 ```
 
-## Required behavior
+The self-hosted status smoke workflow also creates a desktop `SAYDI CONTROL` shortcut when it runs successfully.
 
-1. Reuse the local authenticated Chrome profile; never serialize credentials or cookies.
-2. Run an authenticated preflight before any side effect.
-3. Resolve and validate the requested preset before touching the live page.
-4. Apply voice/style controls and verify observed state before Generate.
-5. Enforce exactly one Generate attempt unless a caller explicitly authorizes a separate retry policy.
-6. Wait for a verified terminal success/error signal with a bounded timeout.
-7. Download only when requested by the production operation.
-8. Keep generated audio local; GitHub artifacts may contain metadata/screenshots only.
-9. Classify failures as `fix_input`, `re_auth`, `retry`, or `do_not_retry`.
-10. Preserve the existing safe evidence/redaction boundary.
+The dashboard intentionally stores no prompt text, cookies, auth tokens, provider response bodies, or generated audio.
 
-## Acceptance gate for the adapter
+## Current live-smoke gate
 
-Before another live Generate is requested, complete all offline/unit verification for:
+Run the production backend `preflight()` only:
 
-- preset validation;
-- request/result models;
-- preflight failure handling;
-- one-attempt guard;
-- timeout/error classification;
-- output-path and metadata handling;
-- privacy/redaction tests.
+1. publish `RUNNING` to the supervisor dashboard;
+2. open the existing local authenticated Chrome profile;
+3. confirm TTS editor and enabled Generate control are present;
+4. classify authentication/session;
+5. read current voice/format;
+6. publish `DONE`, `WAIT_USER`, or `FAILED`;
+7. close Chrome.
 
-A final end-to-end production acceptance Generate may be requested separately only after these tests pass.
+This workflow contains **no setting mutation, no Generate, and no Download**.
 
-## After the provider adapter
+The first historical smoke attempt found a Windows stdout encoding defect. That was fixed by forcing UTF-8/ASCII-safe log output. A later self-hosted attempt ended abnormally before a complete job log was retained. The new supervisor layer is specifically intended to make the next run's progress visible locally rather than leaving the operator to infer whether the robot is still working.
 
-1. Expose the adapter through the Windows Control Center / orchestration layer.
-2. Hand local audio into the deterministic FFmpeg media pipeline.
-3. Add job-level logging/state so media projects can resume safely after interruption.
+## After the read-only smoke passes
 
-No additional operator ZIP round-trip is required while the self-hosted runner is online.
+1. Confirm `DONE` in `SAYDI CONTROL`.
+2. Remove or disable the temporary branch-only live-preflight workflow from the merge diff.
+3. Refresh the production Voice Engine PR.
+4. Require offline PR CI PASS.
+5. Merge `02_VOICE_ENGINE` to `main`.
+6. Only then consider one final end-to-end production Generate + Download acceptance test, under new explicit authorization.
+7. Hand the resulting local audio path into the deterministic media pipeline.
+
+No new Generate or Download is authorized by this plan.
