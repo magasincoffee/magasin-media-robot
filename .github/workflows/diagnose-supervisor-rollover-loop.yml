@@ -1,0 +1,127 @@
+name: Diagnose Supervisor Rollover Loop
+
+on:
+  push:
+    branches:
+      - ops/diagnose-supervisor-rollover-loop
+    paths:
+      - '.github/workflows/diagnose-supervisor-rollover-loop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 8
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Inspect local Supervisor rollover state
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $statusFile = Join-Path $root 'runtime-status.json'
+          $targetFile = Join-Path $root 'target.json'
+          $logFile = Join-Path $root 'supervisor.log'
+          $pidFile = Join-Path $root 'supervisor.pid'
+
+          if (Test-Path $pidFile) {
+            $pidValue = Get-Content $pidFile | Select-Object -First 1
+            $p = Get-Process -Id $pidValue -ErrorAction SilentlyContinue
+            Write-Host "SUPERVISOR_ALIVE=$([bool]$p)"
+          } else {
+            Write-Host "SUPERVISOR_ALIVE=False"
+          }
+
+          if (Test-Path $statusFile) {
+            $s = Get-Content $statusFile -Raw | ConvertFrom-Json
+            Write-Host "STATUS=$($s.status)"
+            Write-Host "RECOVERY_ACTION=$($s.recovery_action)"
+            Write-Host "RECOVERY_REASON=$($s.recovery_reason)"
+            Write-Host "STALL_RELOADS=$($s.recovery_stall_reloads)"
+            Write-Host "UNAVAILABLE_RELOADS=$($s.recovery_unavailable_reloads)"
+            Write-Host "TARGET_MISSES=$($s.recovery_target_misses)"
+            Write-Host "ROLLOVER_FAILURES=$($s.recovery_rollover_failures)"
+            Write-Host "CONVERSATION_GENERATION=$($s.conversation_generation)"
+            Write-Host "UI_STATE=$($s.ui_state)"
+            Write-Host "OBSERVATION=$($s.observation)"
+            Write-Host "DECISION=$($s.decision_action)"
+            Write-Host "EXECUTED=$($s.execution_executed)"
+            Write-Host "EXECUTION_TARGET=$($s.execution_target)"
+            Write-Host "UPDATED_AT=$($s.updated_at)"
+          }
+
+          if (Test-Path $targetFile) {
+            $t = Get-Content $targetFile -Raw | ConvertFrom-Json
+            $kind = if ($t.pathname -match '^/c/') {'c'} elseif ($t.pathname -match '^/g/') {'g'} elseif ($t.pathname -match '^/project/') {'project'} else {'other'}
+            Write-Host "TARGET_KIND=$kind"
+            Write-Host "TARGET_LENGTH=$($t.pathname.Length)"
+            Write-Host "TARGET_UPDATED_AT=$($t.updated_at)"
+          }
+
+          if (Test-Path $logFile) {
+            Write-Host "SAFE_LOG_TAIL_BEGIN"
+            Get-Content $logFile -Tail 40 | ForEach-Object {
+              try {
+                $e = $_ | ConvertFrom-Json
+                $parts = @($e.timestamp, $e.type)
+                if ($e.action) { $parts += "action=$($e.action)" }
+                if ($e.target) { $parts += "target=$($e.target)" }
+                if ($null -ne $e.executed) { $parts += "executed=$($e.executed)" }
+                if ($e.reason) { $parts += "reason=$($e.reason)" }
+                if ($e.errorName) { $parts += "error=$($e.errorName)" }
+                Write-Host ($parts -join ' | ')
+              } catch {}
+            }
+            Write-Host "SAFE_LOG_TAIL_END"
+          }
+
+      - name: Probe active ChatGPT page safely
+        run: |
+          $runtime = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor\runtime'
+          if (-not (Test-Path $runtime)) { throw "Runtime missing" }
+          Push-Location $runtime
+          try {
+            @'
+            import fs from "node:fs";
+            import path from "node:path";
+            import process from "node:process";
+            import { SupervisorSession } from "./src/runtime/session.mjs";
+            import { pageMatchesTarget, targetFromUrl } from "./src/runtime/recovery.mjs";
+
+            const root = path.join(process.env.LOCALAPPDATA, "MAGASIN", "BusinessOS", "supervisor");
+            const target = JSON.parse(fs.readFileSync(path.join(root, "target.json"), "utf8"));
+            const session = new SupervisorSession({ cdpUrl: "http://127.0.0.1:9222", maxConnectRetries: 0 });
+            try {
+              const adapter = await session.connect();
+              const page = adapter.getActivePage();
+              const probe = await session.probe();
+              let currentKind = "other";
+              try {
+                const p = targetFromUrl(page.url()).pathname;
+                currentKind = p.startsWith("/c/") ? "c" : p.startsWith("/g/") ? "g" : p.startsWith("/project/") ? "project" : "other";
+              } catch {}
+              console.log("ACTIVE_KIND=" + currentKind);
+              console.log("TARGET_MATCH=" + pageMatchesTarget(page.url(), target));
+              console.log("CONVERSATION_PATH=" + Boolean(probe.snapshot.conversationPath));
+              console.log("COMPOSER_READY=" + Boolean(probe.snapshot.composerReady));
+              console.log("RESPONSE_RUNNING=" + Boolean(probe.snapshot.responseRunning));
+              console.log("MODEL_SWITCHING=" + Boolean(probe.snapshot.modelSwitching));
+              console.log("CONVERSATION_FULL=" + Boolean(probe.snapshot.conversationFull));
+              console.log("CONVERSATION_MISSING=" + Boolean(probe.snapshot.conversationMissing));
+              console.log("ASSISTANT_COUNT=" + Number(probe.snapshot.assistantMessageCount || 0));
+              console.log("USER_COUNT=" + Number(probe.snapshot.userMessageCount || 0));
+              console.log("UI_STATE=" + probe.classification.uiState);
+              console.log("OBSERVATION=" + probe.classification.observation);
+            } finally {
+              await session.disconnect().catch(() => {});
+            }
+            '@ | node --input-type=module -
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            Pop-Location
+          }
