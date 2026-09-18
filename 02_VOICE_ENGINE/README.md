@@ -87,3 +87,31 @@ py -3 -m venv .venv
 ```
 
 Do not add live Generate/Download calls to ordinary CI.
+
+
+## Supervisor status + heartbeat
+
+Every production `SaydiVoiceProvider` run now publishes privacy-safe local state to:
+
+```text
+%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\supervisor_state.json
+```
+
+and renders a self-refreshing local dashboard at:
+
+```text
+%LOCALAPPDATA%\MAGASIN\MediaRobot\saydi\saydi_status.html
+```
+
+The status model is `IDLE`, `RUNNING`, `WAIT_USER`, `RETRYING`, `FAILED`, or `DONE`. Active jobs refresh a heartbeat every 30 seconds. The dashboard marks a `RUNNING`/`RETRYING` heartbeat stale after 90 seconds.
+
+The monitor stores job/step metadata only. It never stores request text, browser cookies, auth tokens, provider response bodies, or generated audio.
+
+To inspect/open the dashboard from an installed Voice Engine environment:
+
+```powershell
+magasin-saydi-status --show
+magasin-saydi-status --open
+```
+
+The provider's no-automatic-Generate-retry policy remains unchanged. A retryable provider failure becomes `WAIT_USER` until an explicit caller decision starts a new attempt; `RETRYING` is reserved for an outer supervisor that has explicitly begun such a retry.
