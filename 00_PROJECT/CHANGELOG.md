@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-09-18 — Saydi supervisor status, heartbeat, and local dashboard
+
+### Added
+
+- Privacy-safe local `supervisor_state.json` for durable robot/job state.
+- Self-refreshing `saydi_status.html` operator dashboard.
+- Frozen status model: `IDLE`, `RUNNING`, `WAIT_USER`, `RETRYING`, `FAILED`, `DONE`.
+- 30-second heartbeat worker with 90-second stale detection for active states.
+- Voice Engine step reporting for validation, provider preflight, settings, Generate, Download, completion, failure, and user-action boundaries.
+- `magasin-saydi-status --show` / `--open` CLI.
+- Self-hosted status-only smoke workflow that can create a desktop `SAYDI CONTROL` shortcut without calling the Saydi provider.
+- Live production preflight integration so the pending read-only smoke reports directly to the dashboard.
+
+### Policy
+
+- Monitoring never stores request text, cookies, auth tokens, provider response bodies, or generated audio.
+- Retryable provider failures publish `WAIT_USER`; Generate is still never retried automatically.
+- `RETRYING` is reserved for an outer supervisor after an explicit retry decision.
+
+### Verification
+
+- PR #20 merged into `feat/saydi-production-provider`.
+- Hosted Voice Engine CI run `35304115327`: **22 tests PASS**.
+- Hosted CI remains unable to access the local authenticated Saydi profile and therefore cannot perform live provider side effects.
+
 ## 2026-09-18 — Production Voice Engine adapter
 
 ### Added
@@ -14,13 +39,15 @@
 
 ### Verification
 
-- Voice Engine CI run `35243425623`: **15 tests PASS**.
+- Initial Voice Engine CI run `35243425623`: **15 tests PASS**.
+- Current suite after supervisor integration: **22 tests PASS** at run `35304115327`.
 - CI explicitly verifies that the GitHub-hosted runner has no authenticated Saydi profile.
-- Read-only live production preflight workflow added temporarily for smoke verification; it contains no setting mutation, Generate, or Download.
+- Read-only live production preflight workflow is still temporary; it contains no setting mutation, Generate, or Download.
 
 ### Fixed
 
-- `BUG-20260917-011`: Windows self-hosted workflow stdout could not encode Vietnamese preflight JSON under `cp1258`; workflow now forces UTF-8 and ASCII-safe JSON output. Final live smoke verification remains pending because the subsequent runner job ended abnormally before a complete log was retained.
+- `BUG-20260917-011`: Windows self-hosted workflow stdout could not encode Vietnamese preflight JSON under `cp1258`; workflow now forces UTF-8 and ASCII-safe JSON output. Final live smoke verification remains pending.
+
 ## 2026-09-17 — SaydiVoice voice/style presets and authenticated preset generation
 
 ### Added
