@@ -1,0 +1,83 @@
+name: Deploy Supervisor Paused V16
+
+on:
+  push:
+    branches:
+      - ops/deploy-supervisor-paused-v16
+    paths:
+      - '.github/workflows/deploy-supervisor-paused-v16.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Fetch latest canonical Business OS
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'magasin-business-os-v16'
+          if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+          git clone --depth 1 https://github.com/magasincoffee/magasincoffee.github.io.git $dest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "BUSINESS_OS_REPO=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $state = Get-Content (Join-Path $dest '01_DOCS\MAGASIN\00_PROJECT_STATE.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          Write-Host "PROJECT_STATUS=$($state.status)"
+          Write-Host "PROJECT_AUTONOMY=$($state.autonomy)"
+          Write-Host "PROJECT_TASK=$($state.current_task)"
+          if ($state.night_run -and $state.night_run.temporal_gate) {
+            Write-Host "PAUSE_MODE=$($state.night_run.temporal_gate.mode)"
+            Write-Host "PAUSE_RESUME_AT=$($state.night_run.temporal_gate.resume_at)"
+          }
+
+      - name: Repair install Supervisor v16
+        run: |
+          $repair = Join-Path $env:BUSINESS_OS_REPO '08_INTEGRATIONS\supervisor\windows\repair-supervisor.ps1'
+          & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $repair -SkipGitPull
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify PAUSED install is browser-free
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA 'MAGASIN\BusinessOS\supervisor'
+          $runtime = Join-Path $root 'runtime'
+          $cli = Join-Path $runtime 'src\runtime\supervisor-loop-cli.mjs'
+          $start = Join-Path $runtime 'windows\start-supervisor.ps1'
+          $run = Join-Path $runtime 'windows\run-supervisor.ps1'
+          $panel = Join-Path $runtime 'windows\control-panel.ps1'
+
+          if (-not (Select-String -Path $cli -SimpleMatch '2026-09-19.16' -Quiet)) { throw 'Runtime v16 missing.' }
+          if (-not (Select-String -Path $start -SimpleMatch "autonomy -eq 'PAUSED'" -Quiet)) { throw 'START PAUSED guard missing.' }
+          if (-not (Select-String -Path $run -SimpleMatch '$nodeExitCode -eq 76' -Quiet)) { throw 'PAUSED wrapper exit missing.' }
+          if (-not (Select-String -Path $panel -SimpleMatch '$projectAutonomy -eq ''PAUSED''' -Quiet)) { throw 'Control Panel PAUSED state missing.' }
+
+          Start-Sleep -Seconds 2
+
+          $wrappers = @(
+            Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+              Where-Object { $_.CommandLine -and $_.CommandLine -like '*run-supervisor.ps1*' -and $_.CommandLine -like "*$root*" }
+          )
+          $nodes = @(
+            Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
+              Where-Object { $_.CommandLine -and $_.CommandLine -like '*supervisor-loop-cli.mjs*' }
+          )
+          $profile = Join-Path $root 'browser_profile'
+          $chrome = @(
+            Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" -ErrorAction SilentlyContinue |
+              Where-Object { $_.CommandLine -and $_.CommandLine -like "*$profile*" }
+          )
+
+          Write-Host "WRAPPER_COUNT=$($wrappers.Count)"
+          Write-Host "NODE_LOOP_COUNT=$($nodes.Count)"
+          Write-Host "DEDICATED_CHROME_COUNT=$($chrome.Count)"
+
+          if ($wrappers.Count -ne 0) { throw 'PAUSED state must not keep Supervisor wrapper running.' }
+          if ($nodes.Count -ne 0) { throw 'PAUSED state must not keep Node loop running.' }
+          if ($chrome.Count -ne 0) { throw 'PAUSED state must not keep dedicated ChatGPT Chrome open.' }
+
+          Write-Host 'FIELD_VERIFICATION_V16=PASS'
