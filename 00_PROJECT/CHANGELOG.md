@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-09-18 — Production SaydiVoiceProvider adapter (offline gate)
+
+### Added
+
+- Stable `SaydiVoiceRequest` / `SaydiVoiceResult` provider contract.
+- Explicit `download_requested` flag so Download remains a separate side effect.
+- `PreflightResult`, `GenerationResult`, and local `DownloadArtifact` models.
+- Fail-closed error classes: `fix_input`, `re_auth`, `retry`, `do_not_retry`.
+- `SaydiVoiceProvider` orchestration with validation-before-browser-access and exactly-one Generate attempt.
+- `PlaywrightSaydiRuntime` implementation over the already field-verified authenticated page/control/generation contracts.
+- Local retained-audio metadata path with byte count + SHA-256 when a later caller explicitly requests Download.
+- Offline provider tests including privacy/redaction and one-attempt regression.
+
+### Safety
+
+- No live Generate or Download was executed for this implementation.
+- Retryability is metadata only; the adapter never performs an implicit second Generate.
+- Browser profile/session credentials remain local and are not serialized.
+
 ## 2026-09-17 — SaydiVoice voice/style presets and authenticated preset generation
 
 ### Added
