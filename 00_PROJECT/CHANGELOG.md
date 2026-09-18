@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-09-18 — Production Voice Engine adapter
+
+### Added
+
+- Materialized `02_VOICE_ENGINE` as a provider-neutral Python package.
+- Stable `VoiceRequest` / `VoiceResult` contracts and normalized failure dispositions.
+- `SaydiVoiceProvider` orchestration with explicit Generate/Download authorization and no automatic Generate retry.
+- `SaydiPlaywrightBackend` using installed Chrome and the existing local authenticated profile.
+- Production voice/style presets carried forward from field-verified discovery.
+- Local audio download handoff with collision-safe filenames, byte count and SHA-256.
+- Permanent offline Windows CI for the Voice Engine.
+
+### Verification
+
+- Voice Engine CI run `35243425623`: **15 tests PASS**.
+- CI explicitly verifies that the GitHub-hosted runner has no authenticated Saydi profile.
+- Read-only live production preflight workflow added temporarily for smoke verification; it contains no setting mutation, Generate, or Download.
+
+### Fixed
+
+- `BUG-20260917-011`: Windows self-hosted workflow stdout could not encode Vietnamese preflight JSON under `cp1258`; workflow now forces UTF-8 and ASCII-safe JSON output. Final live smoke verification remains pending because the subsequent runner job ended abnormally before a complete log was retained.
 ## 2026-09-17 — SaydiVoice voice/style presets and authenticated preset generation
 
 ### Added
