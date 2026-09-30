@@ -19,8 +19,9 @@ If another document conflicts with this file, this file wins until it is deliber
 
 **Product:** SAYDI Audiobook  
 **Repository:** `magasincoffee/magasin-media-robot`  
-**Operating model:** local-first Windows audiobook production with a replaceable TTS provider layer.  
-**Initial TTS provider:** SaydiVoice through the already field-verified authenticated Chrome/Playwright path.
+**Operating model:** local-first Windows audiobook production with replaceable AI/TTS providers and no mandatory paid/cloud dependency.  
+**AI policy:** deterministic rules first; local LLM is the default semantic-analysis path; ChatGPT/other cloud LLMs are optional fallbacks only when explicitly enabled by the owner.  
+**Voice policy:** provider-neutral Voice Engine; the final V1 must have an all-local TTS path. SaydiVoice remains a field-verified optional provider and is the fastest real provider for early workflow validation.
 
 The previous social-video product direction is paused. Existing SaydiVoice discovery work is retained because it is reusable production evidence for the audiobook voice layer.
 
@@ -62,7 +63,13 @@ Import book
 - Pronunciation lexicon for names, abbreviations, numbers and special terms.
 - Narration plan with voice, style, speed, pause, emphasis, emotion and pronunciation directives.
 - Segment-addressed TTS generation with checkpoints and resumable execution.
-- SaydiVoice production provider adapter.
+- **AI Analysis Interface** with structured output, schema validation, confidence and review routing.
+- **Local LLM default path** for book/segment analysis with model replacement behind an adapter.
+- Optional ChatGPT/cloud-LLM fallback that is disabled by default and must never receive manuscript text without explicit operator enablement.
+- **Rule Engine + Local LLM + Human Approval** authority model.
+- Provider-neutral Voice Engine with both:
+  - SaydiVoice production adapter;
+  - an all-local TTS provider path before V1 production acceptance.
 - Local audio processing with FFmpeg/FFprobe.
 - Chapter assembly and book-level mastering.
 - Text-to-audio coverage QA and acoustic QA.
@@ -125,15 +132,32 @@ Structure + Annotation Parser
 Original -> Normalized -> Spoken Text
    |
    v
-Narrative Interpretation
+SAYDI INTELLIGENCE LAYER
+   |
+   +--> deterministic Rule Engine
+   +--> Local LLM (default)
+   +--> ChatGPT / cloud LLM (optional fallback, owner-enabled)
    |
    v
-Prosody Director + Pronunciation Lexicon
+Decision Engine + confidence/review routing
+   |
+   v
+Narrative Interpretation + Prosody Director
+   |
+   v
+Voice Casting + Representative Sample Set
+   |
+   v
+TEXT PREVIEW APPROVAL -> AUDIO SAMPLE APPROVAL
    |
    v
 Segment Job Orchestrator
    |
-   +--> Voice Provider Adapter --> SaydiVoice
+   v
+Voice Provider API
+   |
+   +--> Local TTS (required all-local V1 path)
+   +--> SaydiVoice (verified optional provider)
    |
    v
 Audio Processing / Assembly
@@ -168,6 +192,12 @@ Export Engine
 13. **Annotations are explicit domain objects:** footnotes/endnotes/citations/editor notes must be classified and governed by a read/skip/defer/review policy; they must never disappear silently.
 14. **Emotion is semantic, provider-neutral metadata:** SAYDI may classify delivery emotion/energy, but provider adapters may use only controls the provider actually exposes.
 15. **Uncertain interpretation becomes review:** low-confidence OCR, sentence-boundary, annotation or narration decisions must be surfaced instead of silently guessed.
+16. **Local intelligence is default:** semantic analysis must be able to run through a local LLM adapter; cloud AI is optional, disabled by default and never an architectural dependency.
+17. **Structured AI only:** LLM outputs that influence production must conform to versioned schemas and be validated before use; free-form prose is not an executable decision.
+18. **Book context precedes segment context:** book-level genre/tone/profile analysis is created first; segment analysis then receives book/chapter context rather than reasoning from isolated sentences.
+19. **Human approval controls expensive/long-running synthesis:** the operator must approve both text interpretation and representative audio samples before full-book synthesis.
+20. **No mandatory paid provider:** V1 production acceptance requires a usable all-local path for analysis and TTS, while external providers remain optional adapters.
+21. **Executable evidence before scale:** architecture work is not considered validated until a small vertical slice can be run and inspected end-to-end.
 
 ## Professional narration requirements
 
@@ -342,6 +372,180 @@ PDF
 
 The system must never read recurring page numbers, headers, footers or watermark text merely because PDF extraction returned them.
 
+## Intelligence, classification, and decision authority
+
+SAYDI must not depend on an LLM for tasks that deterministic code can solve reliably.
+
+The authority stack is:
+
+```text
+DETERMINISTIC RULES
+        |
+        v
+AI ANALYSIS INTERFACE
+        |
+        +--> Local LLM (default)
+        +--> optional cloud LLM
+        |
+        v
+SCHEMA VALIDATION
+        |
+        v
+DECISION ENGINE
+        |
+        +--> AUTO
+        +--> AUTO + LOG
+        +--> REVIEW
+        |
+        v
+HUMAN APPROVAL for book-wide narration choices
+```
+
+Examples that should remain deterministic where practical:
+
+- repeated header/footer/page-number removal;
+- exact chapter numbering patterns;
+- numbers/units/date normalization with known rules;
+- stable IDs/hashes;
+- completed-job/idempotency checks.
+
+Examples where semantic AI may help:
+
+- genre/subgenre classification;
+- overall tone and target narration style;
+- ambiguous sentence-boundary repair;
+- dialogue/context interpretation;
+- annotation classification when layout/rules are insufficient;
+- implied emotion, pace, energy and emphasis;
+- representative sample selection.
+
+### Book Intelligence
+
+Before per-segment narration planning, SAYDI creates a structured `BOOK_PROFILE` from metadata, table of contents, chapter structure and representative passages.
+
+Conceptual output:
+
+```text
+genre
+subgenre
+tone
+audience
+dialogue_density
+technical_density
+emotion_range
+recommended_narration_profiles[]
+confidence
+evidence_refs[]
+```
+
+The system must not require the entire book to fit into one LLM prompt. It should use hierarchical context and summaries derived from canonical source spans.
+
+### Segment Intelligence
+
+Each segment analysis receives at least:
+
+- active `BOOK_PROFILE`;
+- chapter/section context;
+- preceding/following context where available;
+- current `spoken_text`;
+- annotation/speaker metadata.
+
+Conceptual structured output:
+
+```text
+segment_type
+speaker_role
+emotion
+emotion_intensity
+pace
+energy
+pause_before_ms
+pause_after_ms
+emphasis[]
+confidence
+review_required
+```
+
+### Cloud AI privacy boundary
+
+ChatGPT or another cloud model may be used only when explicitly enabled by the operator.
+
+Default production behavior is local. If cloud analysis is enabled, the UI must make the data boundary clear before manuscript text is transmitted.
+
+## Voice casting and approval workflow
+
+SAYDI separates **text correctness** from **voice suitability**.
+
+The workflow is:
+
+```text
+BOOK_PROFILE
+   |
+   v
+genre/style classification
+   |
+   v
+candidate narration profiles
+   |
+   v
+representative sample set (normally 3-5 passages)
+   |
+   v
+TEXT PREVIEW GATE
+   |
+   v
+generate real audio samples
+   |
+   v
+AUDIO SAMPLE GATE
+   |
+   v
+APPROVED NARRATION FINGERPRINT
+   |
+   v
+FULL SYNTHESIS
+```
+
+Representative passages should cover the book's actual difficulty, not only the first paragraph. Depending on genre they may include:
+
+- ordinary narrator prose;
+- difficult names/terms/numbers;
+- dialogue or emotional passage for fiction;
+- explanatory/list/data passage for business/non-fiction;
+- punctuation/annotation edge cases.
+
+The narration fingerprint must include all production-relevant settings, including provider/model, voice, style, speed, expression/prosody policy, pause policy and pronunciation-lexicon version.
+
+Any material fingerprint change invalidates the audio approval and requires a new sample review.
+
+## Executable-first development strategy
+
+The project will be implemented as **runnable vertical slices**, not as a long architecture-only build.
+
+Before scaling to a full book, SAYDI must provide a small operator-visible runner that proves the real workflow.
+
+The first executable slice may use a small synthetic/public-domain text-based PDF and a CLI instead of a desktop UI, but it must produce durable artifacts that the operator can inspect.
+
+Minimum practical slice:
+
+```text
+small PDF
+ -> extract text
+ -> detect at least one chapter/block structure
+ -> original/normalized/spoken text
+ -> simple BOOK_PROFILE
+ -> choose representative passage(s)
+ -> produce text preview
+ -> build narration fingerprint
+ -> generate at least one real audio sample through an available VoiceProvider
+ -> record approval/rejection
+ -> persist run artifacts/logs
+```
+
+The first run is for workflow learning and contract validation, not a claim of production audiobook quality.
+
+Every subsequent task must keep this runner working and expand it rather than building isolated modules that cannot be exercised end-to-end.
+
 ## Runtime authority
 
 Book/job state is persisted locally. The initial implementation target is SQLite plus immutable/intermediate files under the local runtime root.
@@ -413,7 +617,7 @@ A production export requires all applicable gates:
 
 ## Current authoritative status
 
-**Architecture generation:** SAYDI-AUDIOBOOK-V1.1  
+**Architecture generation:** SAYDI-AUDIOBOOK-V1.2  
 **Current phase:** architecture reset from video-first product to audiobook-first product.  
 **SaydiVoice discovery:** retained and considered the verified provider foundation.  
 **Audiobook production implementation:** not yet implemented.
@@ -421,7 +625,7 @@ A production export requires all applicable gates:
 ## Authoritative task queue
 
 - **SAYDI-001 — Audiobook architecture + single Source of Truth:** DONE.
-- **SAYDI-002 — Production SaydiVoice provider adapter:** NEXT.
+- **SAYDI-002 — Executable vertical slice + provider/AI contracts:** NEXT.
 - **SAYDI-003 — PDF-first book ingest + canonical manifest:** classify text/scanned PDF, extract/OCR, reconstruct reading order, remove repeated page furniture, detect chapters/blocks, preserve provenance and expose OCR exceptions.
 - **SAYDI-004 — Text interpretation foundation:** implement `original_text -> normalized_text -> spoken_text`, punctuation/sentence reconstruction, number/date/unit/abbreviation speech normalization, annotation parser/policy, stable segmentation and confidence/review outputs.
 - **SAYDI-005 — Professional narration director:** implement dialogue/context interpretation, semantic emotion, prosody/pause/emphasis/pace plans, pronunciation lexicon, narration fingerprint and sample approval.
@@ -436,9 +640,21 @@ Only one task should be treated as NEXT at a time.
 
 ## Immediate next task
 
-**SAYDI-002 — Production SaydiVoice provider adapter.**
+**SAYDI-002 — Executable vertical slice + provider/AI contracts.**
 
-It must convert the field-verified discovery behavior into a stable provider-neutral request/result contract without changing audiobook domain logic.
+It must create the first runnable operator-visible path, establish provider-neutral AI/Voice contracts, preserve the field-verified SaydiVoice behavior behind an adapter, and prove a real sample-generation/approval flow before broader implementation.
+
+Required SAYDI-002 evidence:
+
+- runnable CLI/operator runner;
+- versioned structured contracts for AI analysis and VoiceProvider;
+- deterministic fallback behavior when no LLM is available;
+- local-LLM adapter boundary (model may be selected/benchmarked during implementation);
+- SaydiVoice production adapter or equivalent real provider path for the first audible sample;
+- sample narration fingerprint;
+- text-preview and audio-approval state;
+- tests for idempotency/privacy/schema validation;
+- one bounded real audible sample run after offline gates pass.
 
 ## Completion definition for the project
 
@@ -460,4 +676,4 @@ SAYDI Audiobook V1 is production-ready when a clean supported Windows machine ca
 
 A full-book production acceptance is forbidden until `SAYDI-003`, `SAYDI-004`, and `SAYDI-005` satisfy their gates.
 
-`SAYDI-002` remains the immediate NEXT task because the provider boundary is required by later stages, but it must stay provider-neutral so punctuation repair, annotation policy, emotion and prosody logic live upstream in the audiobook domain rather than being hard-wired into SaydiVoice browser automation.
+`SAYDI-002` remains the immediate NEXT task because the project must become runnable before the deeper modules are built. It must establish provider-neutral AI/Voice boundaries and a bounded audible sample workflow. Punctuation repair, annotation policy, book intelligence, emotion and prosody remain upstream audiobook-domain logic rather than hard-wired into SaydiVoice browser automation.
