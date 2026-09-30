@@ -18,33 +18,36 @@ Deliverables:
 
 Exit gate: all active project documentation agrees that SAYDI Audiobook is the current product and `SAYDI-002` is the only NEXT task.
 
-## SAYDI-002 — Production SaydiVoice provider adapter
+## SAYDI-002 — Executable vertical slice + provider/AI contracts
 
-Convert field-verified discovery behavior into a stable production interface.
+Make SAYDI runnable early so the real operator flow can be observed before full-book scale.
 
 Deliverables:
 
-- request/result models;
-- authenticated preflight;
-- voice/style application and verification;
-- one-attempt side-effect guard;
-- controlled download to local storage;
-- error taxonomy;
-- reconciliation state;
-- privacy-safe diagnostics;
-- offline tests before live acceptance.
+- minimal production Python package/CLI runner;
+- structured `AnalysisProvider` contract;
+- structured `VoiceProvider` request/result contract;
+- deterministic no-LLM fallback for the first slice;
+- local-LLM adapter boundary;
+- production SaydiVoice adapter using field-verified behavior;
+- narration fingerprint and approval state;
+- text-preview gate;
+- bounded real audio-sample generation;
+- operation-id/idempotency/privacy/schema tests;
+- durable run artifact/log layout.
 
-Exit gate: one explicitly authorized production acceptance segment generates and downloads through the new adapter, with metadata/hash validation and no duplicate generation.
+Exit gate: a small synthetic/public-domain input can traverse the runner to a real audible sample, the operator can approve/reject it, and rerunning the same operation does not accidentally duplicate provider side effects.
 
-## SAYDI-003 — Book ingest + canonical manifest
+## SAYDI-003 — PDF-first book ingest + canonical manifest
 
 Deliverables:
 
 - book project creation;
-- TXT adapter;
-- DOCX adapter;
-- EPUB adapter;
-- text-PDF adapter;
+- text-PDF adapter first;
+- scan/PDF classifier and OCR path;
+- repeated page-furniture cleanup;
+- reading-order reconstruction;
+- TXT/DOCX/EPUB adapters after the PDF-first gate;
 - source hashing/provenance;
 - chapter/block model;
 - manifest schema and fixtures.
@@ -65,19 +68,26 @@ Deliverables:
 
 Exit gate: identical input/config generates identical segments and targeted source edits invalidate only affected downstream work.
 
-## SAYDI-005 — Narration director + pronunciation lexicon + sample approval
+## SAYDI-005 — Intelligence + narration director + voice casting/sample approval
 
 Deliverables:
 
+- Rule Engine + local LLM decision path;
+- book-level genre/subgenre/tone profile;
+- segment-level context/emotion/prosody analysis;
+- schema validation + confidence/review routing;
 - narrator profile;
 - semantic style presets;
+- representative 3-5 passage sample selection;
+- text-preview approval;
+- audio-sample approval;
 - pronunciation dictionary;
 - pause policy;
 - narration fingerprint;
 - sample-plan generation;
 - approval persistence/invalidation.
 
-Exit gate: full synthesis cannot start without an approval matching the active narration fingerprint.
+Exit gate: full synthesis cannot start without a text-approved interpretation and audio approval matching the active narration fingerprint; local LLM operation is demonstrated and a no-cloud path remains available.
 
 ## SAYDI-006 — Segment synthesis orchestration + resume/idempotency
 

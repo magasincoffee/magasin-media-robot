@@ -8,7 +8,7 @@ Read `00_PROJECT/SOURCE_OF_TRUTH.md` first. It is the single authoritative proje
 
 ## Overall state
 
-**SAYDI-AUDIOBOOK-V1 architecture is established.** The repository is being reset from a video-first product direction to an audiobook-first product while preserving the already field-verified SaydiVoice discovery foundation.
+**SAYDI-AUDIOBOOK-V1.2 architecture is established.** The repository is being reset from a video-first product direction to an audiobook-first product while preserving the already field-verified SaydiVoice discovery foundation.
 
 The repository currently contains production-relevant provider discovery, but the new audiobook book/text/orchestration/audio/export modules are not yet implemented.
 
@@ -66,7 +66,12 @@ Defined:
 - durable state/resume model;
 - QA-before-export rule;
 - local-first privacy boundary;
-- task queue SAYDI-001 through SAYDI-011.
+- task queue SAYDI-001 through SAYDI-011;
+- local-LLM-first intelligence policy with optional cloud fallback;
+- no-mandatory-paid-provider requirement;
+- book intelligence -> segment intelligence hierarchy;
+- separate text-preview and audio-sample approval gates;
+- executable-vertical-slice development strategy.
 
 ## Implementation state
 
@@ -87,6 +92,6 @@ Not yet implemented for the audiobook track:
 ## Current task state
 
 - `SAYDI-001` — architecture + single Source of Truth: complete with this architecture change.
-- `SAYDI-002` — production SaydiVoice provider adapter: **NEXT**.
+- `SAYDI-002` — executable vertical slice + provider/AI contracts: **NEXT**.
 
-No later task should be treated as active until `SAYDI-002` reaches its acceptance gate or the Source of Truth is deliberately changed.
+No later task should be treated as active until `SAYDI-002` produces a runnable, bounded audible-sample workflow and reaches its acceptance gate, or the Source of Truth is deliberately changed.

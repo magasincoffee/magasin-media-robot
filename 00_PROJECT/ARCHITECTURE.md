@@ -2,7 +2,7 @@
 
 ## 1. System context
 
-SAYDI is a local-first audiobook production system. The core owns book structure, text fidelity, job state, audio assembly and QA. TTS providers are replaceable adapters.
+SAYDI is a local-first audiobook production system. The core owns book structure, text fidelity, intelligence policy, job state, audio assembly and QA. LLM and TTS providers are replaceable adapters; cloud services are optional rather than required dependencies.
 
 ```text
                        +----------------------+
@@ -30,14 +30,22 @@ SOURCE BOOK ---------->|  Desktop Control UI  |
                        |
                        v
              +-------------------+
+             | Intelligence Layer|
+             +---------+---------+
+                       |
+          rules + local LLM + optional cloud
+                       |
+                       v
+             +-------------------+
              | Voice Provider API|
              +---------+---------+
                        |
-             +---------+----------+
-             |                    |
-             v                    v
-       SaydiVoice Adapter     future adapters
-       Chrome/Playwright
+          +------------+-------------+
+          |                          |
+          v                          v
+      Local TTS                SaydiVoice Adapter
+      required V1              verified optional
+                               Chrome/Playwright
              |
              v
         raw segment audio
@@ -427,3 +435,46 @@ The test must demonstrate:
 - QA report;
 - valid M4B/chapter-MP3 export;
 - no secrets/private runtime artifacts in Git.
+
+
+## 13. Intelligence provider architecture
+
+Semantic reasoning is exposed through a provider-neutral `AnalysisProvider` contract. Local LLM execution is the default target. ChatGPT/cloud models are optional fallback adapters and are disabled unless the operator enables them.
+
+No LLM response is executable until it passes schema validation and policy checks.
+
+Book analysis and segment analysis are separate operations so long books can use hierarchical context rather than one giant prompt.
+
+## 14. Executable vertical slice
+
+Development must preserve an end-to-end runnable path from an early stage.
+
+The initial slice is intentionally narrow:
+
+```text
+small text PDF
+ -> canonical excerpt/chapter
+ -> three text layers
+ -> simple structured book analysis
+ -> narration profile
+ -> representative passage
+ -> text preview
+ -> real audio sample
+ -> approval state
+```
+
+A CLI is acceptable for this slice. The purpose is to expose real data flow, failure modes and operator decisions before GUI/full-book scaling.
+
+## 15. Cost/availability architecture
+
+Production V1 must not require a paid API.
+
+Required architectural paths:
+
+- local deterministic rules;
+- local LLM adapter;
+- local TTS adapter;
+- local FFmpeg/FFprobe;
+- local SQLite/state.
+
+External services such as SaydiVoice or ChatGPT may improve convenience or quality but remain optional adapters.
