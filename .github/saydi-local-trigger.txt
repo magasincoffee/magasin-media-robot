@@ -1,4 +1,4 @@
-trigger_id=20260930-1655
+trigger_id=20260930-1700
 purpose=SAYDI-002 local audible sample
-reason=stable-public-output-path
+reason=c-drive-output
 runner=DESKTOP-4K7IM13
