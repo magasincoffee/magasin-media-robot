@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-09-30 — operator rejected Windows SAPI narration quality
+
+### Decision
+
+- Human listening review completed.
+- Windows SAPI sample was understandable but strongly robotic and not emotionally expressive.
+- Audio approval: **REJECT** for production narration.
+- Windows SAPI remains a zero-cost plumbing/infrastructure test provider only.
+- Production acceptance advances to the verified SaydiVoice path behind the provider-neutral `VoiceProvider` contract.
+- Any live SaydiVoice Generate remains an explicit side effect requiring owner authorization.
+
+
 ## 2026-09-30 — SAYDI-002 local audible workflow field-proven
 
 ### Verified

@@ -90,7 +90,8 @@ Implemented in SAYDI-002 vertical-slice foundation:
 - operation ledger / duplicate-success reuse guard;
 - Windows CI tests and manual self-hosted audible-sample workflow;
 - trusted Windows field run `36745274726`: SUCCESS;
-- all workflow steps PASS, including offline tests, sample preparation, text approval and local Windows SAPI audio generation.
+- all workflow steps PASS, including offline tests, sample preparation, text approval and local Windows SAPI audio generation;
+- operator listening verdict: **REJECT for narration quality** — intelligible but strongly robotic and not expressive. Windows SAPI is therefore infrastructure-only, not a production narrator.
 
 Still not yet implemented/completed:
 
@@ -111,4 +112,4 @@ Still not yet implemented/completed:
 - `SAYDI-001` — architecture + single Source of Truth: complete with this architecture change.
 - `SAYDI-002` — executable vertical slice + provider/AI contracts: **IN PROGRESS / authoritative NEXT**.
 
-`SAYDI-002` has now proven the runnable bounded local-audio workflow. The remaining acceptance work is to validate the operator listening/approval experience and freeze the production SaydiVoice adapter behind the same VoiceProvider contract before moving to `SAYDI-003`.
+`SAYDI-002` has now proven the runnable bounded local-audio workflow and the operator approval gate has produced a real **REJECT** decision for the Windows SAPI sample. The remaining acceptance work is to freeze the production SaydiVoice adapter behind the same VoiceProvider contract and run a bounded higher-quality provider sample before moving to `SAYDI-003`.
