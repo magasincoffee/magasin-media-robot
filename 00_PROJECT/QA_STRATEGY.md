@@ -1,60 +1,160 @@
-# QA Strategy
+# SAYDI Audiobook QA Strategy
 
 ## Objective
 
-The project must detect failures early, preserve evidence, repair root causes, and prevent regressions. QA is part of each implementation step, not a final phase only.
+SAYDI must prove three things before an audiobook export is accepted:
+
+1. **structural correctness** — the right text exists in the right order exactly once;
+2. **audio correctness** — the produced audio is decodable and technically valid;
+3. **traceability** — every accepted artifact can be mapped back to source text, narration configuration and QA evidence.
 
 ## Test layers
 
-### Static checks
+### Static / contract checks
 
-- Python syntax/import checks.
-- Formatting/linting once code exists.
-- JSON/schema validation for templates, state, selectors, and reports.
-- Secret/runtime-artifact guard.
+- Python syntax/imports;
+- formatting/linting;
+- JSON schema validation;
+- deterministic IDs/hashes;
+- secret/runtime-artifact guard;
+- migration compatibility checks.
 
 ### Unit tests
 
-Pure logic: text chunking, timeline calculations, path/state logic, render-spec generation, retry policy, validation helpers, and parsing.
+Pure logic including:
 
-### Integration tests
+- source parsing helpers;
+- normalization;
+- number/date/unit pronunciation rules;
+- segmentation boundaries;
+- segment ID/hash generation;
+- pronunciation-lexicon application;
+- narration fingerprint;
+- retry classification;
+- invalidation rules;
+- state transitions;
+- export naming/metadata mapping.
 
-FFmpeg/FFprobe operations, local file pipeline, browser adapter abstractions, state persistence, and resume behavior.
+### Provider-contract tests
 
-### Browser smoke tests
+Offline tests around the production Voice Engine:
 
-For SaydiVoice: page reachable, expected TTS surface detected, login state correctly classified, controls discoverable, generation action observable, download captured and validated. Tests must fail with screenshots/DOM evidence instead of hanging silently.
+- request/result validation;
+- preflight behavior;
+- provider-control mapping;
+- one-attempt guard;
+- operation-id idempotency;
+- ambiguous outcome/reconciliation;
+- safe error classification;
+- local-path policy;
+- redaction.
 
-### Render validation
+### Live provider smoke
 
-After every test/final render validate at minimum:
+Real SaydiVoice checks are intentionally scarce and explicit.
 
-- output exists and is non-empty;
-- FFprobe can parse it;
-- video stream exists;
-- required audio stream exists;
-- width/height match target profile;
-- duration is plausible against planned timeline;
-- no FFmpeg non-zero exit was ignored.
+A live generation test must verify:
 
-### Regression tests
+- authenticated preflight;
+- requested voice/style state;
+- exactly one authorized Generate side effect;
+- terminal result classification;
+- local audio download;
+- decode/metadata/hash validation;
+- privacy-safe diagnostics.
 
-Every fixed reproducible bug should receive a regression check when technically reasonable.
+### Book ingest tests
 
-## Failure workflow
+For each supported format:
+
+- deterministic chapter/block extraction;
+- source hash;
+- stable ordinals/IDs;
+- malformed input behavior;
+- no destructive source changes.
+
+Fixtures in Git must be synthetic or public-domain.
+
+### Long-run orchestration tests
+
+Required scenarios:
+
+- interruption before generation;
+- interruption during generation;
+- interruption after provider success before local commit;
+- restart/resume;
+- duplicate work suppression;
+- stale lease recovery;
+- partial chapter rebuild;
+- cancellation;
+- disk-full/permission failure;
+- re-auth requirement.
+
+### Audio processing tests
+
+Verify:
+
+- decode;
+- expected stream shape;
+- duration plausibility;
+- silence handling;
+- deterministic concatenation order;
+- processing profile tracking;
+- raw artifact immutability.
+
+### Structural/text coverage QA
+
+A full book must prove:
+
+- every canonical segment has exactly one accepted audio artifact;
+- no duplicate/out-of-order segment;
+- accepted audio hash is the one evaluated by QA;
+- alignment/ASR mismatches above threshold are reviewed or repaired.
+
+### Acoustic QA
+
+Detect at minimum:
+
+- zero/near-zero audio;
+- decode failure;
+- suspiciously short/long duration;
+- unexpected long silence;
+- clipping/peak anomalies;
+- inconsistent sample/channel format when prohibited by profile.
+
+### Export validation
+
+For each final output:
+
+- artifact exists and is non-empty;
+- container parses;
+- duration is plausible;
+- chapter count/order matches manifest;
+- metadata matches configured book metadata;
+- embedded chapter markers are valid where applicable;
+- export manifest hashes the final artifacts;
+- QA report hash is linked.
+
+## Repair workflow
 
 ```text
-TEST
-  -> PASS -> record evidence
-  -> FAIL -> capture evidence -> log bug -> diagnose -> fix -> retest
-                                      |                     |
-                                      +------ regression ----+
+QA FINDING
+   |
+   +--> deterministic processing fix -> rebuild dependent local artifacts
+   |
+   +--> TTS/content mismatch -> review exact segment
+                                |
+                                +--> regenerate only approved segment
+                                |
+                                +--> rerun segment QA
 ```
 
-## Diagnostic bundle
+Unaffected accepted provider audio must not be regenerated.
 
-Runtime failures should be able to produce a sanitized bundle containing relevant logs, state summary, versions, screenshots/DOM snapshots where useful, command stderr/stdout summaries, and output validation results. The bundle must exclude credentials, raw cookies, tokens, and private auth material.
+## Privacy gate
 
-## Completion gate for each phase
+CI and Git artifacts must never contain private production book text/audio or authentication state. Diagnostics must support structural evidence without copying sensitive content.
 
-A phase exits only when its documented acceptance criteria pass and `TEST_LOG.md` records the evidence. Known unresolved issues must remain explicitly listed in `BUG_LOG.md` and `CURRENT_STATUS.md`.
+## Phase completion
+
+A task exits only when its acceptance evidence is recorded and the Source of Truth advances the NEXT task.

@@ -32,7 +32,7 @@ The first production edit pipeline will be template/rule-based. AI visual semant
 
 ## ADR-006 — Repository files are durable project memory
 
-Status: Accepted
+Status: Superseded by ADR-011
 
 `CURRENT_STATUS.md`, `NEXT_STEP.md`, `CHANGELOG.md`, `BUG_LOG.md`, `TEST_LOG.md`, and this decision record are the canonical handoff mechanism across chat/context boundaries.
 
@@ -87,3 +87,90 @@ Rationale:
 - makes operator authorization auditable in workflow design.
 
 A later production adapter may expose retryability metadata, but a second Generate attempt still requires an explicit caller policy rather than an implicit browser retry.
+
+
+## ADR-011 — One Source of Truth governs the active SAYDI track
+
+Status: Accepted
+
+`00_PROJECT/SOURCE_OF_TRUTH.md` is the single authority for product identity, architecture generation, current state and the one NEXT task.
+
+Rationale:
+
+- avoids conflicting state across historical README/status/roadmap files;
+- makes continuation deterministic across sessions;
+- preserves supporting documentation without giving every file equal authority.
+
+Supporting files remain required evidence, but they do not override the Source of Truth.
+
+## ADR-012 — Active product pivots from social video to professional audiobook production
+
+Status: Accepted
+
+The active product is **SAYDI Audiobook**. The earlier social-video direction is paused.
+
+Existing SaydiVoice discovery is preserved and reused because it proves the provider behavior needed by the audiobook Voice Engine. Video-specific implementation is not continued unless the Source of Truth explicitly reactivates it.
+
+## ADR-013 — Canonical book manifest separates source text from spoken text
+
+Status: Accepted
+
+Imported/extracted source text is preserved. Normalized spoken text is a derived representation.
+
+Rationale:
+
+- protects textual fidelity;
+- makes pronunciation/normalization changes auditable;
+- allows reprocessing without losing the original extracted content;
+- supports deterministic invalidation and QA.
+
+## ADR-014 — Segment is the smallest independently regeneratable unit
+
+Status: Accepted
+
+Long-form synthesis is segment-addressed. Each segment has stable source linkage, normalized-text hash, narration fingerprint, provider result and QA state.
+
+Rationale:
+
+- a failed sentence/paragraph can be repaired without regenerating hours of audio;
+- interruption/resume is practical;
+- provider cost/quota and duplicate side effects are controlled;
+- book-wide coverage can be proven exactly.
+
+## ADR-015 — TTS providers are replaceable adapters
+
+Status: Accepted
+
+Audiobook domain logic uses a provider-neutral VoiceRequest/VoiceResult contract. SaydiVoice-specific browser selectors and controls remain inside the SaydiVoice adapter.
+
+The system may add other providers later without changing book, narration, audio or export domain contracts.
+
+## ADR-016 — Durable orchestration uses explicit state, hashes and operation IDs
+
+Status: Accepted
+
+Long-running audiobook production uses a durable local state store, initially SQLite, plus immutable/intermediate artifacts.
+
+A file existing on disk is not sufficient completion evidence. Side effects use operation IDs, accepted artifacts use hashes, and ambiguous provider outcomes enter reconciliation before retry.
+
+## ADR-017 — Full-book generation requires sample approval for the active narration fingerprint
+
+Status: Accepted
+
+Before long-form generation, the operator approves a short sample tied to the exact narrator/style configuration.
+
+Changing the narration fingerprint invalidates the prior approval.
+
+Rationale:
+
+- catches wrong voice/style early;
+- prevents wasting long-running provider generation;
+- gives a clear human quality boundary without requiring manual approval of every segment.
+
+## ADR-018 — QA is a production gate, not an optional post-process
+
+Status: Accepted
+
+An audiobook cannot enter READY/EXPORTED with unresolved structural coverage failures, failed segment jobs, material text/audio mismatch, invalid chapter order, or technical audio validation failures.
+
+QA results are bound to exact artifact hashes so a later artifact change invalidates the relevant acceptance.

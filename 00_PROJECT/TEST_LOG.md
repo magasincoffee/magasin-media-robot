@@ -1,5 +1,24 @@
 # Test Log
 
+## 2026-09-30 — SAYDI Audiobook architecture consistency validation
+
+Scope: architecture/documentation reset only; no provider generation and no runtime code changes.
+
+### Validation
+
+- Confirmed current `main` contained implementation only under `01_DISCOVERY/saydivoice`; prior video module directories were documentation placeholders rather than production code.
+- Preserved the existing SaydiVoice discovery implementation and live workflow unchanged.
+- Added one single authoritative Source of Truth.
+- Verified active documentation consistently identifies SAYDI Audiobook as the current product.
+- Verified the task queue has exactly one NEXT task: `SAYDI-002`.
+- Verified the target architecture separates book/text/narration domain logic from provider/browser automation.
+- Verified runtime/private content remains excluded from repository design.
+- Verified no live TTS Generate operation was required or executed for this architecture change.
+
+### Acceptance
+
+Architecture documentation package: PASS for merge review.
+
 ## 2026-09-17 — Voice/style controls, preset roundtrip, preflight, and real preset generation
 
 Scope: verify that production-relevant SaydiVoice voice/style controls can be applied deterministically before Generate, without inventing an unsupported discrete mood API.

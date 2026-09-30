@@ -1,90 +1,429 @@
-# Architecture
+# SAYDI Audiobook Architecture
 
-## High-level pipeline
+## 1. System context
+
+SAYDI is a local-first audiobook production system. The core owns book structure, text fidelity, job state, audio assembly and QA. TTS providers are replaceable adapters.
 
 ```text
-SOURCE MEDIA + CONTENT
-        |
-        v
-Desktop Control Center
-        |
-        +--> Project Manager / State Store
-        |
-        +--> Media Analyzer
-        |
-        +--> Script & Scene Planner
-        |
-        +--> SaydiVoice Browser Adapter (Playwright)
-        |
-        +--> Audio Processor
-        |
-        +--> Subtitle Timing Engine
-        |
-        +--> Video Composer
-        |
-        +--> FFmpeg / FFprobe Render Engine
-        |
-        +--> Quality Validator
-        |
-        v
-PREVIEW + FINAL MP4 + LOGS
+                       +----------------------+
+SOURCE BOOK ---------->|  Desktop Control UI  |
+                       +----------+-----------+
+                                  |
+                                  v
+                       +----------------------+
+                       |   Project / Job API   |
+                       +----------+-----------+
+                                  |
+          +-----------------------+-----------------------+
+          |                       |                       |
+          v                       v                       v
+ +----------------+      +------------------+    +------------------+
+ | Book/Text Core |      | Narration Engine |    | State / Events   |
+ +-------+--------+      +---------+--------+    +---------+--------+
+         |                         |                       |
+         +------------+------------+-----------------------+
+                      |
+                      v
+             +-------------------+
+             | Segment Orchestr. |
+             +---------+---------+
+                       |
+                       v
+             +-------------------+
+             | Voice Provider API|
+             +---------+---------+
+                       |
+             +---------+----------+
+             |                    |
+             v                    v
+       SaydiVoice Adapter     future adapters
+       Chrome/Playwright
+             |
+             v
+        raw segment audio
+             |
+             v
+       +-----------------+
+       | Audio Engine    |
+       | FFmpeg/FFprobe  |
+       +--------+--------+
+                |
+                v
+       +-----------------+
+       | QA / Alignment  |
+       +--------+--------+
+                |
+       repair --+-- pass
+                |
+                v
+       +-----------------+
+       | Export Engine   |
+       +-----------------+
+        M4B / chapter MP3
 ```
 
-## Major modules
+## 2. Domain model
 
-### 01_DISCOVERY
-Temporary and repeatable discovery tooling for external browser integrations. First target: SaydiVoice. Discovery outputs stable selectors, settings schema, behavior notes, screenshots, and error-state evidence.
+### Book
 
-### 02_VOICE_ENGINE
-Provider-neutral voice interface. Initial adapter automates `https://voice.saydi.ai/vi/studio/tts/` through Playwright using a local persistent browser profile.
+A logical production project with immutable source identity and user-editable production metadata.
 
-### 03_MEDIA_ANALYZER
-Uses FFprobe/OpenCV/PySceneDetect where needed to inspect duration, resolution, FPS, orientation, audio streams, scene boundaries, and source suitability.
+### Chapter
 
-### 04_SCENE_PLANNER
-Turns user content and source-media inventory into an explicit edit decision list/timeline. V1 is template/rule-based. Later versions may add visual semantic selection.
+Ordered structural unit. A chapter has a stable `chapter_id`, title, ordinal and ordered blocks.
 
-### 05_SUBTITLE_ENGINE
-Creates timed captions from the known script and generated voice. V1 can use sentence-level timing; later versions can optionally use local speech alignment.
+### Block
 
-### 06_VIDEO_COMPOSER
-Builds a render specification: clips, trims, crop, scale, overlays, logo, captions, transitions, voice, music, ducking, and CTA.
+Paragraph, heading, list item, quote, dialogue block or other semantically meaningful source unit.
 
-### 07_RENDER_ENGINE
-Executes the render specification with FFmpeg/FFprobe and validates the output artifact.
+### Segment
 
-### 08_DESKTOP_APP
-Windows operator UI. It should expose business actions, not technical implementation details.
+Smallest independently synthesizable and regeneratable spoken unit.
 
-### 09_BROWSER_AUTOMATION
-Shared Playwright infrastructure: persistent profile, resilient locators, downloads, retry policy, screenshots, DOM snapshots, and integration diagnostics.
+Required segment properties include:
 
-### 10_QA
-Unit, integration, fixture, browser smoke, render validation, regression tests, and project-state guardrails.
+- stable `segment_id`;
+- `chapter_id`;
+- source span / source hash;
+- normalized spoken text;
+- narration directives;
+- pronunciation overrides;
+- generation status;
+- audio artifact reference;
+- QA status.
 
-### 11_INSTALLER
-One-time Windows setup for bundled runtime/dependencies, directories, browser runtime, model assets if required, and Desktop shortcut.
+### Narration profile
 
-## Runtime data separation
+Provider-neutral semantic delivery configuration such as narrator voice, speed, expressiveness, pause policy and pronunciation lexicon. Provider adapters map this profile to provider-specific controls.
 
-Repository code and documentation are separated from local runtime state.
+### Export profile
+
+Container/codec/metadata/loudness configuration for a target delivery format. Platform-specific values must be configuration, not hard-coded domain assumptions.
+
+## 3. Major modules
+
+### 01_DISCOVERY/saydivoice
+
+Existing field-discovery and provider-evidence tooling. It remains isolated from production domain logic.
+
+### 02_BOOK_INGEST
+
+Responsibilities:
+
+- detect supported source type;
+- copy source into immutable local project storage;
+- extract structural text;
+- create the first canonical manifest;
+- preserve provenance and source hashes;
+- reject unsupported/encrypted/unreadable inputs with actionable errors.
+
+Adapters:
+
+- TXT;
+- DOCX;
+- EPUB;
+- text PDF;
+- optional OCR adapter later.
+
+### 03_TEXT_ENGINE
+
+Responsibilities:
+
+- deterministic Unicode/whitespace cleanup;
+- Vietnamese punctuation normalization;
+- spoken rendering of numbers, dates, units and abbreviations;
+- preserve original text separately from normalized spoken text;
+- stable segmentation;
+- change detection by hash;
+- user-approved pronunciation substitutions.
+
+Rule: normalization may change how text is spoken but must not silently change meaning.
+
+### 04_NARRATION_ENGINE
+
+Responsibilities:
+
+- narrator selection;
+- application-level style preset;
+- pause policy;
+- pronunciation lexicon;
+- optional dialogue/speaker metadata;
+- sample plan generation;
+- chapter/segment narration plan.
+
+The narration engine outputs provider-neutral directives only.
+
+### 05_VOICE_ENGINE
+
+Production interface:
 
 ```text
-repo/                         # source-controlled
-%LOCALAPPDATA%/MAGASIN/MediaRobot/
-  browser_profile/            # never commit
-  projects/
-  downloads/
+VoiceRequest
+  segment_id
+  text
+  narrator_key
+  style_key
+  pronunciation_overrides
+  output_format
+  operation_id
+
+VoiceResult
+  status
+  provider
+  provider_voice
+  local_audio_path
+  duration
+  byte_count
+  sha256
+  provider_reference
+  error_class
+  retryable
+```
+
+Initial adapter: SaydiVoice through installed Chrome + Playwright + persistent local authenticated profile.
+
+The adapter must enforce one side-effect attempt per `operation_id` unless orchestration explicitly starts a new safe attempt.
+
+### 06_AUDIO_ENGINE
+
+Responsibilities:
+
+- decode/validate generated audio;
+- trim only policy-approved leading/trailing silence;
+- normalize technical format;
+- optional de-click/de-noise only when measurable and non-destructive;
+- chapter concatenation;
+- inter-segment and inter-chapter pause insertion;
+- loudness/mastering according to export profile;
+- FFmpeg/FFprobe validation.
+
+Source generation audio remains immutable; processed derivatives are separate artifacts.
+
+### 07_ALIGNMENT_QA
+
+Two independent classes of QA:
+
+**Structural/text coverage QA**
+
+- all canonical segments have exactly one accepted audio artifact;
+- no missing/duplicate/out-of-order segments;
+- ASR/forced-alignment comparison where available;
+- mismatch severity and confidence recorded;
+- suspicious segments routed to review/repair.
+
+**Acoustic QA**
+
+- decode succeeds;
+- duration plausible;
+- clipping/peak checks;
+- unexpected long silence;
+- zero/near-zero audio;
+- channel/sample format consistency;
+- chapter-boundary continuity.
+
+QA never silently rewrites source text to make a mismatch disappear.
+
+### 08_EXPORT_ENGINE
+
+Responsibilities:
+
+- M4B assembly;
+- chapter-MP3 package;
+- chapter markers;
+- title/author/narrator metadata;
+- optional cover embedding;
+- deterministic filenames;
+- export manifest;
+- final validation.
+
+### 09_ORCHESTRATOR
+
+Owns the durable state machine.
+
+Responsibilities:
+
+- task graph;
+- checkpoints;
+- dependency ordering;
+- safe retry classification;
+- cancellation;
+- resume;
+- progress;
+- concurrency limits;
+- idempotency;
+- event log.
+
+SQLite is the initial state-store target. Filesystem artifacts are referenced by stable IDs/hashes rather than used as the only state database.
+
+### 10_DESKTOP_APP
+
+Business-level actions only:
+
+- Import book
+- Review chapters
+- Configure narrator/style
+- Edit pronunciation dictionary
+- Generate sample
+- Approve sample
+- Create audiobook
+- Pause/resume
+- Review issues
+- Repair selected segments
+- Export
+- Open diagnostics
+
+### 11_QA
+
+Unit, integration, provider-contract, long-run, resume, corruption, export and privacy tests.
+
+### 12_INSTALLER
+
+Installs/supports runtime dependencies, local folders, application shortcut and prerequisite checks without packaging credentials or browser sessions.
+
+## 4. Stable artifact contracts
+
+Each stage writes versioned artifacts.
+
+```text
+book_source
+ -> book_manifest.v1.json
+ -> narration_plan.v1.json
+ -> segment_jobs in SQLite
+ -> segment VoiceResult + raw audio
+ -> processed_segment metadata
+ -> chapter_manifest.v1.json
+ -> qa_report.v1.json
+ -> export_manifest.v1.json
+```
+
+Schemas are versioned. A schema version change requires migration or explicit regeneration.
+
+## 5. Segment identity
+
+Segment identity must be stable across interrupted runs.
+
+Recommended identity inputs:
+
+```text
+book_id
+chapter stable key
+block ordinal
+segment ordinal within block
+normalized-text hash
+normalization schema version
+```
+
+Do not use random IDs as the only identity for source-derived segments.
+
+If source text changes, affected segments receive new content hashes and only dependent artifacts are invalidated.
+
+## 6. State and idempotency
+
+Every side-effecting operation has an `operation_id`.
+
+Before live TTS generation:
+
+1. verify job dependency state;
+2. verify no accepted audio already exists for the same content hash + narration fingerprint;
+3. reserve the operation;
+4. perform exactly one provider generation attempt;
+5. persist terminal evidence before scheduling another attempt.
+
+A process crash after provider success but before local commit must enter reconciliation, not blindly regenerate.
+
+## 7. Retry model
+
+Failures are classified as:
+
+- `fix_input`
+- `re_auth`
+- `retry_safe`
+- `reconcile_first`
+- `do_not_retry`
+
+Network/browser retries must not imply a second Generate click unless provider outcome is known safe.
+
+## 8. Sample approval gate
+
+Full-book synthesis is blocked until an approved sample exists for the active narration fingerprint.
+
+A narration fingerprint includes at least:
+
+- provider;
+- voice;
+- style preset;
+- speed;
+- expression/stability controls;
+- pause policy;
+- pronunciation-lexicon version.
+
+Changing the fingerprint invalidates prior approval.
+
+## 9. Runtime directory model
+
+```text
+%LOCALAPPDATA%/SAYDI/Audiobook/
+  config/
+  browser_profile/
+  library/<book_id>/
+    source/
+    manifests/
+    segments/
+    audio/raw/
+    audio/processed/
+    chapters/
+    exports/
+    qa/
+    logs/
   cache/
-  logs/
   diagnostics/
-  config.local.json           # never commit
 ```
 
-## Failure model
+Git contains code, schemas, tests and sanitized documentation only.
 
-Every pipeline stage should end in one of: `SUCCESS`, `RETRYABLE_FAILURE`, `ACTION_REQUIRED`, `FATAL_FAILURE`. Recoverable checkpoints are persisted so the next run can resume rather than restart.
+## 10. Security and privacy
 
-## Integration rule
+Never commit or upload by default:
 
-External websites are treated as unstable dependencies. Core edit/render logic must remain usable even if SaydiVoice selectors change. Browser-specific details live behind adapters and are refreshed by discovery tooling.
+- source manuscripts;
+- generated private audio;
+- cookies/session storage;
+- browser profiles;
+- passwords/tokens;
+- local database;
+- diagnostic bundles containing book text.
+
+Sanitized CI evidence may include structural metadata and synthetic fixtures but not private production text/audio.
+
+## 11. Observability
+
+Every job emits structured events including:
+
+- timestamp;
+- book/job/segment IDs;
+- stage;
+- attempt number;
+- operation ID;
+- status transition;
+- sanitized error class;
+- artifact hash where applicable;
+- duration metrics.
+
+Logs must support reconstruction of what happened without exposing private manuscript contents.
+
+## 12. Professional acceptance scenario
+
+The reference acceptance test is a multi-chapter book large enough to exercise long-running generation.
+
+The test must demonstrate:
+
+- deterministic ingest;
+- stable segmentation;
+- sample approval;
+- interruption during synthesis;
+- resume without duplicating completed segments;
+- one intentionally failed segment repaired in isolation;
+- successful chapter assembly;
+- QA report;
+- valid M4B/chapter-MP3 export;
+- no secrets/private runtime artifacts in Git.

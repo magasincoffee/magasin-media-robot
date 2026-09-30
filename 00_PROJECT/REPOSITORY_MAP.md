@@ -1,12 +1,19 @@
 # Repository Map
 
+The repository currently contains the mature SaydiVoice discovery foundation and project documentation. New audiobook implementation directories should be materialized only when their task begins.
+
+## Target SAYDI Audiobook structure
+
 ```text
 magasin-media-robot/
 ├── .github/
-│   └── workflows/                 # CI later
+│   └── workflows/
+│       └── saydi-live.yml                 # trusted provider checks
 ├── 00_PROJECT/
+│   ├── SOURCE_OF_TRUTH.md                 # single authoritative state
 │   ├── PROJECT_VISION.md
 │   ├── ARCHITECTURE.md
+│   ├── AUDIOBOOK_DATA_CONTRACTS.md
 │   ├── ROADMAP.md
 │   ├── DEVELOPMENT_RULES.md
 │   ├── QA_STRATEGY.md
@@ -18,27 +25,51 @@ magasin-media-robot/
 │   ├── TEST_LOG.md
 │   └── CHANGELOG.md
 ├── 01_DISCOVERY/
-│   └── saydivoice/
-│       ├── README.md
-│       ├── DISCOVERY_PLAN.md
-│       ├── src/
-│       ├── tests/
-│       ├── schemas/
-│       └── examples/
-├── 02_VOICE_ENGINE/
-├── 03_MEDIA_ANALYZER/
-├── 04_SCENE_PLANNER/
-├── 05_SUBTITLE_ENGINE/
-├── 06_VIDEO_COMPOSER/
-├── 07_RENDER_ENGINE/
-├── 08_DESKTOP_APP/
-├── 09_BROWSER_AUTOMATION/
-├── 10_QA/
-├── 11_INSTALLER/
-├── assets/
-├── templates/
+│   └── saydivoice/                        # existing provider discovery/evidence
+├── 02_BOOK_INGEST/                        # SAYDI-003
+├── 03_TEXT_ENGINE/                        # SAYDI-004
+├── 04_NARRATION_ENGINE/                   # SAYDI-005
+├── 05_VOICE_ENGINE/                       # SAYDI-002 production provider layer
+├── 06_AUDIO_ENGINE/                       # SAYDI-007
+├── 07_ALIGNMENT_QA/                       # SAYDI-008
+├── 08_EXPORT_ENGINE/                      # SAYDI-009
+├── 09_ORCHESTRATOR/                       # SAYDI-006
+├── 10_DESKTOP_APP/                        # SAYDI-010
+├── 11_QA/                                 # cross-cutting automated tests
+├── 12_INSTALLER/                          # SAYDI-011
+├── schemas/                               # versioned JSON schemas
+├── fixtures/                              # synthetic/public test fixtures only
+├── templates/                             # narration/export profiles
 ├── .gitignore
 └── README.md
 ```
 
-Directories that do not yet contain implementation are intentionally represented by placeholder README files when materialized. Runtime outputs do not belong inside this tree.
+## Runtime is not repository content
+
+Production data belongs under a local runtime root such as:
+
+```text
+%LOCALAPPDATA%/SAYDI/Audiobook/
+  config/
+  browser_profile/
+  library/<book_id>/
+    source/
+    manifests/
+    segments/
+    audio/raw/
+    audio/processed/
+    chapters/
+    exports/
+    qa/
+    logs/
+  cache/
+  diagnostics/
+```
+
+Never commit source manuscripts, generated production audio, local SQLite databases, browser profiles or credentials.
+
+## Migration rule
+
+Do not delete `01_DISCOVERY/saydivoice`. It contains field evidence and reusable provider knowledge.
+
+Old video-oriented top-level module names were documentation-only placeholders and had no implementation on `main`; the audiobook target map supersedes those placeholders.

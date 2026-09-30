@@ -1,50 +1,76 @@
-# MAGASIN Media Robot
+# SAYDI Audiobook
 
-Desktop-first automation project for turning **source video + content** into a finished social video with minimal manual work.
+Local-first Windows automation for turning a legally usable manuscript into a professionally structured audiobook with resumable TTS generation, audio processing, QA and export.
+
+> Repository name remains `magasin-media-robot` for continuity, but the active product track is **SAYDI Audiobook**.
 
 ## End-user target
 
-The daily workflow should become:
+```text
+Import book
+ -> review chapters
+ -> choose narrator/style
+ -> approve a sample
+ -> create audiobook
+ -> review/repair exceptions
+ -> export M4B or chapter MP3
+```
 
-`Select source videos -> enter content -> click CREATE VIDEO -> receive final MP4`
+Normal operation should not require knowledge of Python, Playwright, FFmpeg, browser profiles, segment IDs or state databases.
 
-The system will coordinate SaydiVoice in a browser for TTS, local media analysis, scene planning, subtitle timing, FFmpeg rendering, QA, diagnostics, resume, and a simple Windows desktop control center.
+## Architecture
 
-## Project phases
+```text
+BOOK
+ -> Ingest / Canonical Manifest
+ -> Text Normalization / Segmentation
+ -> Narration Director
+ -> Segment Orchestrator
+ -> Voice Engine (SaydiVoice first)
+ -> Audio Engine
+ -> Alignment + Acoustic QA
+ -> Export Engine
+ -> M4B / MP3
+```
 
-1. **SaydiVoice Discovery** — map the real browser UI, settings, login/session behavior, voice selection, generation states, download behavior, errors, and robust selectors.
-2. **Voice Engine** — reliable SaydiVoice automation with session persistence, retries, validation, and downloaded audio handoff.
-3. **Media Analyzer** — inspect video metadata and source material.
-4. **Scene Planner** — convert content + available footage into a deterministic edit plan.
-5. **Subtitle Engine** — timed subtitles aligned to generated voice.
-6. **Video Composer / Render Engine** — FFmpeg-based editing, audio mixing, overlays, branding, transitions, and export.
-7. **Desktop Control Center** — simple Windows UI.
-8. **QA / Diagnostics / Resume** — self-test, bug detection, logs, recovery, and regression testing.
-9. **Installer** — one-time Windows setup and Desktop shortcut.
+## Existing foundation
 
-## Source of truth for continuation
+`01_DISCOVERY/saydivoice` already contains field-verified work for:
 
-Every work session must begin by reading:
+- authenticated Chrome/Playwright automation;
+- voice and style controls;
+- controlled generation;
+- download behavior;
+- privacy-safe evidence.
 
-- `00_PROJECT/CURRENT_STATUS.md`
-- `00_PROJECT/NEXT_STEP.md`
+That foundation is reused. It is not being rebuilt from zero.
+
+## Source of Truth
+
+For any continuation, read:
+
+**`00_PROJECT/SOURCE_OF_TRUTH.md`**
+
+It is the single authoritative project state and task queue.
+
+Supporting documents:
+
+- `00_PROJECT/ARCHITECTURE.md`
+- `00_PROJECT/AUDIOBOOK_DATA_CONTRACTS.md`
 - `00_PROJECT/DECISIONS.md`
-- `00_PROJECT/BUG_LOG.md`
-- `00_PROJECT/TEST_LOG.md`
-- `00_PROJECT/CHANGELOG.md`
+- `00_PROJECT/QA_STRATEGY.md`
+- `00_PROJECT/DEVELOPMENT_RULES.md`
 
-Every work session must end by updating the same records.
+Historical notes remain useful evidence but do not override the Source of Truth.
 
-The intended continuation request is:
+## Current task
 
-> **Tiếp tục dự án magasin-media-robot**
+**NEXT: SAYDI-002 — Production SaydiVoice provider adapter.**
 
-That request means: read the repository state first, continue from the recorded next step, test the work, record failures/fixes/tests, and update the next step before stopping.
+## Security / privacy
 
-## Security
+Never commit source books, generated private audio, browser profiles, cookies, credentials, local production databases or private diagnostic content.
 
-Never commit passwords, browser cookies, auth tokens, local browser profiles, downloaded private media, production secrets, or user-specific configuration. Runtime secrets and sessions stay local on the user's machine.
+## Rights
 
-## Current focus
-
-**Phase 0 — SaydiVoice Discovery architecture and discovery runner.**
+Use SAYDI only for works you own, are licensed to reproduce, or that are otherwise legally usable for the intended audiobook production.
