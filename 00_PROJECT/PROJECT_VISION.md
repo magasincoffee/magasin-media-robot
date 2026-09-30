@@ -1,29 +1,55 @@
-# Project Vision
+# SAYDI Audiobook — Product Vision
 
 ## Product goal
 
-Build a reliable Windows desktop robot that reduces video production to two primary user inputs:
+Build a professional Windows audiobook production system that converts a legally usable manuscript into a finished audiobook with minimal manual work.
 
-1. source videos/images;
-2. content/script.
-
-The system should return a finished MP4 suitable for social publishing, with voice-over, subtitles, music, branding, scene timing, and quality checks handled automatically.
+The product is **audiobook-first**. The previous social-video direction is paused.
 
 ## Primary UX
 
-The user should not need to understand Python, Playwright, FFmpeg, codecs, subtitle timing, browser profiles, or project directories. Daily operation should happen through one desktop application.
+The daily workflow should be:
+
+```text
+IMPORT BOOK
+  -> REVIEW STRUCTURE
+  -> CHOOSE NARRATOR / STYLE
+  -> APPROVE SAMPLE
+  -> CREATE AUDIOBOOK
+  -> REVIEW EXCEPTIONS
+  -> EXPORT
+```
+
+The operator should not need to understand Playwright, FFmpeg, browser profiles, codecs, chunking, SQLite, alignment models, or provider-specific controls.
+
+## Professional quality objectives
+
+- textual fidelity: no silent omission, duplication or rewriting;
+- stable chapter and segment identity;
+- natural long-form narration controls;
+- pronunciation control for proper nouns and difficult terms;
+- consistent audio across hours of narration;
+- resumable generation after interruption;
+- isolated repair instead of full-book regeneration;
+- measurable QA before export;
+- reproducible project state and diagnostics;
+- privacy-safe local storage.
 
 ## Core design principles
 
-- **Local-first media processing:** rendering and media transformation run locally where practical.
-- **Browser automation only where necessary:** SaydiVoice TTS is browser-driven; rendering must not depend on GUI macro clicking in a video editor.
-- **Deterministic before intelligent:** stable templates and explicit rules come before AI scene selection.
-- **Observable:** every significant step produces status and logs.
-- **Resumable:** recoverable failures should continue from the last safe checkpoint.
-- **Testable:** modules expose verifiable inputs/outputs and regression tests.
-- **Secure by default:** credentials, sessions, cookies, tokens, and private media are never committed to GitHub.
-- **Replaceable integrations:** SaydiVoice, subtitle timing, and other external providers are adapters, not hard-wired into the project core.
+- **Local-first:** books, working audio, state and diagnostics stay local by default.
+- **Provider-neutral:** SaydiVoice is the first TTS adapter, not the product core.
+- **Segment-addressed:** every generated spoken unit can be individually tracked and regenerated.
+- **Deterministic before intelligent:** canonical parsing, normalization and QA rules precede optional AI enhancements.
+- **Human approval at the right boundary:** approve narrator/style with a short sample before expensive full-book generation.
+- **Resumable:** long jobs persist checkpoints continuously.
+- **Auditable:** every export can be traced to source manifest, narration plan, generated segments and QA evidence.
+- **Secure by default:** credentials, sessions, private books and generated audio never enter Git.
+
+## Source-rights boundary
+
+SAYDI processes only content the operator has the right to reproduce or transform, including owned manuscripts, licensed works and public-domain works. The product does not include DRM bypass or unauthorized acquisition workflows.
 
 ## Definition of project completion
 
-A production-ready version is complete when a clean Windows machine can install the product through the supported installer, complete the one-time SaydiVoice login/setup, select source media, enter content, create a final MP4, recover from common failures, and produce diagnostic evidence when it cannot recover automatically.
+V1 is complete when a clean supported Windows machine can install SAYDI, complete one-time provider setup, import a book, approve a sample, create a full audiobook with interruption/resume, detect and repair isolated failures, and export validated M4B and/or chapter MP3 artifacts with a QA report.
