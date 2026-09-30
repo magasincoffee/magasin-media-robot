@@ -1,3 +1,4 @@
-trigger_id=20260930-1614
-purpose=SAYDI-002 local audible sample
-runner=MAGASIN-PC
+trigger_id=20260930-1629
+purpose=SAYDI-002 local audible sample retry
+reason=execution-policy-fix
+runner=DESKTOP-4K7IM13
