@@ -618,9 +618,9 @@ A production export requires all applicable gates:
 ## Current authoritative status
 
 **Architecture generation:** SAYDI-AUDIOBOOK-V1.2  
-**Current phase:** architecture reset from video-first product to audiobook-first product.  
+**Current phase:** SAYDI-002 executable vertical slice implementation.  
 **SaydiVoice discovery:** retained and considered the verified provider foundation.  
-**Audiobook production implementation:** not yet implemented.
+**Audiobook production implementation:** STARTED. The first core runner now has provider-neutral contracts, rules analysis, local Ollama adapter boundary, narration fingerprint, representative sample selection, text approval, local prototype voice provider, audio approval state and duplicate-operation guard.
 
 ## Authoritative task queue
 
@@ -646,7 +646,9 @@ It must create the first runnable operator-visible path, establish provider-neut
 
 Required SAYDI-002 evidence:
 
-- runnable CLI/operator runner;
+- runnable CLI/operator runner; **IMPLEMENTED OFFLINE FOUNDATION**
+- local offline compile/unit/smoke evidence; **PASS (5 unit tests + prepare/approve smoke in development environment)**
+- Windows-local audible sample workflow; **IMPLEMENTED, NOT YET FIELD-RUN**
 - versioned structured contracts for AI analysis and VoiceProvider;
 - deterministic fallback behavior when no LLM is available;
 - local-LLM adapter boundary (model may be selected/benchmarked during implementation);
@@ -654,7 +656,7 @@ Required SAYDI-002 evidence:
 - sample narration fingerprint;
 - text-preview and audio-approval state;
 - tests for idempotency/privacy/schema validation;
-- one bounded real audible sample run after offline gates pass.
+- one bounded real audible sample run after offline gates pass. **PENDING FIELD RUN**
 
 ## Completion definition for the project
 
