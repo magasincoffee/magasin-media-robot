@@ -51,8 +51,8 @@ jobs:
         shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
         run: |
           $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
-          $root = Join-Path $env:PUBLIC "Documents\SAYDI\Audiobook"
-          $run = Join-Path $root "demo\github-${{ github.run_id }}"
+          $root = "C:\SAYDI"
+          $run = Join-Path $root "runs\github-${{ github.run_id }}"
           New-Item -ItemType Directory -Force -Path $run | Out-Null
           Write-Host "SAYDI runtime root: $root"
           Write-Host "SAYDI run dir: $run"
@@ -73,7 +73,7 @@ jobs:
           $audioFiles = @(Get-ChildItem $audioDir -File -ErrorAction Stop)
           if ($audioFiles.Count -eq 0) { throw "No audio file was produced." }
 
-          $latestDir = Join-Path $env:PUBLIC "Documents\SAYDI\Audiobook\latest"
+          $latestDir = "C:\SAYDI\output"
           New-Item -ItemType Directory -Force -Path $latestDir | Out-Null
 
           foreach ($file in $audioFiles) {
@@ -86,5 +86,11 @@ jobs:
           Write-Host "Audio sample remains local."
           Write-Host "Run audio directory: $audioDir"
           Write-Host "Easy-open copy: $latestSample"
-          Get-ChildItem $latestDir -File | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
+          if (-not (Test-Path $latestSample)) { throw "latest-sample.wav was not persisted." }
+          $hash = (Get-FileHash $latestSample -Algorithm SHA256).Hash
+          $info = Get-Item $latestSample
+          Write-Host "SAYDI_OUTPUT_FILE=$($info.FullName)"
+          Write-Host "SAYDI_OUTPUT_BYTES=$($info.Length)"
+          Write-Host "SAYDI_OUTPUT_SHA256=$hash"
+          Get-ChildItem $latestDir -File | Select-Object FullName, Length, LastWriteTime | Format-Table -AutoSize
           Write-Host "No audio or manuscript text is uploaded as an Actions artifact."
