@@ -1,65 +1,100 @@
 # Development Rules
 
-## Mandatory session protocol
+## Mandatory authority rule
 
-Every implementation session must follow this order:
+Every implementation session must begin with:
 
-1. Read `CURRENT_STATUS.md` and `NEXT_STEP.md`.
-2. Read relevant decisions, bugs, tests, and recent changes.
-3. Reproduce/verify the current state before changing code when practical.
-4. Implement one bounded step.
-5. Run the smallest relevant tests first.
-6. If a test fails, record the failure in `BUG_LOG.md` before or while fixing it.
-7. Fix the root cause, not only the observed symptom.
-8. Re-run the failed test and relevant regression tests.
-9. Record test evidence in `TEST_LOG.md`.
-10. Update `CHANGELOG.md`, `CURRENT_STATUS.md`, and `NEXT_STEP.md`.
-11. Commit a coherent change with no secrets or runtime artifacts.
+1. read `00_PROJECT/SOURCE_OF_TRUTH.md` from the beginning;
+2. identify the single authoritative NEXT task;
+3. read only the architecture/decision/test files relevant to that task;
+4. verify current `main` before changing code.
 
-## Continuation contract
+Do not choose a different task because an old README, historical status note or stale conversation suggests it.
 
-When the user says **“Tiếp tục dự án magasin-media-robot”**, the repository is the source of truth. Do not rely on stale chat memory when repository status disagrees.
+## Mandatory implementation protocol
 
-## Quality gates
+1. Scope work to one authoritative task.
+2. Reproduce/verify current state before change where practical.
+3. Define the acceptance evidence for the bounded step.
+4. Implement the smallest coherent slice.
+5. Run unit/static tests first.
+6. Record reproducible failures in `BUG_LOG.md`.
+7. Fix root cause, not only symptoms.
+8. Run relevant integration/regression tests.
+9. Record concrete evidence in `TEST_LOG.md`.
+10. Update `SOURCE_OF_TRUTH.md`, `CURRENT_STATUS.md`, `NEXT_STEP.md` and `CHANGELOG.md` when task state changes.
+11. Commit/PR a coherent change with no runtime/private artifacts.
+12. Verify exact `main` after merge before declaring completion.
 
-A step is not complete because code was written. It is complete only when:
+## Audiobook fidelity rules
 
-- intended behavior is implemented;
-- relevant tests pass;
-- known failure paths are handled or documented;
-- logs/state are updated;
-- the next step is explicit.
+- Original extracted text is immutable after ingest.
+- Normalized spoken text is stored separately.
+- Never silently summarize, paraphrase or omit prose.
+- Every spoken segment has a stable identity and source linkage.
+- Every accepted audio artifact is tied to the exact text hash + narration fingerprint.
+- A book export cannot pass with unresolved missing/duplicate segments.
+- Regeneration should target only invalid/failed segments when dependencies permit.
+- Human pronunciation overrides are versioned and auditable.
 
-## Browser automation rules
+## Provider automation rules
 
-- Prefer Playwright semantic locators: role, label, accessible name, stable text, stable data attributes.
-- Avoid brittle generated IDs/classes where possible.
-- Use a locator fallback strategy when justified.
-- Capture evidence when discovery or browser smoke tests fail.
-- Never log passwords, raw cookies, tokens, or authorization headers.
-- Persistent browser profiles are local runtime data and must never enter Git.
+- SaydiVoice is an adapter behind `05_VOICE_ENGINE`.
+- Prefer Playwright semantic locators and field-verified controls.
+- Run authenticated preflight before side effects.
+- A Generate action is a controlled side effect.
+- Do not automatically click Generate twice for an ambiguous result.
+- Use operation IDs and reconciliation before retry.
+- Never log passwords, raw cookies, auth tokens or raw session storage.
+- Persistent browser profiles remain local.
 
-## Media rules
+## Audio rules
 
-- FFmpeg/FFprobe are the rendering/inspection source of truth.
-- Rendering must be deterministic for the same render specification and source assets where codecs permit.
-- Every final artifact must be validated after render.
-- Destructive changes to source media are forbidden; create outputs in project working/output directories.
+- FFmpeg/FFprobe are the technical processing/validation source of truth.
+- Raw provider audio is immutable after acceptance.
+- Processing writes derivatives.
+- Do not hide decode errors, clipping, impossible duration or missing streams.
+- Mastering/loudness settings are explicit export profiles, not undocumented constants.
+- Destructive modification of source books or accepted raw voice artifacts is forbidden.
+
+## State/resume rules
+
+- Long-form production must use durable state.
+- A file existing is not enough to mark a task complete.
+- Persist state transitions and artifact hashes.
+- Idempotent steps must be safe to rerun.
+- Unsafe/ambiguous provider operations enter reconciliation rather than blind retry.
+
+## Test and fixture rules
+
+- Use synthetic/public-domain test text in Git.
+- Never commit private books or generated production audio.
+- Every fixed reproducible bug should receive a regression test where technically reasonable.
+- Long-run/resume tests are required before production completion.
 
 ## Dependency rules
 
-- Pin production dependencies once implementation begins.
-- Keep browser/site integrations behind adapters.
-- Prefer local, reproducible dependencies over manual GUI applications.
-- Do not add heavy AI models until a concrete requirement and performance budget justify them.
+- Pin production dependencies.
+- Keep provider/site integrations replaceable.
+- Prefer local reproducible tooling.
+- Add heavy models only when a measured requirement/performance budget justifies them.
 
 ## Secrets and privacy
 
-Never commit: `config.local.json`, `.env`, browser profiles, cookies, tokens, credentials, downloaded customer/private media, generated private audio/video, or diagnostic dumps containing sensitive data.
+Never commit:
+
+- `.env` / local secrets;
+- passwords/tokens;
+- cookies/browser profiles;
+- source manuscripts;
+- generated private audio;
+- local production databases;
+- diagnostics containing private text/audio.
 
 ## Change discipline
 
-- Keep changes scoped.
-- Record architectural choices in `DECISIONS.md`.
-- Record recurring or significant bugs in `BUG_LOG.md`.
-- Do not silently change documented behavior; update architecture/roadmap/status as needed.
+- Keep changes scoped to the authoritative task.
+- Record architecture changes in `DECISIONS.md`.
+- Do not silently change data contracts.
+- Version schemas/contracts when compatibility changes.
+- Do not revive the paused video track unless `SOURCE_OF_TRUTH.md` is deliberately updated.
