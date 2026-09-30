@@ -99,11 +99,12 @@ Current field evidence:
 
 Next inside the same SAYDI-002 task:
 
-1. operator listens to the local WAV and confirms whether the approval workflow is understandable/useful;
-2. persist the real operator APPROVE/REJECT action for this sample;
+1. treat the Windows SAPI operator result as **REJECTED for production narration quality**;
+2. retain Windows SAPI only as a zero-cost workflow/infrastructure test provider;
 3. implement/freeze the production SaydiVoice adapter behind the same VoiceProvider contract;
-4. rerun one bounded provider sample through that production adapter;
-5. close SAYDI-002 only after the production adapter and approval flow both pass.
+4. run one bounded SaydiVoice narration sample only after explicit owner authorization for the live Generate side effect;
+5. compare that sample against the same approval gate for naturalness, emotional delivery, pace and intelligibility;
+6. close SAYDI-002 only after the production adapter and approval flow both pass.
 
 ## Bounded live acceptance
 
