@@ -1,5 +1,28 @@
 # Test Log
 
+## 2026-09-30 — SAYDI-002 trusted Windows audible sample field run
+
+Scope: first real local audible workflow on the trusted self-hosted Windows runner.
+
+### Evidence
+
+- GitHub Actions run: `36745274726`.
+- Workflow: `SAYDI Local Audible Sample`.
+- Conclusion: **SUCCESS**.
+- Runner: `DESKTOP-4K7IM13`.
+- `actions/checkout@v4`: PASS.
+- `Resolve Python`: PASS.
+- `Run offline core tests`: PASS.
+- `Prepare and approve synthetic text sample`: PASS.
+- `Generate local Windows SAPI audible sample`: PASS.
+- Audio stayed local; no audio/manuscript artifact upload step exists in this workflow.
+- Local run directory: `%LOCALAPPDATA%\SAYDI\Audiobook\demo\github-36745274726\`.
+
+### Interpretation
+
+The executable vertical slice has now proven the end-to-end mechanics through an actual local audio artifact. This is workflow validation only; Windows SAPI is not accepted as the final production narrator-quality TTS backend.
+
+
 ## 2026-09-30 — SAYDI-002 executable vertical slice offline verification
 
 Scope: first runnable audiobook core slice; no cloud AI and no external paid/provider generation.
@@ -28,7 +51,7 @@ Scope: first runnable audiobook core slice; no cloud AI and no external paid/pro
   - narration profile: `BUSINESS_CLEAR`;
   - text approval transition: `TEXT_REVIEW_REQUIRED -> TEXT_APPROVED`: PASS.
 - No external TTS side effect was executed in the development environment.
-- Windows-local SAPI audible workflow is implemented but still requires field execution on the trusted Windows runner.
+- Windows-local SAPI audible workflow field execution is now PASS in run `36745274726`.
 
 ## 2026-09-30 — SAYDI Audiobook architecture consistency validation
 
