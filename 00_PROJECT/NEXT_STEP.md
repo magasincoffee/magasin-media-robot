@@ -4,93 +4,89 @@
 
 The authoritative project state is `00_PROJECT/SOURCE_OF_TRUTH.md`.
 
-## NEXT — SAYDI-002: Production SaydiVoice provider adapter
+## NEXT — SAYDI-002: Executable vertical slice + provider/AI contracts
 
-The discovery phase already proved the real authenticated provider path. The next step is to freeze that evidence into a production adapter used by the audiobook pipeline.
+The immediate goal is **not** to build every audiobook module in isolation. The goal is to make the project runnable early so the operator can see the real workflow, hear a real sample, and validate the contracts before the system scales.
 
-## Objective
-
-Implement a provider-neutral boundary that can safely synthesize one canonical audiobook segment through SaydiVoice and return a durable local result.
-
-## Required contract
-
-Input must be equivalent to:
+## First runnable workflow
 
 ```text
-operation_id
-segment_id
-text
-narration_fingerprint
-voice_key
-style_key
-provider_controls
-output_format
-output_directory
+small synthetic/public-domain input
+ -> canonical text
+ -> original / normalized / spoken layers
+ -> simple structured book profile
+ -> representative sample selection
+ -> text preview
+ -> narration fingerprint
+ -> real VoiceProvider sample
+ -> listen
+ -> APPROVE / REJECT
+ -> durable run state
 ```
 
-Output must be equivalent to:
+A CLI/operator runner is acceptable. Desktop UI is not required yet.
 
-```text
-operation_id
-segment_id
-status
-provider
-provider_voice
-local_audio_path
-audio_sha256
-byte_count
-duration_ms
-provider_reference
-attempt
-error_class
-retryable
-```
+## Required architecture contracts
 
-Exact schemas may evolve during implementation, but audiobook-domain code must not depend directly on browser selectors or raw SaydiVoice UI concepts.
+### AnalysisProvider
 
-## Required behavior
+Must support structured analysis without coupling the domain to one model.
 
-1. Reuse the local authenticated Chrome profile.
-2. Run authenticated preflight before any live side effect.
-3. Resolve/validate voice and style before Generate.
-4. Apply controls and verify observed state.
-5. Enforce one provider Generate side effect per `operation_id`.
-6. Persist/reconcile ambiguous outcomes before any second attempt.
-7. Download only into approved local project storage.
-8. Validate the resulting audio and compute metadata/hash.
-9. Classify failures as `fix_input`, `re_auth`, `retry_safe`, `reconcile_first`, or `do_not_retry`.
-10. Never upload production audio, book text, browser profile, cookies or credentials.
-11. Expose privacy-safe structured diagnostics.
-12. Preserve existing discovery tooling as evidence/test support rather than mixing it into production code.
+Target adapters:
 
-## Offline acceptance before live generation
+- deterministic/rule fallback;
+- local LLM adapter as the default semantic path;
+- optional ChatGPT/cloud adapter later, disabled by default.
 
-Complete automated tests for:
+AI output must be schema-validated before it can influence production state.
 
-- request/result validation;
-- narration/profile mapping;
-- authenticated-preflight failure;
-- one-attempt guard;
-- operation-id idempotency;
-- ambiguous-outcome reconciliation state;
-- timeout/error classification;
-- local output-path policy;
-- metadata/hash handling;
-- privacy/redaction.
+### VoiceProvider
 
-## Live acceptance
+Must expose a provider-neutral request/result contract.
 
-After offline tests pass, perform one explicitly authorized real generation using non-sensitive test text.
+First real provider path:
+
+- field-verified SaydiVoice adapter.
+
+V1 production later also requires an all-local TTS adapter so paid/cloud services are never mandatory.
+
+## Required implementation behavior
+
+1. Create the minimal audiobook package/runner rather than only documentation.
+2. Keep provider/browser details outside audiobook-domain logic.
+3. Persist operation IDs and approval state.
+4. Build a narration fingerprint before audio generation.
+5. Separate text approval from audio/voice approval.
+6. Make reruns idempotent where possible.
+7. Never send manuscript text to cloud AI unless explicitly enabled.
+8. Keep all production text/audio local by default.
+9. Use synthetic/public-domain fixtures in Git.
+10. Emit inspectable JSON/log artifacts for each run.
+
+## Offline acceptance before any real voice side effect
+
+- AnalysisProvider schema tests;
+- VoiceProvider request/result tests;
+- narration-fingerprint stability tests;
+- approval invalidation tests;
+- operation-id duplicate guard;
+- privacy/redaction tests;
+- runner smoke test using fixtures;
+- deterministic behavior with no LLM available.
+
+## Bounded live acceptance
+
+After offline gates pass, run one non-sensitive sample through a real provider.
 
 Pass criteria:
 
-- exactly one intended Generate side effect;
-- audio downloaded locally;
-- audio decodes;
-- byte count/duration/hash recorded;
-- provider result persisted;
-- no sensitive runtime state in Git/CI artifacts.
+- one intended generation side effect;
+- audible local file produced;
+- result metadata/hash recorded;
+- operator can mark APPROVE or REJECT;
+- rerun does not blindly generate a duplicate;
+- no secret/private content in Git artifacts.
 
 ## After SAYDI-002
 
-Proceed only to `SAYDI-003 — Book ingest + canonical manifest`.
+Proceed to `SAYDI-003 — PDF-first book ingest + canonical manifest`, keeping the vertical runner alive and extending it rather than replacing it.
