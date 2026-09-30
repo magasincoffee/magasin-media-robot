@@ -53,3 +53,10 @@ $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
 py -3 -m compileall -q 02_SAYDI_CORE\src 02_SAYDI_CORE\tests
 py -3 -m unittest discover -s 02_SAYDI_CORE\tests -v
 ```
+
+
+## MP3 review export
+
+The trusted Windows workflow converts the synthetic SAPI WAV review sample to a 128 kbps MP3 using a temporary local `lameenc` dependency. The MP3 is copied to the interactive user's Desktop as `SAYDI_SAMPLE.mp3`.
+
+For the synthetic/public test fixture only, the workflow also refreshes a prerelease asset named `SAYDI_SAMPLE.mp3` so the operator can download it directly without locating the runner filesystem. Private manuscripts/audio must not use this public release path.
