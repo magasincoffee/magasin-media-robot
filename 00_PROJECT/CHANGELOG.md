@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-09-30 — SAYDI-002 first executable core
+
+### Added
+
+- `02_SAYDI_CORE` runnable Python vertical slice.
+- `AnalysisProvider` abstraction with deterministic rules fallback and local Ollama adapter.
+- Three-layer text artifacts and conservative first-slice spoken rendering.
+- Book-profile classification and genre-aware narration profile selection.
+- Stable narration fingerprint.
+- Representative sample selection.
+- Text approval and audio approval state machine.
+- Provider-neutral `VoiceProvider` contract.
+- Zero-API-cost Windows SAPI prototype provider for workflow validation.
+- Operation ledger that reuses completed successful operations instead of blindly regenerating.
+- Windows GitHub Actions compile/unit/smoke workflow.
+- Manual self-hosted Windows audible-sample workflow that keeps the WAV local.
+
+### Verification
+
+- Local development compile PASS.
+- 5 standard-library unit tests PASS.
+- Offline prepare + text-approval smoke PASS.
+- Real Windows audible sample: pending field run.
+
+
 ## 2026-09-30 — SAYDI V1.2 executable-first + local intelligence policy
 
 ### Changed
