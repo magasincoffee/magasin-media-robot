@@ -1,3 +1,6 @@
-# Controlled trigger file for SAYDI SaydiVoice audiobook sample.
-# Changing this file on main starts the one-shot live workflow.
-# A live run is allowed only after explicit owner authorization.
+trigger_id=20260930-1806
+purpose=SAYDI-002 authorized SaydiVoice audiobook sample
+authorization=owner-approved-one-sample
+sample=business_sample_vi
+preset=slow_emotional
+retry_policy=none_after-generate
