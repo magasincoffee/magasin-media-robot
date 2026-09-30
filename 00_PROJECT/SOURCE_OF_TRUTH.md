@@ -648,7 +648,7 @@ Required SAYDI-002 evidence:
 
 - runnable CLI/operator runner; **IMPLEMENTED OFFLINE FOUNDATION**
 - local offline compile/unit/smoke evidence; **PASS (5 unit tests + prepare/approve smoke in development environment)**
-- Windows-local audible sample workflow; **IMPLEMENTED, NOT YET FIELD-RUN**
+- Windows-local audible sample workflow; **FIELD-RUN PASS — GitHub Actions run 36745274726**
 - versioned structured contracts for AI analysis and VoiceProvider;
 - deterministic fallback behavior when no LLM is available;
 - local-LLM adapter boundary (model may be selected/benchmarked during implementation);
@@ -656,7 +656,7 @@ Required SAYDI-002 evidence:
 - sample narration fingerprint;
 - text-preview and audio-approval state;
 - tests for idempotency/privacy/schema validation;
-- one bounded real audible sample run after offline gates pass. **PENDING FIELD RUN**
+- one bounded real audible sample run after offline gates pass. **PASS — local Windows SAPI WAV produced on trusted runner in run 36745274726**
 
 ## Completion definition for the project
 

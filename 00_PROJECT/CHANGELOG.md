@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-09-30 — SAYDI-002 local audible workflow field-proven
+
+### Verified
+
+- Self-hosted Windows runner executes the SAYDI core interactively under the operator account.
+- GitHub Actions run `36745274726` completed successfully.
+- Offline core tests passed on the trusted Windows machine.
+- Synthetic business sample prepared and text-approved.
+- Local Windows SAPI sample generation passed.
+- Audio remained local under the SAYDI runtime directory and was not uploaded to GitHub.
+
+### Remaining
+
+- Operator listening/approval confirmation.
+- Production SaydiVoice adapter behind the provider-neutral VoiceProvider contract.
+- Final bounded provider acceptance before closing SAYDI-002.
+
+
 ## 2026-09-30 — SAYDI-002 first executable core
 
 ### Added
@@ -22,7 +40,7 @@
 - Local development compile PASS.
 - 5 standard-library unit tests PASS.
 - Offline prepare + text-approval smoke PASS.
-- Real Windows audible sample: pending field run.
+- Real Windows audible sample: PASS in run `36745274726`.
 
 
 ## 2026-09-30 — SAYDI V1.2 executable-first + local intelligence policy
