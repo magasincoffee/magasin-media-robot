@@ -1,4 +1,4 @@
-trigger_id=20260930-1716
+trigger_id=20261001-0020
 purpose=SAYDI-002 local audible sample
-reason=desktop-output
+reason=keep-player-open
 runner=DESKTOP-4K7IM13
