@@ -1,6 +1,6 @@
 # Repository Map
 
-The repository currently contains the mature SaydiVoice discovery foundation and project documentation. New audiobook implementation directories should be materialized only when their task begins.
+The repository currently contains the mature SaydiVoice discovery foundation and project documentation. New audiobook implementation directories should be materialized only when their task begins. `02_SAYDI_CORE` is now materialized as the cross-cutting executable vertical slice for SAYDI-002.
 
 ## Target SAYDI Audiobook structure
 
@@ -26,6 +26,7 @@ magasin-media-robot/
 │   └── CHANGELOG.md
 ├── 01_DISCOVERY/
 │   └── saydivoice/                        # existing provider discovery/evidence
+├── 02_SAYDI_CORE/                         # SAYDI-002 executable vertical slice/contracts
 ├── 02_BOOK_INGEST/                        # SAYDI-003
 ├── 03_TEXT_ENGINE/                        # SAYDI-004
 ├── 04_NARRATION_ENGINE/                   # SAYDI-005
