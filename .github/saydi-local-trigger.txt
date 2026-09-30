@@ -1,4 +1,4 @@
-trigger_id=20261001-0041
+trigger_id=20261001-0045
 purpose=SAYDI-002 synthetic MP3 transfer
-reason=drive-upload
+reason=cmd-wrapper-drive-upload
 runner=DESKTOP-4K7IM13
