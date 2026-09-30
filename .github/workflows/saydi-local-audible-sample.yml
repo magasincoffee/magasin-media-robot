@@ -98,6 +98,27 @@ jobs:
           Write-Host "SAYDI_OUTPUT_BYTES=$($info.Length)"
           Write-Host "SAYDI_OUTPUT_SHA256=$hash"
           Get-ChildItem $latestDir -File | Select-Object FullName, Length, LastWriteTime | Format-Table -AutoSize
-          Start-Process explorer.exe -ArgumentList $latestDir
-          Write-Host "Opened local output folder in Explorer."
+
+          $desktop = [Environment]::GetFolderPath("Desktop")
+          if (-not $desktop) { $desktop = Join-Path $env:USERPROFILE "Desktop" }
+          if (-not (Test-Path $desktop)) { throw "Desktop path not found: $desktop" }
+
+          $desktopDir = Join-Path $desktop "SAYDI_OUTPUT"
+          New-Item -ItemType Directory -Force -Path $desktopDir | Out-Null
+
+          $desktopSample = Join-Path $desktopDir "latest-sample.wav"
+          Copy-Item $latestSample $desktopSample -Force
+
+          $desktopDirect = Join-Path $desktop "SAYDI_SAMPLE.wav"
+          Copy-Item $latestSample $desktopDirect -Force
+
+          if (-not (Test-Path $desktopSample)) { throw "Desktop sample copy failed." }
+          if (-not (Test-Path $desktopDirect)) { throw "Desktop direct sample copy failed." }
+
+          Write-Host "SAYDI_DESKTOP=$desktop"
+          Write-Host "SAYDI_DESKTOP_SAMPLE=$desktopSample"
+          Write-Host "SAYDI_DESKTOP_DIRECT=$desktopDirect"
+
+          Start-Process explorer.exe -ArgumentList "/select,`"$desktopDirect`""
+          Write-Host "Opened Desktop and selected SAYDI_SAMPLE.wav."
           Write-Host "No audio or manuscript text is uploaded as an Actions artifact."
