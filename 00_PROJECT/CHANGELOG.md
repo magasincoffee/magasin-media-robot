@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-30 — SAYDI V1.2 executable-first + local intelligence policy
+
+### Changed
+
+- Made local LLM the default semantic-analysis architecture, behind a replaceable AnalysisProvider.
+- Kept ChatGPT/cloud LLMs optional and disabled by default.
+- Required an all-local analysis + TTS path before V1 production acceptance.
+- Added Rule Engine -> AI Analysis -> schema validation -> confidence/review -> human approval authority separation.
+- Added Book Intelligence before Segment Intelligence.
+- Added genre-aware voice casting and representative 3-5 passage sample selection.
+- Split approval into text preview and audible sample gates.
+- Required narration-fingerprint invalidation when material voice/prosody settings change.
+- Reframed SAYDI-002 as an executable vertical slice so real workflow is run early rather than after all modules are built.
+- SaydiVoice remains a verified optional provider for the first bounded audible sample.
+
+
 ## 2026-09-30 — SAYDI Audiobook architecture reset
 
 ### Changed
