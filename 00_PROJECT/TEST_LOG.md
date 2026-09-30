@@ -1,5 +1,23 @@
 # Test Log
 
+## 2026-09-30 — SAYDI-002 operator narration-quality verdict
+
+Scope: human listening review of the first generated sample after MP3 delivery.
+
+### Result
+
+- Delivery/playback path: PASS.
+- Intelligibility: sufficient to understand the sample.
+- Naturalness: **FAIL**.
+- Expressive/emotional narration: **FAIL**.
+- Operator verdict: **REJECT**.
+- Direct feedback: voice sounded strongly robotic and had essentially no emotional delivery.
+
+### Decision
+
+Windows SAPI is retained only as a workflow/infrastructure test provider. It is not accepted as a production audiobook narrator. The next production-audio acceptance sample must use the higher-quality SaydiVoice adapter (or a separately benchmarked local neural TTS candidate).
+
+
 ## 2026-09-30 — SAYDI-002 trusted Windows audible sample field run
 
 Scope: first real local audible workflow on the trusted self-hosted Windows runner.
