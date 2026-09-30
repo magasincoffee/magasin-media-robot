@@ -1,4 +1,4 @@
-trigger_id=20260930-1629
+trigger_id=20260930-1634
 purpose=SAYDI-002 local audible sample retry
-reason=execution-policy-fix
+reason=interactive-runner-online
 runner=DESKTOP-4K7IM13
