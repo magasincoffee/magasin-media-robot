@@ -51,8 +51,11 @@ jobs:
         shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
         run: |
           $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
-          $run = Join-Path $env:LOCALAPPDATA "SAYDI\Audiobook\demo\github-${{ github.run_id }}"
+          $root = Join-Path $env:PUBLIC "Documents\SAYDI\Audiobook"
+          $run = Join-Path $root "demo\github-${{ github.run_id }}"
           New-Item -ItemType Directory -Force -Path $run | Out-Null
+          Write-Host "SAYDI runtime root: $root"
+          Write-Host "SAYDI run dir: $run"
           & "$env:SAYDI_PYTHON" -m saydi_audiobook prepare --input 02_SAYDI_CORE\fixtures\business_sample_vi.txt --run-dir $run --analysis rules
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$env:SAYDI_PYTHON" -m saydi_audiobook decide-text --run-dir $run --decision approve
@@ -65,5 +68,23 @@ jobs:
           $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
           & "$env:SAYDI_PYTHON" -m saydi_audiobook synthesize-sample --run-dir "$env:SAYDI_RUN_DIR" --provider windows-sapi
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Write-Host "Audio sample remains local at: $env:SAYDI_RUN_DIR\audio"
+
+          $audioDir = Join-Path $env:SAYDI_RUN_DIR "audio"
+          $audioFiles = @(Get-ChildItem $audioDir -File -ErrorAction Stop)
+          if ($audioFiles.Count -eq 0) { throw "No audio file was produced." }
+
+          $latestDir = Join-Path $env:PUBLIC "Documents\SAYDI\Audiobook\latest"
+          New-Item -ItemType Directory -Force -Path $latestDir | Out-Null
+
+          foreach ($file in $audioFiles) {
+            Copy-Item $file.FullName (Join-Path $latestDir $file.Name) -Force
+          }
+
+          $latestSample = Join-Path $latestDir "latest-sample.wav"
+          Copy-Item $audioFiles[0].FullName $latestSample -Force
+
+          Write-Host "Audio sample remains local."
+          Write-Host "Run audio directory: $audioDir"
+          Write-Host "Easy-open copy: $latestSample"
+          Get-ChildItem $latestDir -File | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
           Write-Host "No audio or manuscript text is uploaded as an Actions artifact."
