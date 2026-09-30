@@ -2,6 +2,11 @@ name: SAYDI Local Audible Sample
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-local-trigger.txt"
 
 permissions:
   contents: read
