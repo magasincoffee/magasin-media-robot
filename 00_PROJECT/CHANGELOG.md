@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-09-30 — SAYDI Audiobook architecture reset
+
+### Changed
+
+- Pivoted the active product from social-video automation to **SAYDI Audiobook**.
+- Established `00_PROJECT/SOURCE_OF_TRUTH.md` as the single authoritative project state.
+- Rebuilt the architecture around book ingest, canonical manifests, text normalization, narration planning, segment-addressed TTS, durable orchestration, audio assembly, QA and M4B/MP3 export.
+- Preserved `01_DISCOVERY/saydivoice` as the verified provider foundation rather than rebuilding provider discovery.
+- Defined the target local runtime layout and local-first privacy boundary.
+- Defined stable audiobook data-contract semantics and invalidation rules.
+- Replaced the roadmap with tasks `SAYDI-001` through `SAYDI-011`.
+- Set `SAYDI-002 — Production SaydiVoice provider adapter` as the single NEXT task.
+- Updated development and QA rules for long-running, resumable audiobook production.
+
+### Architecture decisions
+
+- One Source of Truth.
+- Source text and spoken text are distinct representations.
+- Segment is the smallest regeneratable unit.
+- TTS providers are replaceable adapters.
+- Durable state uses hashes and operation IDs.
+- Full-book synthesis requires sample approval.
+- QA is a blocking production gate.
+
 ## 2026-09-17 — SaydiVoice voice/style presets and authenticated preset generation
 
 ### Added
