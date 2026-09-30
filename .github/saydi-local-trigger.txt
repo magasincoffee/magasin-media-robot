@@ -1,0 +1,3 @@
+trigger_id=20260930-1614
+purpose=SAYDI-002 local audible sample
+runner=MAGASIN-PC
