@@ -88,13 +88,22 @@ Completed offline:
 - local development compile + 5 unit tests PASS;
 - offline prepare + text-approve smoke PASS.
 
+Current field evidence:
+
+- GitHub Windows CI: PASS.
+- Trusted self-hosted Windows audible sample run `36745274726`: SUCCESS.
+- Workflow step `Run offline core tests`: PASS.
+- Workflow step `Prepare and approve synthetic text sample`: PASS.
+- Workflow step `Generate local Windows SAPI audible sample`: PASS.
+- The WAV remains local under `%LOCALAPPDATA%\SAYDI\Audiobook\demo\github-36745274726\audio\`.
+
 Next inside the same SAYDI-002 task:
 
-1. let GitHub Windows CI validate the branch;
-2. run the manual self-hosted `SAYDI Local Audible Sample` workflow on the trusted Windows machine to produce a local WAV sample;
-3. listen to that sample and validate the approval flow;
-4. implement/freeze the production SaydiVoice adapter behind the same VoiceProvider contract;
-5. only then close SAYDI-002.
+1. operator listens to the local WAV and confirms whether the approval workflow is understandable/useful;
+2. persist the real operator APPROVE/REJECT action for this sample;
+3. implement/freeze the production SaydiVoice adapter behind the same VoiceProvider contract;
+4. rerun one bounded provider sample through that production adapter;
+5. close SAYDI-002 only after the production adapter and approval flow both pass.
 
 ## Bounded live acceptance
 
