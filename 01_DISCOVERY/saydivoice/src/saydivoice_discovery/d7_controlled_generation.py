@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -71,7 +72,46 @@ def safe_url(url: str) -> str:
         return url[:240]
 
 
-def run(page: Any, out_dir: Path, *, preset_key: str, timeout_ms: int = 90_000) -> Path:
+def _capture_download_retained(page: Any, output_path: Path, *, timeout_ms: int = 15_000) -> dict[str, Any]:
+    control = page.get_by_role("button", name="Tải về", exact=True).first
+    if control.count() < 1:
+        control = page.get_by_text("Tải về", exact=True).first
+    if control.count() < 1:
+        return {"clicked": False, "completed": False, "error": "Download control not found."}
+
+    output_path = output_path.resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with page.expect_download(timeout=max(3_000, timeout_ms)) as info:
+            control.click(timeout=5_000)
+        download = info.value
+        download.save_as(str(output_path))
+        data = output_path.read_bytes()
+        return {
+            "clicked": True,
+            "completed": True,
+            "output_path": str(output_path),
+            "size_bytes": len(data),
+            "sha256": hashlib.sha256(data).hexdigest(),
+        }
+    except Exception as exc:
+        return {
+            "clicked": True,
+            "completed": False,
+            "error": sanitize_error_message(f"{type(exc).__name__}: {exc}"),
+        }
+
+
+def run(
+    page: Any,
+    out_dir: Path,
+    *,
+    preset_key: str,
+    sample_text: str = SAMPLE_TEXT,
+    timeout_ms: int = 90_000,
+    download_output: Path | None = None,
+    download_timeout_ms: int = 15_000,
+) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     preset = get_preset(preset_key)
     data: dict[str, Any] = {
@@ -82,7 +122,7 @@ def run(page: Any, out_dir: Path, *, preset_key: str, timeout_ms: int = 90_000) 
         "attempt_count": 0,
         "generate_click_count": 0,
         "download_click_count": 0,
-        "sample_text": SAMPLE_TEXT,
+        "sample_text": sample_text,
         "preset_key": preset_key,
         "target_preset": describe_preset(preset_key),
     }
@@ -160,7 +200,7 @@ def run(page: Any, out_dir: Path, *, preset_key: str, timeout_ms: int = 90_000) 
     before = snapshot(page)
     data["before"] = before
     page.screenshot(path=str(out_dir / "d7_preset_before_generate.png"), full_page=True)
-    editor.fill(SAMPLE_TEXT)
+    editor.fill(sample_text)
     page.wait_for_timeout(500)
 
     # Authorization boundary: this workflow is permitted to execute exactly one
@@ -233,6 +273,21 @@ def run(page: Any, out_dir: Path, *, preset_key: str, timeout_ms: int = 90_000) 
     data["audio_responses"] = [
         e for e in events if str(e.get("content_type") or "").lower().startswith("audio/")
     ]
+    if download_output is not None and success:
+        download_meta = _capture_download_retained(
+            page,
+            download_output,
+            timeout_ms=download_timeout_ms,
+        )
+        data["download"] = download_meta
+        data["download_click_count"] = 1 if download_meta.get("clicked") else 0
+    elif download_output is not None:
+        data["download"] = {
+            "clicked": False,
+            "completed": False,
+            "error": "Generation did not reach success; download not attempted.",
+        }
+
     data["finished_at"] = now()
     page.screenshot(path=str(out_dir / "d7_preset_after_generate.png"), full_page=True)
 
@@ -247,7 +302,22 @@ def main(argv=None) -> int:
     parser.add_argument("--chromium-executable")
     parser.add_argument("--generation-timeout-ms", type=int, default=90_000)
     parser.add_argument("--preset", default=DEFAULT_PRESET)
+    parser.add_argument("--sample-file", type=Path)
+    parser.add_argument("--download-output", type=Path)
+    parser.add_argument("--allow-download", action="store_true")
+    parser.add_argument("--download-timeout-ms", type=int, default=15_000)
     args = parser.parse_args(argv)
+
+    if args.download_output is not None and not args.allow_download:
+        print(json.dumps({"gate": "BLOCKED", "error": "--allow-download is required with --download-output"}, ensure_ascii=False))
+        return 12
+
+    sample_text = SAMPLE_TEXT
+    if args.sample_file is not None:
+        sample_text = args.sample_file.read_text(encoding="utf-8").strip()
+        if not sample_text:
+            print(json.dumps({"gate": "BLOCKED", "error": "sample file is empty"}, ensure_ascii=False))
+            return 13
 
     runtime = build_runtime_paths(args.runtime_root) if args.runtime_root else build_runtime_paths()
     runtime.create()
@@ -271,18 +341,28 @@ def main(argv=None) -> int:
             page,
             runtime.runs_dir / "d7_latest",
             preset_key=args.preset,
+            sample_text=sample_text,
             timeout_ms=args.generation_timeout_ms,
+            download_output=args.download_output,
+            download_timeout_ms=args.download_timeout_ms,
         )
         data = json.loads(out.read_text(encoding="utf-8"))
         configured = data.get("configured") or {}
+        download = data.get("download") or {}
+        overall_success = bool(data.get("success")) and (
+            args.download_output is None or bool(download.get("completed"))
+        )
         print(
             json.dumps(
                 {
-                    "gate": "PASS" if data.get("success") else "FAIL_D7",
+                    "gate": "PASS" if overall_success else "FAIL_D7",
                     "preset_key": data.get("preset_key"),
                     "attempt_count": data.get("attempt_count"),
                     "generate_click_count": data.get("generate_click_count"),
                     "download_click_count": data.get("download_click_count"),
+                    "download_completed": download.get("completed"),
+                    "download_output": download.get("output_path"),
+                    "download_size_bytes": download.get("size_bytes"),
                     "terminal_state": data.get("terminal_state"),
                     "configured": configured,
                     "usage_before": (data.get("before") or {}).get("usage_text"),
@@ -296,7 +376,7 @@ def main(argv=None) -> int:
                 indent=2,
             )
         )
-        return 0 if data.get("success") else 25
+        return 0 if overall_success else 25
     except Exception as exc:
         print(
             json.dumps(
