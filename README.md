@@ -24,9 +24,11 @@ Normal operation should not require knowledge of Python, Playwright, FFmpeg, bro
 BOOK
  -> Ingest / Canonical Manifest
  -> Text Normalization / Segmentation
- -> Narration Director
+ -> Rule Engine + Local LLM Intelligence
+ -> Narration Director / Voice Casting
+ -> Text Preview + Audio Sample Approval
  -> Segment Orchestrator
- -> Voice Engine (SaydiVoice first)
+ -> Voice Engine (Local TTS + optional SaydiVoice)
  -> Audio Engine
  -> Alignment + Acoustic QA
  -> Export Engine
@@ -65,7 +67,7 @@ Historical notes remain useful evidence but do not override the Source of Truth.
 
 ## Current task
 
-**NEXT: SAYDI-002 — Production SaydiVoice provider adapter.**
+**NEXT: SAYDI-002 — Executable vertical slice + provider/AI contracts.**
 
 ## Security / privacy
 
@@ -74,3 +76,20 @@ Never commit source books, generated private audio, browser profiles, cookies, c
 ## Rights
 
 Use SAYDI only for works you own, are licensed to reproduce, or that are otherwise legally usable for the intended audiobook production.
+
+
+## Local-first intelligence and cost model
+
+The architecture does not require ChatGPT or another paid API.
+
+Default target:
+
+```text
+Rules + Local LLM + Local TTS + FFmpeg + SQLite
+```
+
+SaydiVoice and cloud LLMs remain optional adapters.
+
+## Development method
+
+SAYDI is built as runnable vertical slices. The first implementation must reach a real audible sample and approval state through a CLI/operator runner before the project scales to full-book generation.
