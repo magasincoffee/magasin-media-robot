@@ -174,3 +174,57 @@ Status: Accepted
 An audiobook cannot enter READY/EXPORTED with unresolved structural coverage failures, failed segment jobs, material text/audio mismatch, invalid chapter order, or technical audio validation failures.
 
 QA results are bound to exact artifact hashes so a later artifact change invalidates the relevant acceptance.
+
+
+## ADR-019 — Local AI is the default intelligence path
+
+Status: Accepted
+
+Semantic analysis uses a provider-neutral interface. Deterministic rules remain authoritative where practical; a local LLM is the default semantic-analysis target. ChatGPT/cloud LLMs are optional and disabled by default.
+
+Rationale:
+
+- keeps manuscript processing local;
+- avoids mandatory token/API costs;
+- prevents the audiobook domain from depending on a single AI vendor;
+- supports offline operation.
+
+## ADR-020 — No mandatory paid/cloud provider for V1
+
+Status: Accepted
+
+Production V1 must have an all-local execution path for analysis and TTS. SaydiVoice and cloud LLMs remain optional adapters.
+
+Provider/model selection may evolve based on measured Vietnamese quality, licensing and target-machine capability, but the core contracts must remain stable.
+
+## ADR-021 — Rule engine, AI analysis, and human approval have separate authority
+
+Status: Accepted
+
+Deterministic transformations use code/rules. LLMs handle semantic ambiguity through structured outputs. Book-wide voice/style decisions require operator approval.
+
+LLM free-form prose is never treated as an executable production decision.
+
+## ADR-022 — Book intelligence precedes segment intelligence
+
+Status: Accepted
+
+SAYDI first creates a structured book-level profile, then analyzes individual segments with book/chapter context.
+
+This reduces isolated-sentence misclassification and avoids requiring the entire book in one model context window.
+
+## ADR-023 — Text preview and audio sample are separate approval gates
+
+Status: Accepted
+
+The operator first approves what SAYDI intends to read, then approves how it sounds.
+
+Full-book synthesis requires an approved narration fingerprint. A material change to voice/model/style/speed/prosody/pause/pronunciation invalidates audio approval.
+
+## ADR-024 — Executable vertical slice before broad implementation
+
+Status: Accepted
+
+SAYDI must become runnable early. The first implementation milestone is a narrow CLI-driven path that reaches a real audible sample and persists approval state.
+
+Later modules extend this runner. They must not be developed only as disconnected components with no end-to-end execution evidence.
