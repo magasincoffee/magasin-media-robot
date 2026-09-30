@@ -9,7 +9,7 @@ on:
       - ".github/saydi-local-trigger.txt"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: saydi-local-audible-sample
@@ -124,4 +124,73 @@ jobs:
           Write-Host "Waiting 120 seconds so the operator can choose Windows Media Player and listen."
           Start-Sleep -Seconds 120
           Write-Host "Playback review window finished."
-          Write-Host "No audio or manuscript text is uploaded as an Actions artifact."
+
+      - name: Export MP3 sample
+        shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: |
+          $deps = Join-Path $env:RUNNER_TEMP "saydi-mp3-deps"
+          New-Item -ItemType Directory -Force -Path $deps | Out-Null
+          & "$env:SAYDI_PYTHON" -m pip install --disable-pip-version-check --quiet --target $deps lameenc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $env:PYTHONPATH = "$deps;$PWD\02_SAYDI_CORE\src"
+          $desktop = [Environment]::GetFolderPath("Desktop")
+          if (-not $desktop) { $desktop = Join-Path $env:USERPROFILE "Desktop" }
+
+          $wav = Join-Path $desktop "SAYDI_SAMPLE.wav"
+          if (-not (Test-Path $wav)) { throw "WAV sample not found: $wav" }
+
+          $mp3 = Join-Path $desktop "SAYDI_SAMPLE.mp3"
+          & "$env:SAYDI_PYTHON" 02_SAYDI_CORE\scripts\wav_to_mp3.py $wav $mp3 --bit-rate 128
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path $mp3)) { throw "MP3 sample was not created." }
+
+          $hash = (Get-FileHash $mp3 -Algorithm SHA256).Hash
+          $info = Get-Item $mp3
+          Write-Host "SAYDI_MP3_FILE=$($info.FullName)"
+          Write-Host "SAYDI_MP3_BYTES=$($info.Length)"
+          Write-Host "SAYDI_MP3_SHA256=$hash"
+          "SAYDI_MP3=$mp3" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Publish synthetic MP3 sample for direct download
+        shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $repo = "${{ github.repository }}"
+          $tag = "saydi-sample-latest"
+          $api = "https://api.github.com/repos/$repo"
+
+          try {
+            $release = Invoke-RestMethod -Method Get -Uri "$api/releases/tags/$tag" -Headers $headers
+          } catch {
+            if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
+            $body = @{
+              tag_name = $tag
+              target_commitish = "main"
+              name = "SAYDI synthetic MP3 sample"
+              body = "Synthetic/public test fixture only. No private manuscript is published."
+              draft = $false
+              prerelease = $true
+            } | ConvertTo-Json
+            $release = Invoke-RestMethod -Method Post -Uri "$api/releases" -Headers $headers -ContentType "application/json" -Body $body
+          }
+
+          $assetName = "SAYDI_SAMPLE.mp3"
+          $existing = @($release.assets | Where-Object { $_.name -eq $assetName })
+          foreach ($asset in $existing) {
+            Invoke-RestMethod -Method Delete -Uri "$api/releases/assets/$($asset.id)" -Headers $headers
+          }
+
+          $encodedName = [System.Uri]::EscapeDataString($assetName)
+          $upload = "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$encodedName"
+          $asset = Invoke-RestMethod -Method Post -Uri $upload -Headers $headers -ContentType "audio/mpeg" -InFile "$env:SAYDI_MP3"
+
+          Write-Host "SAYDI_MP3_DOWNLOAD=$($asset.browser_download_url)"
+          Write-Host "Synthetic sample published for direct operator download."
