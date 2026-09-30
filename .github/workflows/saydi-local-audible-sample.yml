@@ -150,12 +150,16 @@ jobs:
           Write-Host "SAYDI_MP3_FILE=$($info.FullName)"
           Write-Host "SAYDI_MP3_BYTES=$($info.Length)"
           Write-Host "SAYDI_MP3_SHA256=$hash"
-          "SAYDI_MP3=$mp3" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $transfer = Join-Path $PWD "SAYDI_SAMPLE.mp3"
+          Copy-Item $mp3 $transfer -Force
+          if (-not (Test-Path $transfer)) { throw "Workspace MP3 transfer copy failed." }
+          Write-Host "SAYDI_MP3_TRANSFER=$transfer"
 
       - name: Upload synthetic MP3 transfer artifact
         uses: actions/upload-artifact@v4
         with:
           name: saydi-synthetic-mp3
-          path: ${{ env.SAYDI_MP3 }}
+          path: SAYDI_SAMPLE.mp3
           if-no-files-found: error
           retention-days: 1
