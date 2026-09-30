@@ -119,6 +119,9 @@ jobs:
           Write-Host "SAYDI_DESKTOP_SAMPLE=$desktopSample"
           Write-Host "SAYDI_DESKTOP_DIRECT=$desktopDirect"
 
-          Start-Process explorer.exe -ArgumentList "/select,`"$desktopDirect`""
-          Write-Host "Opened Desktop and selected SAYDI_SAMPLE.wav."
+          Write-Host "Opening SAYDI sample with the Windows file association dialog/player."
+          Start-Process -FilePath $desktopDirect
+          Write-Host "Waiting 120 seconds so the operator can choose Windows Media Player and listen."
+          Start-Sleep -Seconds 120
+          Write-Host "Playback review window finished."
           Write-Host "No audio or manuscript text is uploaded as an Actions artifact."
