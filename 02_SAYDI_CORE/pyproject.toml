@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "saydi-audiobook-core"
+version = "0.1.0"
+description = "Executable vertical-slice foundation for SAYDI Audiobook"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+saydi-audiobook = "saydi_audiobook.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
