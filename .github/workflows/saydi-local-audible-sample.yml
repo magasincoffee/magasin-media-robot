@@ -119,11 +119,7 @@ jobs:
           Write-Host "SAYDI_DESKTOP_SAMPLE=$desktopSample"
           Write-Host "SAYDI_DESKTOP_DIRECT=$desktopDirect"
 
-          Write-Host "Opening SAYDI sample with the Windows file association dialog/player."
-          Start-Process -FilePath $desktopDirect
-          Write-Host "Waiting 120 seconds so the operator can choose Windows Media Player and listen."
-          Start-Sleep -Seconds 120
-          Write-Host "Playback review window finished."
+          Write-Host "Local WAV prepared; playback launch skipped for transfer run."
 
       - name: Export MP3 sample
         shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
@@ -151,15 +147,16 @@ jobs:
           Write-Host "SAYDI_MP3_BYTES=$($info.Length)"
           Write-Host "SAYDI_MP3_SHA256=$hash"
 
-          $transfer = Join-Path $PWD "SAYDI_SAMPLE.mp3"
+          $transfer = Join-Path $env:GITHUB_WORKSPACE "SAYDI_SAMPLE.mp3"
           Copy-Item $mp3 $transfer -Force
           if (-not (Test-Path $transfer)) { throw "Workspace MP3 transfer copy failed." }
           Write-Host "SAYDI_MP3_TRANSFER=$transfer"
+          Get-Item $transfer | Select-Object FullName, Length, LastWriteTime | Format-List
 
       - name: Upload synthetic MP3 transfer artifact
         uses: actions/upload-artifact@v4
         with:
           name: saydi-synthetic-mp3
-          path: SAYDI_SAMPLE.mp3
+          path: ${{ github.workspace }}\SAYDI_SAMPLE.mp3
           if-no-files-found: error
           retention-days: 1
