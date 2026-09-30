@@ -1,4 +1,4 @@
-trigger_id=20261001-0032
+trigger_id=20261001-0036
 purpose=SAYDI-002 synthetic MP3 artifact
-reason=google-drive-transfer
+reason=google-drive-transfer-fixed
 runner=DESKTOP-4K7IM13
