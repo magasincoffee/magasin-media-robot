@@ -103,6 +103,18 @@ Verified capabilities include:
 - observed pause controls for period, comma, semicolon and newline;
 - current discovery control layer can read pause timing values and enable/disable pause behavior.
 
+## Windows SAPI narration quality decision
+
+Operator listening verdict on 2026-09-30: **REJECT for production narration quality**.
+
+Observed result: the sample was intelligible and proved the end-to-end local workflow, but sounded strongly robotic and lacked expressive/emotional delivery. Therefore:
+
+- Windows SAPI remains an infrastructure/test provider only;
+- it must not be treated as a production audiobook narrator;
+- successful SAPI execution proves plumbing, state, conversion and delivery mechanics only;
+- production audio approval now requires a higher-quality provider sample, starting with the verified SaydiVoice path;
+- any later all-local TTS candidate must be benchmarked separately for Vietnamese naturalness and expressive narration before V1 production acceptance.
+
 Known provider boundary:
 
 - the current discovery control layer does **not** yet support writing arbitrary per-punctuation pause timing values;
