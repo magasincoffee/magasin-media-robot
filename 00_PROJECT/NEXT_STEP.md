@@ -1,81 +1,96 @@
 # Next Step
 
-## Immediate next step — freeze preset controls and build the production SaydiVoice provider adapter
+## Read first
 
-Authenticated live discovery has now proven the complete control path required for production: session reuse, voice/settings control, one-shot generation, and download lifecycle. The next phase is implementation against those observed contracts rather than further exploratory Generate runs.
+The authoritative project state is `00_PROJECT/SOURCE_OF_TRUTH.md`.
 
-## Current validated baseline
+## NEXT — SAYDI-002: Production SaydiVoice provider adapter
 
-- Runner: `MAGASIN-PC` (`self-hosted`, `Windows`, `X64`).
-- Browser: installed Google Chrome controlled by Playwright.
-- Persistent profile: `%LOCALAPPDATA%\MAGASIN\MediaRobot\saydivoice\browser_profile`.
-- Session: `TTS_READY` + `AUTHENTICATED_OR_HIDDEN`.
-- Voice: deterministic selection/verification supported.
-- Style controls: stability/expression ratio, speed ratio, pause enable, and audio format supported.
-- Application-level presets exist for common delivery styles; no separate discrete provider mood selector was observed.
-- One-shot generation returns HTTP 200 `audio/mpeg` and creates history successfully.
-- Download lifecycle is field-verified and raw audio can remain local.
-- `tiktok_energetic` real generation run `35241844708` passed with exactly one Generate and zero Download clicks.
+The discovery phase already proved the real authenticated provider path. The next step is to freeze that evidence into a production adapter used by the audiobook pipeline.
 
-## Production adapter objective
+## Objective
 
-Create a provider boundary that accepts a stable request similar to:
+Implement a provider-neutral boundary that can safely synthesize one canonical audiobook segment through SaydiVoice and return a durable local result.
+
+## Required contract
+
+Input must be equivalent to:
 
 ```text
+operation_id
+segment_id
 text
-preset_key
-voice_override (optional)
-format_override (optional)
+narration_fingerprint
+voice_key
+style_key
+provider_controls
+output_format
 output_directory
 ```
 
-and returns a structured result similar to:
+Output must be equivalent to:
 
 ```text
+operation_id
+segment_id
 status
 provider
-voice
-preset_key
-format
+provider_voice
 local_audio_path
+audio_sha256
 byte_count
-sha256
-provider_history_created
+duration_ms
+provider_reference
+attempt
 error_class
 retryable
 ```
 
+Exact schemas may evolve during implementation, but audiobook-domain code must not depend directly on browser selectors or raw SaydiVoice UI concepts.
+
 ## Required behavior
 
-1. Reuse the local authenticated Chrome profile; never serialize credentials or cookies.
-2. Run an authenticated preflight before any side effect.
-3. Resolve and validate the requested preset before touching the live page.
-4. Apply voice/style controls and verify observed state before Generate.
-5. Enforce exactly one Generate attempt unless a caller explicitly authorizes a separate retry policy.
-6. Wait for a verified terminal success/error signal with a bounded timeout.
-7. Download only when requested by the production operation.
-8. Keep generated audio local; GitHub artifacts may contain metadata/screenshots only.
-9. Classify failures as `fix_input`, `re_auth`, `retry`, or `do_not_retry`.
-10. Preserve the existing safe evidence/redaction boundary.
+1. Reuse the local authenticated Chrome profile.
+2. Run authenticated preflight before any live side effect.
+3. Resolve/validate voice and style before Generate.
+4. Apply controls and verify observed state.
+5. Enforce one provider Generate side effect per `operation_id`.
+6. Persist/reconcile ambiguous outcomes before any second attempt.
+7. Download only into approved local project storage.
+8. Validate the resulting audio and compute metadata/hash.
+9. Classify failures as `fix_input`, `re_auth`, `retry_safe`, `reconcile_first`, or `do_not_retry`.
+10. Never upload production audio, book text, browser profile, cookies or credentials.
+11. Expose privacy-safe structured diagnostics.
+12. Preserve existing discovery tooling as evidence/test support rather than mixing it into production code.
 
-## Acceptance gate for the adapter
+## Offline acceptance before live generation
 
-Before another live Generate is requested, complete all offline/unit verification for:
+Complete automated tests for:
 
-- preset validation;
-- request/result models;
-- preflight failure handling;
+- request/result validation;
+- narration/profile mapping;
+- authenticated-preflight failure;
 - one-attempt guard;
+- operation-id idempotency;
+- ambiguous-outcome reconciliation state;
 - timeout/error classification;
-- output-path and metadata handling;
-- privacy/redaction tests.
+- local output-path policy;
+- metadata/hash handling;
+- privacy/redaction.
 
-A final end-to-end production acceptance Generate may be requested separately only after these tests pass.
+## Live acceptance
 
-## After the provider adapter
+After offline tests pass, perform one explicitly authorized real generation using non-sensitive test text.
 
-1. Expose the adapter through the Windows Control Center / orchestration layer.
-2. Hand local audio into the deterministic FFmpeg media pipeline.
-3. Add job-level logging/state so media projects can resume safely after interruption.
+Pass criteria:
 
-No additional operator ZIP round-trip is required while the self-hosted runner is online.
+- exactly one intended Generate side effect;
+- audio downloaded locally;
+- audio decodes;
+- byte count/duration/hash recorded;
+- provider result persisted;
+- no sensitive runtime state in Git/CI artifacts.
+
+## After SAYDI-002
+
+Proceed only to `SAYDI-003 — Book ingest + canonical manifest`.
