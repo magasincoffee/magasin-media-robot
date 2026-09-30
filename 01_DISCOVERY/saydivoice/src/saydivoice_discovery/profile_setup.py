@@ -33,6 +33,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--chromium-executable",
         help="Installed Google Chrome/Chromium executable used to create and verify the persistent profile.",
     )
+    parser.add_argument(
+        "--auto-wait-seconds",
+        type=int,
+        default=0,
+        help="When > 0, poll the visible browser for authenticated TTS state instead of waiting for terminal ENTER.",
+    )
+    parser.add_argument("--poll-ms", type=int, default=2000)
     return parser
 
 
@@ -59,6 +66,29 @@ def main(argv: list[str] | None = None) -> int:
     browser_bundle = None
     try:
         _raw, browser_bundle, page = open_and_probe(cfg, runtime)
+
+        if args.auto_wait_seconds > 0:
+            print(
+                f"Che do tu dong: cho toi da {args.auto_wait_seconds}s. "
+                "Neu Saydi yeu cau dang nhap, hay hoan tat dang nhap trong cua so Chrome dang mo."
+            )
+            elapsed_ms = 0
+            limit_ms = max(1, args.auto_wait_seconds) * 1000
+            poll_ms = max(500, args.poll_ms)
+            while elapsed_ms <= limit_ms:
+                raw = probe_page(page)
+                signals = _signals(raw)
+                state = classify_page_state(signals)
+                auth = classify_auth_state(signals, state)
+                print(f"Profile check: state={state} auth={auth}")
+                if state == "TTS_READY" and auth == "AUTHENTICATED_OR_HIDDEN":
+                    print("PASS: Profile SaydiVoice da dang nhap va se duoc GitHub self-hosted runner tai su dung.")
+                    return 0
+                page.wait_for_timeout(poll_ms)
+                elapsed_ms += poll_ms
+            print("Profile chua duoc xac nhan dang nhap trong thoi gian cho.")
+            return 11
+
         try:
             input("Nhan ENTER sau khi da dang nhap xong... ")
         except EOFError:
