@@ -1,0 +1,50 @@
+name: SAYDI Core Tests
+
+on:
+  pull_request:
+    paths:
+      - "02_SAYDI_CORE/**"
+      - ".github/workflows/saydi-core-tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "02_SAYDI_CORE/**"
+      - ".github/workflows/saydi-core-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  core-tests:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile
+        shell: powershell
+        run: |
+          $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
+          python -m compileall -q 02_SAYDI_CORE\src 02_SAYDI_CORE\tests
+
+      - name: Unit tests
+        shell: powershell
+        run: |
+          $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
+          python -m unittest discover -s 02_SAYDI_CORE\tests -v
+
+      - name: Offline runner smoke
+        shell: powershell
+        run: |
+          $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
+          $run = Join-Path $env:RUNNER_TEMP "saydi-core-smoke"
+          python -m saydi_audiobook prepare --input 02_SAYDI_CORE\fixtures\business_sample_vi.txt --run-dir $run --analysis rules
+          python -m saydi_audiobook decide-text --run-dir $run --decision approve
+          if (-not (Test-Path (Join-Path $run "book_profile.json"))) { throw "book_profile.json missing" }
+          if (-not (Test-Path (Join-Path $run "text_preview.json"))) { throw "text_preview.json missing" }

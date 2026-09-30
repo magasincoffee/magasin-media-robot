@@ -74,9 +74,31 @@ V1 production later also requires an all-local TTS adapter so paid/cloud service
 - runner smoke test using fixtures;
 - deterministic behavior with no LLM available.
 
+## Current implementation checkpoint
+
+Completed offline:
+
+- core runner exists;
+- rules AnalysisProvider exists;
+- local Ollama adapter boundary exists;
+- VoiceProvider contract exists;
+- Windows SAPI local prototype exists;
+- text/audio approval state exists;
+- duplicate successful voice operation is reused;
+- local development compile + 5 unit tests PASS;
+- offline prepare + text-approve smoke PASS.
+
+Next inside the same SAYDI-002 task:
+
+1. let GitHub Windows CI validate the branch;
+2. run the manual self-hosted `SAYDI Local Audible Sample` workflow on the trusted Windows machine to produce a local WAV sample;
+3. listen to that sample and validate the approval flow;
+4. implement/freeze the production SaydiVoice adapter behind the same VoiceProvider contract;
+5. only then close SAYDI-002.
+
 ## Bounded live acceptance
 
-After offline gates pass, run one non-sensitive sample through a real provider.
+After offline gates pass, run one non-sensitive sample through a real voice path. The first zero-cost field run may use Windows SAPI solely to validate workflow mechanics; production narrator quality is evaluated separately.
 
 Pass criteria:
 

@@ -1,5 +1,35 @@
 # Test Log
 
+## 2026-09-30 — SAYDI-002 executable vertical slice offline verification
+
+Scope: first runnable audiobook core slice; no cloud AI and no external paid/provider generation.
+
+### Implemented test surface
+
+- three-layer text preservation;
+- deterministic BUSINESS classification fixture;
+- narration-profile selection + stable SHA-256 fingerprint;
+- representative sample selection;
+- text approval gate;
+- provider-neutral VoiceProvider path;
+- successful voice operation result persistence;
+- duplicate-success idempotency guard;
+- audio approval gate;
+- text rejection blocking synthesis.
+
+### Development-environment evidence
+
+- Python compileall: PASS.
+- Standard-library unittest suite: **5 tests PASS**.
+- Offline CLI smoke:
+  - prepare fixture: PASS;
+  - generated `book_profile.json`, `narration_profile.json`, `sample_passages.json`, `text_layers.json`, `text_preview.json`, `state.json`;
+  - rules classifier result: `BUSINESS / GENERAL_BUSINESS`;
+  - narration profile: `BUSINESS_CLEAR`;
+  - text approval transition: `TEXT_REVIEW_REQUIRED -> TEXT_APPROVED`: PASS.
+- No external TTS side effect was executed in the development environment.
+- Windows-local SAPI audible workflow is implemented but still requires field execution on the trusted Windows runner.
+
 ## 2026-09-30 — SAYDI Audiobook architecture consistency validation
 
 Scope: architecture/documentation reset only; no provider generation and no runtime code changes.
