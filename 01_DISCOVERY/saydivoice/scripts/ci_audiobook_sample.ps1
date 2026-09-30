@@ -37,12 +37,25 @@ if (-not (Test-Path $chrome)) {
 if (-not (Test-Path $chrome)) { throw "Installed Google Chrome not found." }
 
 $profile = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\browser_profile"
-if (-not (Test-Path $profile)) { throw "Saydi persistent browser profile is missing." }
 
 $holders = @(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object {
   $_.CommandLine -like "*MAGASIN\MediaRobot\saydivoice\browser_profile*"
 })
 if ($holders.Count -gt 0) { throw "Saydi browser profile is locked by another Chrome process." }
+
+Write-Host "Checking/bootstrapping authenticated SaydiVoice browser profile."
+Write-Host "If a Saydi login page appears, complete login in the visible Chrome window. No Generate occurs during this step."
+$setupArgs = @(
+  "-m", "saydivoice_discovery.profile_setup",
+  "--chromium-executable", $chrome,
+  "--timeout-ms", "60000",
+  "--auto-wait-seconds", "600",
+  "--poll-ms", "2000"
+)
+& $venvPython @setupArgs
+if ($LASTEXITCODE -ne 0) {
+  throw "Saydi profile setup/authentication did not complete. No Generate was attempted."
+}
 
 $sample = Join-Path $repoRoot "02_SAYDI_CORE\fixtures\business_sample_vi.txt"
 if (-not (Test-Path $sample)) { throw "Synthetic audiobook sample text is missing." }
