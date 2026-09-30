@@ -1,4 +1,4 @@
-trigger_id=20260930-1634
-purpose=SAYDI-002 local audible sample retry
-reason=interactive-runner-online
+trigger_id=20260930-1655
+purpose=SAYDI-002 local audible sample
+reason=stable-public-output-path
 runner=DESKTOP-4K7IM13
