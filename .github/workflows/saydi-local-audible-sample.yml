@@ -51,7 +51,8 @@ jobs:
         shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
         run: |
           $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
-          $root = "C:\SAYDI"
+          $runnerRoot = Split-Path (Split-Path $env:RUNNER_TEMP -Parent) -Parent
+          $root = Join-Path $runnerRoot "SAYDI_RUNTIME"
           $run = Join-Path $root "runs\github-${{ github.run_id }}"
           New-Item -ItemType Directory -Force -Path $run | Out-Null
           Write-Host "SAYDI runtime root: $root"
@@ -73,7 +74,8 @@ jobs:
           $audioFiles = @(Get-ChildItem $audioDir -File -ErrorAction Stop)
           if ($audioFiles.Count -eq 0) { throw "No audio file was produced." }
 
-          $latestDir = "C:\SAYDI\output"
+          $runnerRoot = Split-Path (Split-Path $env:RUNNER_TEMP -Parent) -Parent
+          $latestDir = Join-Path $runnerRoot "SAYDI_OUTPUT"
           New-Item -ItemType Directory -Force -Path $latestDir | Out-Null
 
           foreach ($file in $audioFiles) {
@@ -89,6 +91,9 @@ jobs:
           if (-not (Test-Path $latestSample)) { throw "latest-sample.wav was not persisted." }
           $hash = (Get-FileHash $latestSample -Algorithm SHA256).Hash
           $info = Get-Item $latestSample
+          $locationFile = Join-Path $latestDir "LOCATION.txt"
+          Set-Content -Path $locationFile -Value $info.FullName -Encoding UTF8
+          Write-Host "SAYDI_RUNNER_ROOT=$runnerRoot"
           Write-Host "SAYDI_OUTPUT_FILE=$($info.FullName)"
           Write-Host "SAYDI_OUTPUT_BYTES=$($info.Length)"
           Write-Host "SAYDI_OUTPUT_SHA256=$hash"
