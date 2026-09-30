@@ -1,0 +1,35 @@
+name: SAYDI SaydiVoice Audiobook Sample
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-saydivoice-sample-trigger.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-saydivoice-audiobook-sample
+  cancel-in-progress: false
+
+jobs:
+  one-shot-sample:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate exactly one authorized SaydiVoice sample
+        shell: cmd
+        run: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "01_DISCOVERY\saydivoice\scripts\ci_audiobook_sample.ps1"
+
+      - name: Upload SaydiVoice MP3 transfer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: saydi-saydivoice-audiobook-sample
+          path: ${{ github.workspace }}\SAYDI_SAYDIVOICE_SAMPLE.mp3
+          if-no-files-found: error
+          retention-days: 1
