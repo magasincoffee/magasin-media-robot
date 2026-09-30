@@ -9,7 +9,7 @@ on:
       - ".github/saydi-local-trigger.txt"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: saydi-local-audible-sample
@@ -22,136 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Resolve Python
-        shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
-        run: |
-          $python = $null
-          $py = Get-Command py.exe -ErrorAction SilentlyContinue
-          if ($py) {
-            $candidate = (& $py.Source -3 -c "import sys; print(sys.executable)").Trim()
-            if ($LASTEXITCODE -eq 0 -and (Test-Path $candidate)) { $python = $candidate }
-          }
-          if (-not $python) {
-            $cmd = Get-Command python.exe -ErrorAction SilentlyContinue
-            if ($cmd) { $python = $cmd.Source }
-          }
-          if (-not $python) { throw "Python 3 not found." }
-          "SAYDI_PYTHON=$python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Run offline core tests
-        shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
-        run: |
-          $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
-          & "$env:SAYDI_PYTHON" -m compileall -q 02_SAYDI_CORE\src 02_SAYDI_CORE\tests
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & "$env:SAYDI_PYTHON" -m unittest discover -s 02_SAYDI_CORE\tests -v
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Prepare and approve synthetic text sample
-        shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
-        run: |
-          $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
-          $workRoot = Split-Path (Split-Path $env:GITHUB_WORKSPACE -Parent) -Parent
-          $root = Join-Path $workRoot "SAYDI_RUNTIME"
-          $run = Join-Path $root "runs\github-${{ github.run_id }}"
-          New-Item -ItemType Directory -Force -Path $run | Out-Null
-          Write-Host "SAYDI runtime root: $root"
-          Write-Host "SAYDI run dir: $run"
-          & "$env:SAYDI_PYTHON" -m saydi_audiobook prepare --input 02_SAYDI_CORE\fixtures\business_sample_vi.txt --run-dir $run --analysis rules
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & "$env:SAYDI_PYTHON" -m saydi_audiobook decide-text --run-dir $run --decision approve
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "SAYDI_RUN_DIR=$run" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Generate local Windows SAPI audible sample
-        shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
-        run: |
-          $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
-          & "$env:SAYDI_PYTHON" -m saydi_audiobook synthesize-sample --run-dir "$env:SAYDI_RUN_DIR" --provider windows-sapi
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          $audioDir = Join-Path $env:SAYDI_RUN_DIR "audio"
-          $audioFiles = @(Get-ChildItem $audioDir -File -ErrorAction Stop)
-          if ($audioFiles.Count -eq 0) { throw "No audio file was produced." }
-
-          $workRoot = Split-Path (Split-Path $env:GITHUB_WORKSPACE -Parent) -Parent
-          $latestDir = Join-Path $workRoot "SAYDI_OUTPUT"
-          New-Item -ItemType Directory -Force -Path $latestDir | Out-Null
-
-          foreach ($file in $audioFiles) {
-            Copy-Item $file.FullName (Join-Path $latestDir $file.Name) -Force
-          }
-
-          $latestSample = Join-Path $latestDir "latest-sample.wav"
-          Copy-Item $audioFiles[0].FullName $latestSample -Force
-
-          Write-Host "Audio sample remains local."
-          Write-Host "Run audio directory: $audioDir"
-          Write-Host "Easy-open copy: $latestSample"
-          if (-not (Test-Path $latestSample)) { throw "latest-sample.wav was not persisted." }
-          $hash = (Get-FileHash $latestSample -Algorithm SHA256).Hash
-          $info = Get-Item $latestSample
-          $locationFile = Join-Path $latestDir "LOCATION.txt"
-          Set-Content -Path $locationFile -Value $info.FullName -Encoding UTF8
-          Write-Host "SAYDI_WORK_ROOT=$workRoot"
-          Write-Host "SAYDI_OUTPUT_FILE=$($info.FullName)"
-          Write-Host "SAYDI_OUTPUT_BYTES=$($info.Length)"
-          Write-Host "SAYDI_OUTPUT_SHA256=$hash"
-          Get-ChildItem $latestDir -File | Select-Object FullName, Length, LastWriteTime | Format-Table -AutoSize
-
-          $desktop = [Environment]::GetFolderPath("Desktop")
-          if (-not $desktop) { $desktop = Join-Path $env:USERPROFILE "Desktop" }
-          if (-not (Test-Path $desktop)) { throw "Desktop path not found: $desktop" }
-
-          $desktopDir = Join-Path $desktop "SAYDI_OUTPUT"
-          New-Item -ItemType Directory -Force -Path $desktopDir | Out-Null
-
-          $desktopSample = Join-Path $desktopDir "latest-sample.wav"
-          Copy-Item $latestSample $desktopSample -Force
-
-          $desktopDirect = Join-Path $desktop "SAYDI_SAMPLE.wav"
-          Copy-Item $latestSample $desktopDirect -Force
-
-          if (-not (Test-Path $desktopSample)) { throw "Desktop sample copy failed." }
-          if (-not (Test-Path $desktopDirect)) { throw "Desktop direct sample copy failed." }
-
-          Write-Host "SAYDI_DESKTOP=$desktop"
-          Write-Host "SAYDI_DESKTOP_SAMPLE=$desktopSample"
-          Write-Host "SAYDI_DESKTOP_DIRECT=$desktopDirect"
-
-          Write-Host "Local WAV prepared; playback launch skipped for transfer run."
-
-      - name: Export MP3 sample
-        shell: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
-        run: |
-          $deps = Join-Path $env:RUNNER_TEMP "saydi-mp3-deps"
-          New-Item -ItemType Directory -Force -Path $deps | Out-Null
-          & "$env:SAYDI_PYTHON" -m pip install --disable-pip-version-check --quiet --target $deps lameenc
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          $env:PYTHONPATH = "$deps;$PWD\02_SAYDI_CORE\src"
-          $desktop = [Environment]::GetFolderPath("Desktop")
-          if (-not $desktop) { $desktop = Join-Path $env:USERPROFILE "Desktop" }
-
-          $wav = Join-Path $desktop "SAYDI_SAMPLE.wav"
-          if (-not (Test-Path $wav)) { throw "WAV sample not found: $wav" }
-
-          $mp3 = Join-Path $desktop "SAYDI_SAMPLE.mp3"
-          & "$env:SAYDI_PYTHON" 02_SAYDI_CORE\scripts\wav_to_mp3.py $wav $mp3 --bit-rate 128
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path $mp3)) { throw "MP3 sample was not created." }
-
-          $hash = (Get-FileHash $mp3 -Algorithm SHA256).Hash
-          $info = Get-Item $mp3
-          Write-Host "SAYDI_MP3_FILE=$($info.FullName)"
-          Write-Host "SAYDI_MP3_BYTES=$($info.Length)"
-          Write-Host "SAYDI_MP3_SHA256=$hash"
-
-          $transfer = Join-Path $env:GITHUB_WORKSPACE "SAYDI_SAMPLE.mp3"
-          Copy-Item $mp3 $transfer -Force
-          if (-not (Test-Path $transfer)) { throw "Workspace MP3 transfer copy failed." }
-          Write-Host "SAYDI_MP3_TRANSFER=$transfer"
-          Get-Item $transfer | Select-Object FullName, Length, LastWriteTime | Format-List
+      - name: Build synthetic MP3 transfer sample
+        shell: cmd
+        run: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "02_SAYDI_CORE\scripts\ci_export_mp3.ps1"
 
       - name: Upload synthetic MP3 transfer artifact
         uses: actions/upload-artifact@v4
