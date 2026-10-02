@@ -77,13 +77,24 @@ Blocker lifecycle:
 
 ### Active blockers
 
-None recorded yet by the robot.
+```text
+BLOCKER_ID=BLK-SAYDI002-001-001
+TASK_ID=SAYDI002-001
+STATUS=OPEN
+TYPE=OWNER_ACTION
+DETECTED_AT=2026-10-02
+SUMMARY=Trusted Windows runner reached the SaydiVoice login surface but the persistent profile is not authenticated.
+OWNER_ACTION=On DESKTOP-4K7IM13, using Windows account DELL, complete SaydiVoice login in the visible Chrome window opened with the MAGASIN Saydi profile at C:\Users\DELL\AppData\Local\MAGASIN\MediaRobot\saydivoice\browser_profile. Do not click Generate.
+EVIDENCE=GitHub Actions run 36973063951 / job 110730948700; repeated state=LOGIN_REQUIRED auth=UNKNOWN; SAYDI_PROFILE_RECOVERY_RESULT=OWNER_LOGIN_REQUIRED_OR_AUTH_NOT_CONFIRMED; Generate disabled.
+RESUME_WHEN=The same persistent profile on DESKTOP-4K7IM13 is verified as authenticated after browser-process restart, with the required SaydiVoice surface accessible and zero Generate clicks.
+NOTES=Recovery workflow used the intended local-only profile path and explicitly set SAYDI_PROFILE_RECOVERY_GENERATE_ALLOWED=false.
+```
 
 ## Task queue
 
 ### SAYDI002-001 — Recover authenticated persistent SaydiVoice profile
 
-Status: **NEXT**
+Status: **BLOCKED**
 
 Goal:
 Restore the trusted Windows self-hosted runner's SaydiVoice persistent browser profile so the non-generative preflight can prove an authenticated session.
