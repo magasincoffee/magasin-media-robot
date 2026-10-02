@@ -34,17 +34,50 @@ When all tasks in this file are complete and `SAYDI-002` is closed in the main S
 1. Re-read this file from the beginning before every robot cycle.
 2. Re-read `00_PROJECT/SOURCE_OF_TRUTH.md` only when required to validate that `SAYDI-002` is still the project-level authoritative task.
 3. Execute exactly one task from the queue at a time.
-4. Never skip ahead because a later task appears easier.
+4. Respect task prerequisites. If the current task becomes blocked, persist the blocker in this file before leaving the cycle. Then continue with the earliest independent executable task whose prerequisites are satisfied. This is dependency-aware deferral, not arbitrary skipping.
 5. Do not rebuild already field-verified SaydiVoice discovery behavior from scratch.
 6. Keep provider/browser automation outside audiobook-domain logic.
 7. Keep browser profiles, credentials, generated audio, runtime state, and manuscript content out of Git.
 8. Use synthetic or public-domain text for live validation.
 9. No Generate action is allowed during authentication/profile recovery or preflight tasks.
-10. If a task requires owner interaction that the robot cannot perform safely (for example manual SaydiVoice login), return `BLOCKED` with the exact minimum owner action. Do not misclassify that as a technical failure.
-11. A live Generate task must be bounded to exactly one intended sample. Do not blindly retry after an uncertain side effect.
-12. Never expose credentials, cookies, profile data, tokens, manuscript/private text, or unsafe browser evidence in GitHub logs/artifacts.
-13. Completion requires concrete evidence: test output, workflow run, persisted sanitized metadata, or equivalent inspectable proof.
-14. Do not mark `SAYDI-002` complete until all tasks in this temporary queue are DONE and the completion gate below is satisfied.
+10. If a task requires owner interaction that the robot cannot perform safely (for example manual SaydiVoice login), mark that task `BLOCKED`, update the Blocker Register below with the exact minimum owner action, evidence, and resume condition, and commit the source update.
+11. A recorded blocker must not stop the robot when another independent task is executable. In that case, end the cycle with `STATUS=READY` and `NEXT_TASK_ID` set to the earliest independent executable task. Use machine `STATUS=BLOCKED` only when no independent executable task remains.
+12. Never fabricate completion to bypass a blocker. Blocked tasks remain incomplete until their resume condition is verified.
+13. A live Generate task must be bounded to exactly one intended sample. Do not blindly retry after an uncertain side effect.
+14. Never expose credentials, cookies, profile data, tokens, manuscript/private text, or unsafe browser evidence in GitHub logs/artifacts.
+15. Completion requires concrete evidence: test output, workflow run, persisted sanitized metadata, or equivalent inspectable proof.
+16. Do not mark `SAYDI-002` complete until all tasks in this temporary queue are DONE and the completion gate below is satisfied.
+
+## Blocker Register
+
+This section is the Owner review queue. The robot MUST keep it current whenever execution reaches a genuine blocker.
+
+When a blocker is discovered, add one entry using this schema:
+
+```text
+BLOCKER_ID=<stable id, e.g. BLK-SAYDI002-001-001>
+TASK_ID=<task id>
+STATUS=OPEN
+TYPE=<OWNER_ACTION|EXTERNAL_PROVIDER|ENVIRONMENT|DEPENDENCY|OTHER>
+DETECTED_AT=<ISO-8601 timestamp or YYYY-MM-DD>
+SUMMARY=<short factual description>
+OWNER_ACTION=<exact minimum action required from Owner, or NONE>
+EVIDENCE=<sanitized run/log/commit reference>
+RESUME_WHEN=<objective condition that allows the task to resume>
+NOTES=<optional sanitized detail>
+```
+
+Blocker lifecycle:
+- `OPEN` — unresolved and still prevents its task from completing.
+- `RESOLVED` — resume condition has been verified; include resolution evidence.
+- Never delete blocker history while this temporary execution source is active.
+- Never place secrets, cookies, tokens, credentials, private manuscript text, or browser-profile contents in this register.
+- If a task has an OPEN blocker but another task is independent and executable, continue the independent task.
+- If all remaining tasks depend directly or transitively on OPEN blockers, stop with machine `STATUS=BLOCKED`.
+
+### Active blockers
+
+None recorded yet by the robot.
 
 ## Task queue
 
@@ -223,6 +256,13 @@ SAYDI-002 may close only when all of the following are true:
 For discovery/bootstrap turns, do not execute project work. Identify exactly one authoritative next task from this temporary source.
 
 For execution turns, validate the requested task ID against this file and execute only that task.
+
+If execution discovers a blocker:
+1. update the affected task status to `BLOCKED`;
+2. append/update its Blocker Register entry and commit this source;
+3. identify the earliest independent executable task, if any;
+4. if one exists, end with `STATUS=READY` and that task in `NEXT_TASK_ID`;
+5. use `STATUS=BLOCKED` only if no independent executable work remains.
 
 Machine-readable ending:
 
