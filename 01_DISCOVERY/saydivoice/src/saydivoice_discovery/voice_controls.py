@@ -33,11 +33,26 @@ def slider_state(page: Any, index: int) -> dict[str, Any]:
     return page.evaluate(
         r"""
 (index) => {
-  const el=Array.from(document.querySelectorAll('.slider'))[index];
-  if(!el) return {found:false};
-  const r=el.getBoundingClientRect();
-  const fill=el.querySelector('.slider-fill')?.getBoundingClientRect();
-  return {found:true,width:r.width,ratio:(fill&&r.width)?fill.width/r.width:null};
+  const sliders=Array.from(document.querySelectorAll('.slider'));
+  const el=sliders[index];
+  const ranges=Array.from(document.querySelectorAll('input[type="range"]'));
+  const input=(el && el.querySelector('input[type="range"]')) || ranges[index] || null;
+  if(!el && !input) return {found:false};
+
+  if(input){
+    const min=Number(input.min || 0);
+    const max=Number(input.max || 100);
+    const value=Number(input.value);
+    if(Number.isFinite(min) && Number.isFinite(max) && Number.isFinite(value) && max > min){
+      const ratio=(value-min)/(max-min);
+      const rect=(el || input).getBoundingClientRect();
+      return {found:true,width:rect.width,ratio,value,min,max,source:'range-input'};
+    }
+  }
+
+  const r=(el || input).getBoundingClientRect();
+  const fill=el?.querySelector('.slider-fill')?.getBoundingClientRect();
+  return {found:true,width:r.width,ratio:(fill&&r.width)?fill.width/r.width:null,source:'fill-fallback'};
 }
 """,
         index,
