@@ -188,8 +188,18 @@ async (url) => {
                     "click_y": click_y,
                 }
 
-                download_control = page.get_by_text(re.compile(r"Tải|Download", re.I)).last
-                if download_control.count() > 0:
+                download_matches = page.get_by_text("Tải về", exact=True)
+                download_control = None
+                for i in range(download_matches.count()):
+                    candidate = download_matches.nth(i)
+                    try:
+                        if candidate.is_visible():
+                            download_control = candidate
+                            break
+                    except Exception:
+                        continue
+
+                if download_control is not None:
                     try:
                         with page.expect_download(timeout=20_000) as info:
                             download_control.click(timeout=5_000)
@@ -204,6 +214,11 @@ async (url) => {
                         (evidence_dir / "history_download_error.txt").write_text(
                             sanitize_error_message(f"{type(exc).__name__}: {exc}"), encoding="utf-8"
                         )
+                else:
+                    (evidence_dir / "history_download_error.txt").write_text(
+                        "Visible exact 'Tải về' action not found after opening SG - Chí Đạt history menu.",
+                        encoding="utf-8",
+                    )
 
             if recovered is None and tagged.get("found"):
                 # Final non-generative fallback: after opening the row menu, look for
