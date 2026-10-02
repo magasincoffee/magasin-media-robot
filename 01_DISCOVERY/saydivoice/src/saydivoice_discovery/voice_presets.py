@@ -83,6 +83,15 @@ PRESETS: Mapping[str, VoicePreset] = {
         pause=PauseProfile(enabled=False),
         intent="Nhanh, nhiều biểu cảm, phù hợp hook/video ngắn.",
     ),
+    "audiobook_bright": VoicePreset(
+        key="audiobook_bright",
+        label="Audiobook sáng rõ",
+        voice="HN - Mai Phương",
+        stability_ratio=0.38,
+        speed_ratio=0.58,
+        pause=PauseProfile(enabled=True, dot_seconds=0.45, comma_seconds=0.22, semicolon_seconds=0.28, newline_seconds=0.55),
+        intent="Giọng nữ trẻ, sáng rõ, giàu năng lượng vừa phải; ưu tiên nghe lâu không buồn ngủ cho sách kinh doanh.",
+    ),
     "review_natural": VoicePreset(
         key="review_natural",
         label="Review tự nhiên",
