@@ -176,22 +176,40 @@ async (url) => {
   const vis=(e)=>{if(!e)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
   const nodes=Array.from(document.querySelectorAll('body *')).filter(vis)
     .filter(e=>norm(e.innerText||e.textContent)===targetVoice);
-  for(const n of nodes){
-    let p=n;
-    for(let d=0; d<10 && p; d++, p=p.parentElement){
-      const buttons=Array.from(p.querySelectorAll('button,[role="button"]')).filter(vis);
-      const menu=buttons.find(b=>{
-        const txt=norm(b.innerText||b.textContent);
-        const aria=norm(b.getAttribute('aria-label')||'');
-        return txt==='...' || txt==='…' || /more|thêm|tuỳ chọn|tùy chọn|menu/i.test(aria);
-      });
-      if(menu){
-        menu.setAttribute('data-magasin-history-menu','1');
-        return {found:true,row_text:norm(p.innerText||p.textContent).slice(0,300)};
-      }
+  if(!nodes.length) return {found:false,reason:'voice-not-found'};
+
+  // The newest matching history item is rendered first. Choose the visible
+  // small button closest to the right of the same row by vertical alignment.
+  const n=nodes[0];
+  const nr=n.getBoundingClientRect();
+  const ny=nr.top + nr.height/2;
+  const candidates=Array.from(document.querySelectorAll('button,[role="button"]')).filter(vis)
+    .map(b=>({b,r:b.getBoundingClientRect(),txt:norm(b.innerText||b.textContent),aria:norm(b.getAttribute('aria-label')||''),title:norm(b.getAttribute('title')||'')}))
+    .filter(x=>{
+      const cy=x.r.top+x.r.height/2;
+      const right=x.r.left >= nr.right - 10;
+      const aligned=Math.abs(cy-ny) <= 28;
+      const compact=x.r.width <= 60 && x.r.height <= 60;
+      const looksMenu=x.txt==='...' || x.txt==='…' || x.txt==='⋯' || /more|menu|tuỳ chọn|tùy chọn/.test(x.aria+' '+x.title);
+      return right && aligned && compact && (looksMenu || x.r.left > nr.right + 80);
+    })
+    .sort((a,b)=>{
+      const da=Math.abs((a.r.top+a.r.height/2)-ny) + Math.max(0,a.r.left-nr.right)*0.001;
+      const db=Math.abs((b.r.top+b.r.height/2)-ny) + Math.max(0,b.r.left-nr.right)*0.001;
+      return da-db;
+    });
+  if(!candidates.length) return {found:false,reason:'aligned-menu-not-found'};
+  const menu=candidates[0].b;
+  menu.setAttribute('data-magasin-history-menu','1');
+
+  let p=n;
+  for(let d=0; d<6 && p; d++,p=p.parentElement){
+    const t=norm(p.innerText||p.textContent);
+    if(t.includes(targetVoice) && /10\/2\/2026|11:19:55/.test(t)){
+      return {found:true,row_text:t.slice(0,300),menu_text:candidates[0].txt,menu_aria:candidates[0].aria,menu_title:candidates[0].title};
     }
   }
-  return {found:false};
+  return {found:true,row_text:targetVoice,menu_text:candidates[0].txt,menu_aria:candidates[0].aria,menu_title:candidates[0].title};
 }
 """,
                 target_voice,
