@@ -77,34 +77,34 @@ def main() -> int:
             json.dumps(probe, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         print(json.dumps({"history_probe": probe}, ensure_ascii=False))
-        if TARGET_SNIPPET not in body:
-            raise RuntimeError("Latest target excerpt not visible in Saydi history")
+
+        target_voice = "SG - Chí Đạt"
+        voice_item = page.get_by_text(target_voice, exact=True).first
+        if voice_item.count() < 1:
+            raise RuntimeError("Latest SG - Chí Đạt history item not visible")
+
+        # Open the newest matching history item. The newest item is rendered first.
+        voice_item.click(timeout=5_000)
+        page.wait_for_timeout(1_000)
 
         result = page.evaluate(
             r"""
-(snippet) => {
+(targetVoice) => {
   const norm=(v)=>(v||'').replace(/\s+/g,' ').trim();
   const vis=(e)=>{if(!e)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
-  const nodes=Array.from(document.querySelectorAll('body *')).filter(vis)
-    .filter(e=>norm(e.innerText||e.textContent).includes(snippet));
-  for(const n of nodes){
-    let p=n;
-    for(let d=0; d<12 && p; d++, p=p.parentElement){
-      const buttons=Array.from(p.querySelectorAll('button,[role="button"],a')).filter(vis);
-      const dl=buttons.find(b=>/tải về|download/i.test(norm(b.innerText||b.textContent)) || /download/i.test(b.getAttribute('aria-label')||''));
-      if(dl){
-        dl.setAttribute('data-magasin-history-download','1');
-        return {found:true, text:norm(p.innerText||p.textContent).slice(0,500)};
-      }
-    }
+  const buttons=Array.from(document.querySelectorAll('button,[role="button"],a')).filter(vis);
+  const dl=buttons.find(b=>/tải về|download/i.test(norm(b.innerText||b.textContent)) || /download/i.test(b.getAttribute('aria-label')||''));
+  if(dl){
+    dl.setAttribute('data-magasin-history-download','1');
+    return {found:true, text:norm(document.body?.innerText||'').slice(0,1000), voice:targetVoice};
   }
-  return {found:false};
+  return {found:false, text:norm(document.body?.innerText||'').slice(0,1000), voice:targetVoice};
 }
 """,
-            TARGET_SNIPPET,
+            target_voice,
         )
         if not result.get("found"):
-            raise RuntimeError("Download control for target history item not found")
+            raise RuntimeError("Download control for latest SG - Chí Đạt history item not found")
 
         out = args.output.resolve()
         out.parent.mkdir(parents=True, exist_ok=True)
