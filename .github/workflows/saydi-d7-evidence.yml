@@ -1,0 +1,52 @@
+name: SAYDI D7 Evidence Collect
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-d7-evidence-trigger.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 5
+    steps:
+      - name: Collect local D7 evidence without opening browser or generating
+        shell: powershell
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice"
+          $out = Join-Path $env:RUNNER_TEMP "saydi-d7-evidence"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Path $out | Out-Null
+
+          $d7 = Join-Path $root "runs\d7_latest"
+          if (Test-Path $d7) {
+            Copy-Item $d7 (Join-Path $out "d7_latest") -Recurse -Force
+            Write-Host "D7_EVIDENCE_FOUND=true"
+          } else {
+            Write-Host "D7_EVIDENCE_FOUND=false"
+          }
+
+          $workspaceSample = "C:\actions-runner-business\actions-runner\actions-runner\_work\magasin-media-robot\magasin-media-robot\SAYDI_SAYDIVOICE_SAMPLE.mp3"
+          if (Test-Path $workspaceSample) {
+            Copy-Item $workspaceSample (Join-Path $out "SAYDI_SAYDIVOICE_SAMPLE.mp3") -Force
+            $info = Get-Item $workspaceSample
+            $hash = (Get-FileHash $workspaceSample -Algorithm SHA256).Hash
+            Write-Host "SAYDI_SAMPLE_FOUND=true"
+            Write-Host "SAYDI_SAMPLE_BYTES=$($info.Length)"
+            Write-Host "SAYDI_SAMPLE_SHA256=$hash"
+          } else {
+            Write-Host "SAYDI_SAMPLE_FOUND=false"
+          }
+
+      - name: Upload D7 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: saydi-d7-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}\saydi-d7-evidence
+          if-no-files-found: warn
+          retention-days: 1
