@@ -1,6 +1,5 @@
-trigger_id=20260930-1806
-purpose=SAYDI-002 authorized SaydiVoice audiobook sample
-authorization=owner-approved-one-sample
-sample=business_sample_vi
-preset=slow_emotional
-retry_policy=none_after-generate
+SAYDI002-004 authorized one-shot sample 2026-10-02
+Preset: audiobook_bright
+Voice target: HN - Mai Phuong
+Source: temporary excerpt from user-provided Doanh Nghiep Tu Hanh PDF
+Exactly one Generate click; no automatic retry.
