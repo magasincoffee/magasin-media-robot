@@ -94,12 +94,20 @@ class VoiceRequest:
     narration_fingerprint: str
     voice_key: str
     output_path: str
+    style_key: str | None = None
+    output_format: Literal["WAV", "MP3", "FLAC", "OGG"] = "WAV"
 
     def validate(self) -> None:
         if not self.operation_id or not self.sample_id or not self.text.strip():
             raise ValueError("operation_id, sample_id and text are required")
         if len(self.narration_fingerprint) != 64:
             raise ValueError("narration_fingerprint must be SHA-256 hex")
+        if not self.voice_key.strip():
+            raise ValueError("voice_key is required")
+        if self.output_format not in {"WAV", "MP3", "FLAC", "OGG"}:
+            raise ValueError("output_format is unsupported")
+        if not self.output_path.strip():
+            raise ValueError("output_path is required")
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,8 +122,19 @@ class VoiceResult:
     duration_ms: int | None
     error_class: str | None = None
     retryable: bool = False
+    provider_voice: str | None = None
+    provider_reference: str | None = None
+    attempt: int = 1
 
     def validate(self) -> None:
+        if not self.operation_id or not self.sample_id or not self.provider:
+            raise ValueError("operation_id, sample_id and provider are required")
+        if self.byte_count < 0:
+            raise ValueError("byte_count must be >= 0")
+        if self.attempt < 1:
+            raise ValueError("attempt must be >= 1")
+        if self.audio_sha256 is not None and len(self.audio_sha256) != 64:
+            raise ValueError("audio_sha256 must be SHA-256 hex when present")
         if self.status == "SUCCESS":
             if not self.local_audio_path or not self.audio_sha256 or self.byte_count <= 0:
                 raise ValueError("successful result requires path/hash/bytes")

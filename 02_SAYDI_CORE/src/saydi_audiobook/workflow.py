@@ -108,9 +108,13 @@ def synthesize_sample(run_dir: Path, provider: VoiceProvider) -> VoiceResult:
     samples = read_json(run_dir / "sample_passages.json")
     sample = samples[0]
     provider_name = getattr(provider, "provider_name", provider.__class__.__name__)
+    provider_settings_fingerprint = provider.narration_settings_fingerprint
+    effective_narration_fingerprint = sha256(
+        f"{state['narration_fingerprint']}|{provider_settings_fingerprint}".encode("utf-8")
+    ).hexdigest()
     operation_id = sha256(
         (
-            f"{state['run_id']}|{state['narration_fingerprint']}|"
+            f"{state['run_id']}|{effective_narration_fingerprint}|"
             f"{sample['sample_id']}|{provider_name}"
         ).encode("utf-8")
     ).hexdigest()[:24]
@@ -125,17 +129,24 @@ def synthesize_sample(run_dir: Path, provider: VoiceProvider) -> VoiceResult:
     if previous and previous.get("status") == "ATTEMPTING":
         raise RuntimeError("operation has ambiguous prior attempt; reconcile before retry")
 
-    ledger[operation_id] = {"status": "ATTEMPTING", "started_at": _now()}
+    ledger[operation_id] = {
+        "status": "ATTEMPTING",
+        "started_at": _now(),
+        "narration_fingerprint": effective_narration_fingerprint,
+        "provider_settings_fingerprint": provider_settings_fingerprint,
+    }
     write_json(ledger_path, ledger)
 
-    output_path = run_dir / "audio" / f"{sample['sample_id']}.wav"
+    output_format = provider.output_format
+    output_path = run_dir / "audio" / f"{sample['sample_id']}.{output_format.lower()}"
     request = VoiceRequest(
         operation_id=operation_id,
         sample_id=sample["sample_id"],
         text=sample["text"],
-        narration_fingerprint=state["narration_fingerprint"],
+        narration_fingerprint=effective_narration_fingerprint,
         voice_key="default",
         output_path=str(output_path),
+        output_format=output_format,
     )
     result = provider.generate(request)
     result.validate()
@@ -143,6 +154,8 @@ def synthesize_sample(run_dir: Path, provider: VoiceProvider) -> VoiceResult:
     ledger[operation_id] = {
         "status": result.status,
         "finished_at": _now(),
+        "narration_fingerprint": effective_narration_fingerprint,
+        "provider_settings_fingerprint": provider_settings_fingerprint,
         "result": asdict(result),
     }
     write_json(ledger_path, ledger)
@@ -152,6 +165,8 @@ def synthesize_sample(run_dir: Path, provider: VoiceProvider) -> VoiceResult:
         state["status"] = "AUDIO_REVIEW_REQUIRED"
         state["audio_decision"] = "PENDING"
         state["voice_operation_id"] = operation_id
+        state["voice_narration_fingerprint"] = effective_narration_fingerprint
+        state["voice_provider_settings_fingerprint"] = provider_settings_fingerprint
         _save_state(run_dir, state)
     return result
 

@@ -6,10 +6,22 @@ from pathlib import Path
 import platform
 import subprocess
 
-from .contracts import VoiceRequest, VoiceResult
+from .contracts import VoiceRequest, VoiceResult, canonical_hash
 
 
 class VoiceProvider(ABC):
+    provider_name = "voice-provider"
+    output_format = "WAV"
+
+    @property
+    def narration_settings_fingerprint(self) -> str:
+        return canonical_hash(
+            {
+                "provider": self.provider_name,
+                "output_format": self.output_format,
+            }
+        )
+
     @abstractmethod
     def generate(self, request: VoiceRequest) -> VoiceResult:
         raise NotImplementedError
@@ -24,6 +36,7 @@ class WindowsSapiVoiceProvider(VoiceProvider):
     """
 
     provider_name = "windows-sapi-prototype"
+    output_format = "WAV"
 
     def __init__(self, *, rate: int = 0, voice_name: str | None = None):
         if not -10 <= rate <= 10:
@@ -31,8 +44,33 @@ class WindowsSapiVoiceProvider(VoiceProvider):
         self.rate = rate
         self.voice_name = voice_name
 
+    @property
+    def narration_settings_fingerprint(self) -> str:
+        return canonical_hash(
+            {
+                "provider": self.provider_name,
+                "output_format": self.output_format,
+                "rate": self.rate,
+                "voice_name": self.voice_name or "default",
+            }
+        )
+
     def generate(self, request: VoiceRequest) -> VoiceResult:
         request.validate()
+        if request.output_format != "WAV":
+            return VoiceResult(
+                operation_id=request.operation_id,
+                sample_id=request.sample_id,
+                status="ACTION_REQUIRED",
+                provider=self.provider_name,
+                local_audio_path=None,
+                audio_sha256=None,
+                byte_count=0,
+                duration_ms=None,
+                error_class="unsupported_output_format",
+                retryable=False,
+                provider_voice=self.voice_name,
+            )
         if platform.system().lower() != "windows":
             return VoiceResult(
                 operation_id=request.operation_id,
@@ -45,6 +83,7 @@ class WindowsSapiVoiceProvider(VoiceProvider):
                 duration_ms=None,
                 error_class="windows_required",
                 retryable=False,
+                provider_voice=self.voice_name,
             )
 
         out = Path(request.output_path).resolve()
@@ -98,6 +137,7 @@ try {
                     duration_ms=None,
                     error_class="sapi_generation_failed",
                     retryable=False,
+                    provider_voice=self.voice_name,
                 )
             data = out.read_bytes()
             return VoiceResult(
@@ -109,6 +149,7 @@ try {
                 audio_sha256=sha256(data).hexdigest(),
                 byte_count=len(data),
                 duration_ms=None,
+                provider_voice=self.voice_name,
             )
         finally:
             try:
