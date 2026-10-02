@@ -1,1 +1,1 @@
-Download latest SG - Chi Dat history item via overflow menu; no Generate.
+Download latest SG - Chi Dat history item via aligned row menu; no Generate.
