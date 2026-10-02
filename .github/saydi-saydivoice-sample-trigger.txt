@@ -1,6 +1,8 @@
-SAYDI002-004 authorized one-shot sample retry after label-targeted slider fix 2026-10-02
-Previous runs 37030397249 and 37030707550 failed before Generate; no TTS side effect occurred.
-Preset: audiobook_bright
-Voice target: HN - Mai Phuong
-Source: temporary excerpt from user-provided Doanh Nghiep Tu Hanh PDF
-Exactly one Generate click; no automatic retry after any actual Generate.
+SAYDI002-005 owner-requested replacement sample 2026-10-02
+Previous HN - Mai Phuong sample rejected by Owner because voice must be male and Southern Vietnamese.
+New preset: audiobook_south_male_clip
+Voice target: SG - Chi Dat
+Reference style: user-supplied clip; match pacing, pause density, energy and expressive delivery without cloning speaker identity.
+Target speed: approximately 1.08x.
+Source: temporary excerpt from user-provided Doanh Nghiep Tu Hanh PDF.
+Exactly one new Generate is authorized for this new voice/style sample; no automatic retry after any actual Generate.
