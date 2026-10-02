@@ -1,0 +1,60 @@
+name: SAYDI History Audio Recovery
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-history-recover-trigger.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recover latest existing Saydi history audio without Generate
+        shell: powershell
+        run: |
+          $python = $null
+          $py = Get-Command py.exe -ErrorAction SilentlyContinue
+          if ($py) {
+            $candidate = (& $py.Source -3 -c "import sys; print(sys.executable)").Trim()
+            if ($LASTEXITCODE -eq 0 -and (Test-Path $candidate)) { $python = $candidate }
+          }
+          if (-not $python) {
+            $cmd = Get-Command python.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $python = $cmd.Source }
+          }
+          if (-not $python) { throw "Python 3 not found." }
+
+          $venv = Join-Path $env:RUNNER_TEMP "saydi-history-recover-venv"
+          if (Test-Path $venv) { Remove-Item $venv -Recurse -Force }
+          & $python -m venv $venv
+          $venvPython = Join-Path $venv "Scripts\python.exe"
+          & $venvPython -m pip install --disable-pip-version-check --quiet -r "01_DISCOVERY\saydivoice\requirements-dev.txt"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $venvPython -m pip install --disable-pip-version-check --quiet -e "01_DISCOVERY\saydivoice"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $chrome = Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"
+          if (-not (Test-Path $chrome)) { throw "Chrome not found." }
+
+          $out = Join-Path $env:GITHUB_WORKSPACE "SAYDI_SOUTH_MALE_CLIP_SAMPLE.mp3"
+          & $venvPython -m saydivoice_discovery.history_recover --chromium-executable $chrome --output $out
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload recovered MP3
+        uses: actions/upload-artifact@v4
+        with:
+          name: saydi-south-male-clip-sample
+          path: ${{ github.workspace }}\SAYDI_SOUTH_MALE_CLIP_SAMPLE.mp3
+          if-no-files-found: error
+          retention-days: 1
