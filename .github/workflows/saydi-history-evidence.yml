@@ -1,0 +1,38 @@
+name: SAYDI History Evidence Collect
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-history-evidence-trigger.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 5
+    steps:
+      - name: Stage local history recovery evidence
+        shell: powershell
+        run: |
+          $src = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\runs\history_recover_latest"
+          $out = Join-Path $env:RUNNER_TEMP "saydi-history-evidence"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Path $out | Out-Null
+          if (Test-Path $src) {
+            Copy-Item (Join-Path $src "*") $out -Recurse -Force
+            Get-ChildItem $out -File | ForEach-Object { Write-Host "COPIED=$($_.Name)" }
+          } else {
+            throw "Local history evidence folder missing."
+          }
+
+      - name: Upload history evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: saydi-history-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}\saydi-history-evidence
+          if-no-files-found: error
+          retention-days: 1
