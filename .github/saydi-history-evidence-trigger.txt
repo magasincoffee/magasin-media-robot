@@ -1,1 +1,1 @@
-Collect latest history menu evidence after aligned SG Chi Dat row menu probe; no Generate.
+Collect history menu body after coordinate click; no Generate.
