@@ -20,6 +20,8 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 20
     env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
       SAYDI_PRESET_KEY: audiobook_bright
       SAYDI_SAMPLE_FILE: .github\tmp\saydi_doanh_nghiep_tu_hanh_sample.txt
     steps:
