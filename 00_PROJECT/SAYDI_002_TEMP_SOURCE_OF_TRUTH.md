@@ -101,14 +101,18 @@ Restore the trusted Windows self-hosted runner's SaydiVoice persistent browser p
 
 Required work:
 - identify the exact profile path/account context used by the workflow;
-- verify the workflow and helper scripts are opening that same persistent profile;
+- use the installed Google Chrome executable on Windows;
+- perform Gmail/Google + SaydiVoice login bootstrap in a native Chrome process outside Playwright when authentication is missing;
+- use the dedicated local SAYDI profile at `%LOCALAPPDATA%\\MAGASIN\\MediaRobot\\saydivoice\\browser_profile` rather than the owner's everyday Chrome profile, avoiding lock/corruption risk;
+- after the native login window is closed, reopen the exact same profile under Playwright only for verification/automation;
 - remove any logic that accidentally creates/uses a fresh anonymous profile;
 - preserve the profile locally only;
-- open/prepare the visible browser for manual login only if required;
 - after login state exists, verify the robot detects authenticated state without clicking Generate.
 
 Acceptance:
 - same trusted Windows runner;
+- native installed Chrome is used for interactive Google/SaydiVoice authentication;
+- credentials/OTP are entered only into the native Chrome UI and never GitHub/chat/logs;
 - persistent profile is reused across process restarts;
 - authenticated state is detected explicitly rather than inferred from page load alone;
 - voice/catalog surface needed by the adapter is accessible;
