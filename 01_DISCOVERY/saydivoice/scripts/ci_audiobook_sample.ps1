@@ -57,21 +57,24 @@ if ($LASTEXITCODE -ne 0) {
   throw "Saydi profile setup/authentication did not complete. No Generate was attempted."
 }
 
-$sample = Join-Path $repoRoot "02_SAYDI_CORE\fixtures\business_sample_vi.txt"
-if (-not (Test-Path $sample)) { throw "Synthetic audiobook sample text is missing." }
+$sampleRelative = if ($env:SAYDI_SAMPLE_FILE) { $env:SAYDI_SAMPLE_FILE } else { "02_SAYDI_CORE\fixtures\business_sample_vi.txt" }
+$sample = Join-Path $repoRoot $sampleRelative
+if (-not (Test-Path $sample)) { throw "Audiobook sample text is missing: $sampleRelative" }
+
+$presetKey = if ($env:SAYDI_PRESET_KEY) { $env:SAYDI_PRESET_KEY } else { "slow_emotional" }
 
 $output = Join-Path $repoRoot "SAYDI_SAYDIVOICE_SAMPLE.mp3"
 if (Test-Path $output) { Remove-Item $output -Force }
 
 Write-Host "Authorized live side effect: exactly one SaydiVoice Generate click; no retry."
-Write-Host "Preset: slow_emotional"
-Write-Host "Sample source: synthetic repository fixture"
+Write-Host "Preset: $presetKey"
+Write-Host "Sample source: $sampleRelative"
 
 $argsList = @(
   "-m", "saydivoice_discovery.d7_controlled_generation",
   "--chromium-executable", $chrome,
   "--generation-timeout-ms", "90000",
-  "--preset", "slow_emotional",
+  "--preset", $presetKey,
   "--sample-file", $sample,
   "--download-output", $output,
   "--allow-download",
