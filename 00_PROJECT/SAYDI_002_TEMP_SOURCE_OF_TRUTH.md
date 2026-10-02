@@ -80,7 +80,18 @@ Blocker lifecycle:
 
 ### Active blockers
 
-None.
+```text
+BLOCKER_ID=BLK-SAYDI002-005-002
+TASK_ID=SAYDI002-005
+STATUS=OPEN
+TYPE=OWNER_ACTION
+DETECTED_AT=2026-10-02
+SUMMARY=Owner requested a male Southern Vietnamese audiobook voice matching the pacing and expressive style of the supplied reference clip. A replacement SG - Chí Đạt sample has been generated once and recovered from Saydi history; it now requires the Owner listening verdict.
+OWNER_ACTION=Listen to the SG - Chí Đạt sample and record APPROVE or REJECT. If REJECT, state the audible change required (for example faster/slower, brighter/deeper, more/less expressive).
+EVIDENCE=Saydi generation run 37033072566; quota moved from 396 to 792 characters, proving one 396-character generation; Saydi history newest item SG - Chí Đạt at 2026-10-02 23:19:55 local; non-generative recovery run 37036310197 succeeded; recovered MP3 size=86061 bytes; SHA256=25b51daa26d83b393da0a478f7aa8f10b3eb24248415e7a3b226432a391165bd.
+RESUME_WHEN=Owner records APPROVE or REJECT for the SG - Chí Đạt sample.
+NOTES=The prior HN - Mai Phương candidate was rejected by Owner preference because the narrator must be male and Southern Vietnamese. This OPEN owner-review blocker does not stop independent SAYDI002-003 preflight work.
+```
 
 ### Resolved blocker history
 
@@ -235,6 +246,23 @@ Owner-directed field evidence on 2026-10-02:
 
 This evidence may satisfy the bounded live sample requirement after SAYDI002-002/003 are formally reconciled. Do not generate a duplicate merely to obtain a green workflow conclusion.
 
+Owner preference revision and replacement sample evidence on 2026-10-02:
+- Owner rejected the HN - Mai Phương narrator direction and specified: male, Southern Vietnamese, with pacing/expressive delivery modeled on the supplied reference clip;
+- replacement preset: `audiobook_south_male_clip`;
+- replacement voice: `SG - Chí Đạt`;
+- target delivery: forward-moving ~1.08x pacing, short ordinary pauses, occasional longer emphasis pauses, expressive but controlled;
+- replacement field run: `37033072566`;
+- quota changed from `396 / 50,000` to `792 / 50,000`, proving exactly one new 396-character Saydi generation occurred;
+- the run closed its page before transfer completion, so no automatic Generate retry was allowed;
+- Saydi history subsequently showed the new `SG - Chí Đạt` item at `2026-10-02 23:19:55` local time;
+- existing audio was recovered non-generatively from the Saydi history item by run `37036310197`;
+- recovery workflow: SUCCESS;
+- recovered MP3 size: `86061` bytes;
+- recovered MP3 SHA256: `25b51daa26d83b393da0a478f7aa8f10b3eb24248415e7a3b226432a391165bd`;
+- no duplicate generation was performed during recovery.
+
+The SG - Chí Đạt replacement sample is now the active operator-review candidate.
+
 Goal:
 Produce one controlled high-quality-provider audio sample through the production SaydiVoice adapter.
 
@@ -260,7 +288,7 @@ Acceptance:
 
 ### SAYDI002-005 — Operator audio approval gate
 
-Status: PENDING
+Status: **BLOCKED — OWNER AUDIO VERDICT FOR SG - CHÍ ĐẠT SAMPLE**
 
 Goal:
 Evaluate the SaydiVoice sample as an audiobook narrator candidate using the existing human approval model.
