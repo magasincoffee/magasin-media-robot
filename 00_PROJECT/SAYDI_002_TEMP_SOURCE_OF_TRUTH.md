@@ -90,6 +90,19 @@ RESUME_WHEN=The same persistent profile on DESKTOP-4K7IM13 is verified as authen
 NOTES=Recovery workflow used the intended local-only profile path and explicitly set SAYDI_PROFILE_RECOVERY_GENERATE_ALLOWED=false.
 ```
 
+```text
+BLOCKER_ID=BLK-SAYDI002-003-001
+TASK_ID=SAYDI002-003
+STATUS=OPEN
+TYPE=DEPENDENCY
+DETECTED_AT=2026-10-02
+SUMMARY=Authenticated non-generative preflight cannot start because SAYDI002-001 has not yet produced a verified authenticated persistent SaydiVoice profile.
+OWNER_ACTION=Resolve BLK-SAYDI002-001-001 by completing SaydiVoice authentication on DESKTOP-4K7IM13 in the dedicated MAGASIN Saydi Chrome profile. Do not click Generate.
+EVIDENCE=Current authoritative SOT: SAYDI002-001=BLOCKED and BLK-SAYDI002-001-001=OPEN; SAYDI002-002=DONE.
+RESUME_WHEN=SAYDI002-001 is verified DONE with the same persistent profile authenticated across browser-process restart and zero Generate clicks.
+NOTES=No preflight browser action or Generate action was attempted for SAYDI002-003 because its authentication prerequisite is unsatisfied.
+```
+
 ## Task queue
 
 ### SAYDI002-001 — Recover authenticated persistent SaydiVoice profile
@@ -160,7 +173,7 @@ Completion evidence:
 
 ### SAYDI002-003 — Authenticated non-generative SaydiVoice preflight
 
-Status: PENDING
+Status: **BLOCKED**
 
 Goal:
 Prove the production adapter can reach the authenticated SaydiVoice surface on the trusted runner before any live generation.
