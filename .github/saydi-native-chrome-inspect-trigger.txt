@@ -1,0 +1,3 @@
+Open native Chrome with the dedicated SAYDI profile for owner visual login inspection.
+No Generate is permitted.
+Triggered 2026-10-02.
