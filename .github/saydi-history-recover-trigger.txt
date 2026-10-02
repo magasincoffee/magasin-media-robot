@@ -1,1 +1,1 @@
-Probe Saydi history diagnostics for existing Southern male sample; no Generate.
+Recover latest SG - Chi Dat history item without Generate.
