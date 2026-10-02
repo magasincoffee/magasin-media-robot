@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - fix/saydi-profile-system-chrome
+      - main
+    paths:
+      - ".github/saydi-live-catalog-trigger.txt"
 
 permissions:
   contents: read
