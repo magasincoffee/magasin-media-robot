@@ -107,9 +107,10 @@ Acceptance:
 - sanitized evidence is recorded.
 
 If manual login is required:
-- robot returns `BLOCKED`;
-- report exactly where the owner must log in;
-- after owner login, the same task resumes and must verify persistence before it can be DONE.
+- mark `SAYDI002-001` as `BLOCKED`;
+- create/update its OPEN entry in the Blocker Register with exactly where and what the owner must do;
+- if `SAYDI002-002` or another independent task is executable, continue via the global blocker-deferral rules instead of stopping the robot;
+- after owner login, resume `SAYDI002-001` and verify persistence before it can be DONE.
 
 ### SAYDI002-002 — Freeze SaydiVoice VoiceProvider adapter contract
 
