@@ -43,13 +43,40 @@ def main() -> int:
         if state != "TTS_READY" or auth != "AUTHENTICATED_OR_HIDDEN":
             raise RuntimeError(f"Saydi session not ready: state={state} auth={auth}")
 
+        network_events = []
+        def on_response(resp):
+            try:
+                req = resp.request
+                if req.resource_type in {"xhr", "fetch", "media"}:
+                    network_events.append({
+                        "method": req.method,
+                        "url": resp.url.split("?", 1)[0],
+                        "status": resp.status,
+                        "content_type": (resp.headers or {}).get("content-type", ""),
+                    })
+            except Exception:
+                pass
+        page.on("response", on_response)
+
         history = page.get_by_text("Lịch sử", exact=True)
         if history.count() < 1:
             raise RuntimeError("History tab not found")
         history.first.click(timeout=5_000)
-        page.wait_for_timeout(1_500)
+        page.wait_for_timeout(2_000)
+
+        evidence_dir = runtime.runs_dir / "history_recover_latest"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(evidence_dir / "history_surface.png"), full_page=True)
 
         body = clean(page.locator("body").inner_text())
+        probe = {
+            "body_excerpt": body[:6000],
+            "network_events": network_events[-30:],
+        }
+        (evidence_dir / "history_probe.json").write_text(
+            json.dumps(probe, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(json.dumps({"history_probe": probe}, ensure_ascii=False))
         if TARGET_SNIPPET not in body:
             raise RuntimeError("Latest target excerpt not visible in Saydi history")
 
@@ -90,8 +117,6 @@ def main() -> int:
         if not data:
             raise RuntimeError("Recovered history download is empty")
 
-        evidence_dir = runtime.runs_dir / "history_recover_latest"
-        evidence_dir.mkdir(parents=True, exist_ok=True)
         payload = {
             "schema_version": "1.0",
             "mode": "RECOVER_EXISTING_HISTORY_AUDIO_NO_GENERATE",
