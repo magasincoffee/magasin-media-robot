@@ -29,47 +29,116 @@ def parse_pause_values(text: str) -> dict[str, float]:
     return values
 
 
-def slider_state(page: Any, index: int) -> dict[str, Any]:
+def _range_state_by_label(page: Any, label: str) -> dict[str, Any]:
     return page.evaluate(
         r"""
-(index) => {
-  const sliders=Array.from(document.querySelectorAll('.slider'));
-  const el=sliders[index];
-  const ranges=Array.from(document.querySelectorAll('input[type="range"]'));
-  const input=(el && el.querySelector('input[type="range"]')) || ranges[index] || null;
-  if(!el && !input) return {found:false};
+(label) => {
+  const norm=(v)=>(v||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const textOf=(el)=>(el?.innerText||el?.textContent||'').replace(/\s+/g,' ').trim();
+  const visible=(el)=>{
+    if(!el) return false;
+    const s=getComputedStyle(el),r=el.getBoundingClientRect();
+    return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;
+  };
+  const all=Array.from(document.querySelectorAll('body *')).filter(visible);
+  const labelEl=all.find(el=>norm(textOf(el))===norm(label));
+  if(!labelEl) return {found:false,label};
 
-  if(input){
-    const min=Number(input.min || 0);
-    const max=Number(input.max || 100);
-    const value=Number(input.value);
-    if(Number.isFinite(min) && Number.isFinite(max) && Number.isFinite(value) && max > min){
-      const ratio=(value-min)/(max-min);
-      const rect=(el || input).getBoundingClientRect();
-      return {found:true,width:rect.width,ratio,value,min,max,source:'range-input'};
-    }
+  let scope=labelEl.parentElement;
+  let input=null;
+  for(let depth=0; depth<6 && scope; depth++,scope=scope.parentElement){
+    const ranges=Array.from(scope.querySelectorAll('input[type="range"]')).filter(visible);
+    if(ranges.length===1){ input=ranges[0]; break; }
   }
+  if(!input) return {found:false,label,reason:'range-not-found'};
 
-  const r=(el || input).getBoundingClientRect();
-  const fill=el?.querySelector('.slider-fill')?.getBoundingClientRect();
-  return {found:true,width:r.width,ratio:(fill&&r.width)?fill.width/r.width:null,source:'fill-fallback'};
+  const min=Number(input.min || 0);
+  const max=Number(input.max || 1);
+  const value=Number(input.value);
+  const stepRaw=input.step;
+  const step=(stepRaw && stepRaw!=='any') ? Number(stepRaw) : null;
+  const ratio=(Number.isFinite(min)&&Number.isFinite(max)&&Number.isFinite(value)&&max>min)
+    ? (value-min)/(max-min) : null;
+  return {
+    found:true,
+    label,
+    ratio,
+    value,
+    min,
+    max,
+    step:Number.isFinite(step)?step:null,
+    source:'label-range-input'
+  };
 }
 """,
-        index,
+        label,
     )
 
 
-def set_slider_ratio(page: Any, index: int, ratio: float, *, tolerance: float = 0.04) -> dict[str, Any]:
-    ratio = max(0.04, min(0.96, float(ratio)))
-    loc = page.locator(".slider").nth(index)
-    box = loc.bounding_box()
-    if not box:
-        raise RuntimeError(f"slider {index} missing")
-    page.mouse.click(box["x"] + box["width"] * ratio, box["y"] + max(1.0, box["height"] / 2))
+def slider_state(page: Any, index: int) -> dict[str, Any]:
+    label = "Độ ổn định giọng" if index == 0 else "Tốc độ đọc"
+    return _range_state_by_label(page, label)
+
+
+def set_slider_ratio(page: Any, index: int, ratio: float, *, tolerance: float = 0.06) -> dict[str, Any]:
+    ratio = max(0.0, min(1.0, float(ratio)))
+    label = "Độ ổn định giọng" if index == 0 else "Tốc độ đọc"
+
+    result = page.evaluate(
+        r"""
+({label,ratio}) => {
+  const norm=(v)=>(v||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const textOf=(el)=>(el?.innerText||el?.textContent||'').replace(/\s+/g,' ').trim();
+  const visible=(el)=>{
+    if(!el) return false;
+    const s=getComputedStyle(el),r=el.getBoundingClientRect();
+    return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;
+  };
+  const all=Array.from(document.querySelectorAll('body *')).filter(visible);
+  const labelEl=all.find(el=>norm(textOf(el))===norm(label));
+  if(!labelEl) return {ok:false,error:'label-not-found',label};
+
+  let scope=labelEl.parentElement;
+  let input=null;
+  for(let depth=0; depth<6 && scope; depth++,scope=scope.parentElement){
+    const ranges=Array.from(scope.querySelectorAll('input[type="range"]')).filter(visible);
+    if(ranges.length===1){ input=ranges[0]; break; }
+  }
+  if(!input) return {ok:false,error:'range-not-found',label};
+
+  const min=Number(input.min || 0);
+  const max=Number(input.max || 1);
+  const stepRaw=input.step;
+  const step=(stepRaw && stepRaw!=='any') ? Number(stepRaw) : null;
+  if(!Number.isFinite(min)||!Number.isFinite(max)||max<=min){
+    return {ok:false,error:'invalid-range',label,min,max};
+  }
+
+  let target=min + ratio*(max-min);
+  if(Number.isFinite(step) && step>0){
+    target=min + Math.round((target-min)/step)*step;
+    target=Math.max(min,Math.min(max,target));
+  }
+
+  const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set;
+  if(setter) setter.call(input,String(target));
+  else input.value=String(target);
+  input.dispatchEvent(new Event('input',{bubbles:true}));
+  input.dispatchEvent(new Event('change',{bubbles:true}));
+
+  return {ok:true,label,target,min,max,step:Number.isFinite(step)?step:null};
+}
+""",
+        {"label": label, "ratio": ratio},
+    )
+    if not result.get("ok"):
+        raise RuntimeError(f"slider {label!r} could not be set: {result}")
+
     page.wait_for_timeout(500)
-    state = slider_state(page, index)
-    if not state.get("found") or abs(float(state.get("ratio") or 0.0) - ratio) > tolerance:
-        raise RuntimeError(f"slider {index} did not reach requested ratio {ratio}: {state}")
+    state = _range_state_by_label(page, label)
+    observed = state.get("ratio")
+    if not state.get("found") or observed is None or abs(float(observed) - ratio) > tolerance:
+        raise RuntimeError(f"slider {label!r} did not reach requested ratio {ratio}: {state}")
     return state
 
 
