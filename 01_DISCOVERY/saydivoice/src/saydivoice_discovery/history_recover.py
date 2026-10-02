@@ -169,61 +169,26 @@ async (url) => {
         if recovered is None:
             # History cards expose an overflow "..." menu. Open the menu for the
             # newest SG - Chí Đạt row and download the existing audio from there.
-            tagged = page.evaluate(
-                r"""
-(targetVoice) => {
-  const norm=(v)=>(v||'').replace(/\s+/g,' ').trim();
-  const vis=(e)=>{if(!e)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
-  const nodes=Array.from(document.querySelectorAll('body *')).filter(vis)
-    .filter(e=>norm(e.innerText||e.textContent)===targetVoice);
-  if(!nodes.length) return {found:false,reason:'voice-not-found'};
+            tagged = {"found": False}
+            box = voice_item.bounding_box()
+            if box:
+                viewport = page.viewport_size or {"width": 1440, "height": 1000}
+                # History overflow button is aligned to the right edge of the
+                # history pane on the same horizontal row as the voice label.
+                click_x = max(box["x"] + box["width"] + 40, viewport["width"] - 62)
+                click_y = box["y"] + box["height"] / 2
+                page.mouse.click(click_x, click_y)
+                page.wait_for_timeout(600)
+                menu_body = clean(page.locator("body").inner_text())
+                (evidence_dir / "history_menu_body.txt").write_text(menu_body[:8000], encoding="utf-8")
+                tagged = {
+                    "found": True,
+                    "row_text": target_voice,
+                    "click_x": click_x,
+                    "click_y": click_y,
+                }
 
-  // The newest matching history item is rendered first. Choose the visible
-  // small button closest to the right of the same row by vertical alignment.
-  const n=nodes[0];
-  const nr=n.getBoundingClientRect();
-  const ny=nr.top + nr.height/2;
-  const candidates=Array.from(document.querySelectorAll('button,[role="button"]')).filter(vis)
-    .map(b=>({b,r:b.getBoundingClientRect(),txt:norm(b.innerText||b.textContent),aria:norm(b.getAttribute('aria-label')||''),title:norm(b.getAttribute('title')||'')}))
-    .filter(x=>{
-      const cy=x.r.top+x.r.height/2;
-      const right=x.r.left >= nr.right - 10;
-      const aligned=Math.abs(cy-ny) <= 28;
-      const compact=x.r.width <= 60 && x.r.height <= 60;
-      const looksMenu=x.txt==='...' || x.txt==='…' || x.txt==='⋯' || /more|menu|tuỳ chọn|tùy chọn/.test(x.aria+' '+x.title);
-      return right && aligned && compact && (looksMenu || x.r.left > nr.right + 80);
-    })
-    .sort((a,b)=>{
-      const da=Math.abs((a.r.top+a.r.height/2)-ny) + Math.max(0,a.r.left-nr.right)*0.001;
-      const db=Math.abs((b.r.top+b.r.height/2)-ny) + Math.max(0,b.r.left-nr.right)*0.001;
-      return da-db;
-    });
-  if(!candidates.length) return {found:false,reason:'aligned-menu-not-found'};
-  const menu=candidates[0].b;
-  menu.setAttribute('data-magasin-history-menu','1');
-
-  let p=n;
-  for(let d=0; d<6 && p; d++,p=p.parentElement){
-    const t=norm(p.innerText||p.textContent);
-    if(t.includes(targetVoice) && /10\/2\/2026|11:19:55/.test(t)){
-      return {found:true,row_text:t.slice(0,300),menu_text:candidates[0].txt,menu_aria:candidates[0].aria,menu_title:candidates[0].title};
-    }
-  }
-  return {found:true,row_text:targetVoice,menu_text:candidates[0].txt,menu_aria:candidates[0].aria,menu_title:candidates[0].title};
-}
-""",
-                target_voice,
-            )
-            if tagged.get("found"):
-                page.locator('[data-magasin-history-menu="1"]').first.click(timeout=5_000)
-                page.wait_for_timeout(500)
-
-                menu_text = clean(page.locator("body").inner_text())
-                (evidence_dir / "history_menu_body.txt").write_text(menu_text[:6000], encoding="utf-8")
-
-                download_control = page.get_by_text(re.compile(r"^Tải(?: về| xuống)?$", re.I)).first
-                if download_control.count() < 1:
-                    download_control = page.get_by_role("button", name=re.compile(r"Tải|Download", re.I)).first
+                download_control = page.get_by_text(re.compile(r"Tải|Download", re.I)).last
                 if download_control.count() > 0:
                     try:
                         with page.expect_download(timeout=20_000) as info:
@@ -232,12 +197,13 @@ async (url) => {
                         download.save_as(str(out))
                         if out.exists() and out.stat().st_size > 1000:
                             recovered = {
-                                "method": "history_overflow_menu_download",
-                                "row_text": tagged.get("row_text"),
+                                "method": "history_coordinate_menu_download",
+                                "row_text": target_voice,
                             }
-                    except Exception:
-                        # Some menu actions navigate/fetch without a browser download event.
-                        page.wait_for_timeout(800)
+                    except Exception as exc:
+                        (evidence_dir / "history_download_error.txt").write_text(
+                            sanitize_error_message(f"{type(exc).__name__}: {exc}"), encoding="utf-8"
+                        )
 
             if recovered is None and tagged.get("found"):
                 # Final non-generative fallback: after opening the row menu, look for
