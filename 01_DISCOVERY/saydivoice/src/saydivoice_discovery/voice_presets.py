@@ -83,6 +83,15 @@ PRESETS: Mapping[str, VoicePreset] = {
         pause=PauseProfile(enabled=False),
         intent="Nhanh, nhiều biểu cảm, phù hợp hook/video ngắn.",
     ),
+    "audiobook_south_male_clip": VoicePreset(
+        key="audiobook_south_male_clip",
+        label="Audiobook nam miền Nam - clip reference",
+        voice="SG - Chí Đạt",
+        stability_ratio=0.38,
+        speed_ratio=0.58,
+        pause=PauseProfile(enabled=True, dot_seconds=0.45, comma_seconds=0.25, semicolon_seconds=0.30, newline_seconds=0.60),
+        intent="Nam trẻ miền Nam; truyền cảm, rõ, gần gũi; nhịp tiến về phía trước khoảng 1.08x, mô phỏng pacing và cách ngắt của clip tham chiếu mà không sao chép danh tính giọng.",
+    ),
     "audiobook_bright": VoicePreset(
         key="audiobook_bright",
         label="Audiobook sáng rõ",
