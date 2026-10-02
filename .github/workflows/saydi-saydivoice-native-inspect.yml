@@ -1,0 +1,81 @@
+name: SAYDI Native Chrome Inspect
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-native-chrome-inspect-trigger.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-native-chrome-inspect
+  cancel-in-progress: true
+
+jobs:
+  open-native-chrome:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 15
+    steps:
+      - name: Open dedicated SAYDI Chrome profile for owner inspection
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $chrome = Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"
+          if (-not (Test-Path $chrome)) {
+            $pf86 = [Environment]::GetEnvironmentVariable("ProgramFiles(x86)")
+            if ($pf86) { $chrome = Join-Path $pf86 "Google\Chrome\Application\chrome.exe" }
+          }
+          if (-not (Test-Path $chrome)) { throw "Installed Google Chrome not found." }
+
+          $profile = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice\browser_profile"
+          New-Item -ItemType Directory -Force -Path $profile | Out-Null
+
+          Write-Host "SAYDI_NATIVE_INSPECT_MACHINE=$env:COMPUTERNAME"
+          Write-Host "SAYDI_NATIVE_INSPECT_ACCOUNT=$([Environment]::UserName)"
+          Write-Host "SAYDI_NATIVE_INSPECT_PROFILE=$profile"
+          Write-Host "SAYDI_NATIVE_INSPECT_GENERATE_ALLOWED=false"
+
+          $runnerSession = (Get-Process -Id $PID).SessionId
+          $explorerSessions = @(Get-Process explorer -ErrorAction SilentlyContinue | Select-Object -ExpandProperty SessionId -Unique)
+          Write-Host "SAYDI_NATIVE_INSPECT_RUNNER_SESSION=$runnerSession"
+          Write-Host "SAYDI_NATIVE_INSPECT_EXPLORER_SESSIONS=$($explorerSessions -join ',')"
+
+          $args = @(
+            "--user-data-dir=$profile",
+            "--profile-directory=Default",
+            "--disable-background-mode",
+            "--no-first-run",
+            "--new-window",
+            "https://accounts.google.com/",
+            "https://voice.saydi.ai/vi/studio/tts/"
+          )
+
+          Start-Process -FilePath $chrome -ArgumentList $args | Out-Null
+          Start-Sleep -Seconds 3
+
+          $holders = @(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object {
+            $_.CommandLine -like "*MAGASIN\MediaRobot\saydivoice\browser_profile*"
+          })
+          if ($holders.Count -lt 1) { throw "Dedicated SAYDI Chrome process did not start." }
+
+          Write-Host "SAYDI_NATIVE_INSPECT_WINDOW=OPEN"
+          Write-Host "Owner: inspect Google/SaydiVoice login in this Chrome window. If already signed in, do nothing."
+          Write-Host "Do not click Generate. Close ALL Chrome windows using this SAYDI profile when inspection is finished."
+
+          $deadline = (Get-Date).AddMinutes(10)
+          while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 2
+            $holders = @(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object {
+              $_.CommandLine -like "*MAGASIN\MediaRobot\saydivoice\browser_profile*"
+            })
+            if ($holders.Count -eq 0) {
+              Write-Host "SAYDI_NATIVE_INSPECT_WINDOW=CLOSED_BY_OWNER"
+              exit 0
+            }
+          }
+
+          Write-Host "SAYDI_NATIVE_INSPECT_WINDOW=TIMEOUT_STILL_OPEN"
