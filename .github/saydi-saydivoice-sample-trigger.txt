@@ -1,5 +1,6 @@
-SAYDI002-004 authorized one-shot sample 2026-10-02
+SAYDI002-004 authorized one-shot sample retry after pre-generate slider fix 2026-10-02
+Previous run 37030397249 failed before Generate; no TTS side effect occurred.
 Preset: audiobook_bright
 Voice target: HN - Mai Phuong
 Source: temporary excerpt from user-provided Doanh Nghiep Tu Hanh PDF
-Exactly one Generate click; no automatic retry.
+Exactly one Generate click; no automatic retry after any actual Generate.
