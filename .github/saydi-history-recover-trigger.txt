@@ -1,1 +1,1 @@
-Download latest SG - Chi Dat via row-coordinate history menu; no Generate.
+Download latest SG - Chi Dat via exact visible history action; no Generate.
