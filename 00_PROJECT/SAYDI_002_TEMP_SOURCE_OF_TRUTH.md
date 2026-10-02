@@ -129,7 +129,7 @@ If manual login is required:
 
 ### SAYDI002-002 — Freeze SaydiVoice VoiceProvider adapter contract
 
-Status: PENDING
+Status: **DONE**
 
 Goal:
 Place SaydiVoice behind the existing provider-neutral `VoiceProvider` boundary without leaking browser/provider mechanics into the audiobook core.
@@ -148,6 +148,15 @@ Acceptance:
 - unsupported emotion/prosody controls are not invented;
 - unit/contract tests PASS;
 - no live Generate occurs in this task.
+
+Completion evidence:
+- implementation commit: `bf25f27cf57f4189379fdd4f6cfecfc33b068cad`;
+- GitHub Actions run `36978490431` (`SAYDI Core Tests`): SUCCESS;
+- compile: PASS;
+- unit/contract tests: 11 PASS;
+- offline runner smoke: PASS;
+- SaydiVoice adapter remains behind a data-only backend boundary with no browser import in audiobook core;
+- no live Generate occurred in this task.
 
 ### SAYDI002-003 — Authenticated non-generative SaydiVoice preflight
 
