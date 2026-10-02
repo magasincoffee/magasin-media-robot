@@ -22,12 +22,15 @@ When all tasks in this file are complete and `SAYDI-002` is closed in the main S
 - Windows SAPI production narration quality: REJECT.
 - Production-quality validation path: SaydiVoice.
 - Discovery Tests run `36755846022`: PASS.
-- SaydiVoice audiobook sample run `36755899556`: FAIL.
-- Failure boundary: persistent SaydiVoice browser profile remained `auth=ANONYMOUS`.
-- The failed run explicitly stopped before Generate.
-- No live Generate side effect occurred in run `36755899556`.
-- No MP3 transfer artifact was produced.
-- Related open defect: `BUG-20260917-009 — Anonymous Saydi session bootstrap rejected before generation`.
+- SaydiVoice audiobook sample run `36755899556`: FAIL (historical pre-authentication failure).
+- Historical failure boundary: persistent SaydiVoice browser profile remained `auth=ANONYMOUS`; that failed run stopped before Generate and produced no MP3 transfer artifact.
+- SaydiVoice profile recovery run `36974448969`, attempt 2 / job `110799617483`: SUCCESS on `DESKTOP-4K7IM13`.
+- Persistent profile authentication: `TTS_READY / AUTHENTICATED_OR_HIDDEN`.
+- Browser-process restart persistence check: PASS.
+- Non-generative surface/catalog discovery gate: PASS.
+- Recovery evidence: `SAYDI_PROFILE_RECOVERY_RESULT=PASS`, `PERSISTENCE=PASS`, `AUTH_GATE=PASS`, `NATIVE_CHROME=PASS`, `GENERATE_CLICKS=0`.
+- Owner visually confirmed the dedicated SaydiVoice Chrome profile is signed in on 2026-10-02.
+- Related historical defect: `BUG-20260917-009 — Anonymous Saydi session bootstrap rejected before generation`; its authentication condition is no longer blocking SAYDI002-001.
 
 ## Execution rules
 
@@ -77,37 +80,43 @@ Blocker lifecycle:
 
 ### Active blockers
 
+None.
+
+### Resolved blocker history
+
 ```text
 BLOCKER_ID=BLK-SAYDI002-001-001
 TASK_ID=SAYDI002-001
-STATUS=OPEN
+STATUS=RESOLVED
 TYPE=OWNER_ACTION
 DETECTED_AT=2026-10-02
-SUMMARY=Trusted Windows runner reached the SaydiVoice login surface but the persistent profile is not authenticated.
-OWNER_ACTION=On DESKTOP-4K7IM13, using Windows account DELL, complete SaydiVoice login in the visible Chrome window opened with the MAGASIN Saydi profile at C:\Users\DELL\AppData\Local\MAGASIN\MediaRobot\saydivoice\browser_profile. Do not click Generate.
-EVIDENCE=GitHub Actions run 36973063951 / job 110730948700; repeated state=LOGIN_REQUIRED auth=UNKNOWN; SAYDI_PROFILE_RECOVERY_RESULT=OWNER_LOGIN_REQUIRED_OR_AUTH_NOT_CONFIRMED; Generate disabled.
-RESUME_WHEN=The same persistent profile on DESKTOP-4K7IM13 is verified as authenticated after browser-process restart, with the required SaydiVoice surface accessible and zero Generate clicks.
-NOTES=Recovery workflow used the intended local-only profile path and explicitly set SAYDI_PROFILE_RECOVERY_GENERATE_ALLOWED=false.
+SUMMARY=Trusted Windows runner originally reached the SaydiVoice login surface while the persistent profile was not authenticated.
+OWNER_ACTION=NONE
+EVIDENCE=Initial failure: GitHub Actions run 36973063951 / job 110730948700; repeated state=LOGIN_REQUIRED auth=UNKNOWN; Generate disabled.
+RESUME_WHEN=SATISFIED
+RESOLUTION_EVIDENCE=GitHub Actions run 36974448969 attempt 2 / job 110799617483 succeeded on DESKTOP-4K7IM13 with TTS_READY, AUTHENTICATED_OR_HIDDEN, persistence across browser-process restart PASS, surface/catalog gate PASS, and GENERATE_CLICKS=0. Owner also visually confirmed the signed-in SaydiVoice UI on 2026-10-02.
+NOTES=Dedicated local MAGASIN Saydi profile remained local-only; no credentials, cookies, tokens, or profile files were committed.
 ```
 
 ```text
 BLOCKER_ID=BLK-SAYDI002-003-001
 TASK_ID=SAYDI002-003
-STATUS=OPEN
+STATUS=RESOLVED
 TYPE=DEPENDENCY
 DETECTED_AT=2026-10-02
-SUMMARY=Authenticated non-generative preflight cannot start because SAYDI002-001 has not yet produced a verified authenticated persistent SaydiVoice profile.
-OWNER_ACTION=Resolve BLK-SAYDI002-001-001 by completing SaydiVoice authentication on DESKTOP-4K7IM13 in the dedicated MAGASIN Saydi Chrome profile. Do not click Generate.
-EVIDENCE=Current authoritative SOT: SAYDI002-001=BLOCKED and BLK-SAYDI002-001-001=OPEN; SAYDI002-002=DONE.
-RESUME_WHEN=SAYDI002-001 is verified DONE with the same persistent profile authenticated across browser-process restart and zero Generate clicks.
-NOTES=No preflight browser action or Generate action was attempted for SAYDI002-003 because its authentication prerequisite is unsatisfied.
+SUMMARY=SAYDI002-003 was blocked only because SAYDI002-001 had not yet produced a verified authenticated persistent profile.
+OWNER_ACTION=NONE
+EVIDENCE=Dependency was SAYDI002-001.
+RESUME_WHEN=SATISFIED
+RESOLUTION_EVIDENCE=SAYDI002-001 authentication prerequisite is now verified by run 36974448969 attempt 2 / job 110799617483 with AUTHENTICATED_OR_HIDDEN, persistence PASS, surface/catalog gate PASS, and zero Generate clicks.
+NOTES=SAYDI002-003 is now executable and must remain non-generative.
 ```
 
 ## Task queue
 
 ### SAYDI002-001 — Recover authenticated persistent SaydiVoice profile
 
-Status: **BLOCKED**
+Status: **DONE**
 
 Goal:
 Restore the trusted Windows self-hosted runner's SaydiVoice persistent browser profile so the non-generative preflight can prove an authenticated session.
@@ -139,6 +148,16 @@ If manual login is required:
 - create/update its OPEN entry in the Blocker Register with exactly where and what the owner must do;
 - if `SAYDI002-002` or another independent task is executable, continue via the global blocker-deferral rules instead of stopping the robot;
 - after owner login, resume `SAYDI002-001` and verify persistence before it can be DONE.
+
+Completion evidence:
+- GitHub Actions run `36974448969`, attempt 2 / job `110799617483`: SUCCESS;
+- runner: `DESKTOP-4K7IM13`, Windows account `DELL`;
+- dedicated local Saydi profile reused;
+- `TTS_READY / AUTHENTICATED_OR_HIDDEN`: PASS;
+- authentication persistence across browser-process restart: PASS;
+- required non-generative surface/catalog discovery: PASS;
+- `SAYDI_PROFILE_RECOVERY_GENERATE_CLICKS=0`;
+- owner visually confirmed signed-in SaydiVoice UI on 2026-10-02.
 
 ### SAYDI002-002 — Freeze SaydiVoice VoiceProvider adapter contract
 
@@ -173,7 +192,7 @@ Completion evidence:
 
 ### SAYDI002-003 — Authenticated non-generative SaydiVoice preflight
 
-Status: **BLOCKED**
+Status: PENDING
 
 Goal:
 Prove the production adapter can reach the authenticated SaydiVoice surface on the trusted runner before any live generation.
@@ -313,6 +332,6 @@ CHECK_AFTER_SECONDS=<0-3600>
 END_MAGASIN_TASK_CONTROL_V1
 ```
 
-Initial authoritative next task:
+Authoritative next executable task:
 
-`SAYDI002-001`
+`SAYDI002-003`
