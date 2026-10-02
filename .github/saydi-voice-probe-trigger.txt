@@ -1,1 +1,1 @@
-Probe current Saydi voices for MN male audiobook candidate; no Generate.
+Verify Saydi quota after Southern male failed run; no Generate.
