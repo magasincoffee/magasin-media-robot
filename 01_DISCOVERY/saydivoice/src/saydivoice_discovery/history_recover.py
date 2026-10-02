@@ -83,39 +83,122 @@ def main() -> int:
         if voice_item.count() < 1:
             raise RuntimeError("Latest SG - Chí Đạt history item not visible")
 
-        # Open the newest matching history item. The newest item is rendered first.
-        voice_item.click(timeout=5_000)
-        page.wait_for_timeout(1_000)
-
-        result = page.evaluate(
+        history_json = page.evaluate(
             r"""
-(targetVoice) => {
-  const norm=(v)=>(v||'').replace(/\s+/g,' ').trim();
-  const vis=(e)=>{if(!e)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
-  const buttons=Array.from(document.querySelectorAll('button,[role="button"],a')).filter(vis);
-  const dl=buttons.find(b=>/tải về|download/i.test(norm(b.innerText||b.textContent)) || /download/i.test(b.getAttribute('aria-label')||''));
-  if(dl){
-    dl.setAttribute('data-magasin-history-download','1');
-    return {found:true, text:norm(document.body?.innerText||'').slice(0,1000), voice:targetVoice};
-  }
-  return {found:false, text:norm(document.body?.innerText||'').slice(0,1000), voice:targetVoice};
+async () => {
+  const r = await fetch('/api/library/history', {credentials:'include'});
+  if(!r.ok) return {__fetch_error__: r.status};
+  return await r.json();
 }
-""",
-            target_voice,
+"""
         )
-        if not result.get("found"):
-            raise RuntimeError("Download control for latest SG - Chí Đạt history item not found")
+
+        def find_target_records(value):
+            found = []
+            if isinstance(value, dict):
+                scalar_text = " ".join(
+                    str(v) for v in value.values()
+                    if isinstance(v, (str, int, float, bool))
+                )
+                if target_voice in scalar_text:
+                    found.append(value)
+                for child in value.values():
+                    found.extend(find_target_records(child))
+            elif isinstance(value, list):
+                for child in value:
+                    found.extend(find_target_records(child))
+            return found
+
+        records = find_target_records(history_json)
+        safe_records = []
+        candidate_urls = []
+        for rec in records:
+            safe = {}
+            for key, value in rec.items():
+                if isinstance(value, (str, int, float, bool)) or value is None:
+                    low_key = str(key).lower()
+                    if isinstance(value, str) and (value.startswith("http://") or value.startswith("https://")):
+                        safe[key] = value.split("?", 1)[0]
+                        if any(tok in low_key for tok in ("url", "audio", "file", "download", "src")):
+                            candidate_urls.append(value)
+                    elif "token" not in low_key and "secret" not in low_key and "auth" not in low_key:
+                        safe[key] = value
+            safe_records.append(safe)
+
+        (evidence_dir / "history_target_records.json").write_text(
+            json.dumps(safe_records[:10], ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
         out = args.output.resolve()
         out.parent.mkdir(parents=True, exist_ok=True)
-        control = page.locator('[data-magasin-history-download="1"]').first
-        with page.expect_download(timeout=20_000) as info:
-            control.click(timeout=5_000)
-        download = info.value
-        download.save_as(str(out))
+
+        async_fetch_script = r"""
+async (url) => {
+  try {
+    const r = await fetch(url, {credentials:'include'});
+    if(!r.ok) return {ok:false,status:r.status};
+    const buf = await r.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunk = 0x8000;
+    for(let i=0;i<bytes.length;i+=chunk){
+      binary += String.fromCharCode(...bytes.subarray(i, i+chunk));
+    }
+    return {ok:true,status:r.status,content_type:r.headers.get('content-type')||'',b64:btoa(binary)};
+  } catch(e) {
+    return {ok:false,error:String(e)};
+  }
+}
+"""
+
+        recovered = None
+        import base64
+        for url in candidate_urls:
+            fetched = page.evaluate(async_fetch_script, url)
+            if fetched.get("ok") and fetched.get("b64"):
+                raw_audio = base64.b64decode(fetched["b64"])
+                if len(raw_audio) > 1000:
+                    out.write_bytes(raw_audio)
+                    recovered = {
+                        "method": "history_api_url",
+                        "content_type": fetched.get("content_type"),
+                        "source_url": url.split("?", 1)[0],
+                    }
+                    break
+
+        if recovered is None:
+            before_srcs = page.eval_on_selector_all(
+                "audio", "els => els.map(e => e.currentSrc || e.src || '').filter(Boolean)"
+            )
+            voice_item.click(timeout=5_000)
+            page.wait_for_timeout(1_200)
+            after_srcs = page.eval_on_selector_all(
+                "audio", "els => els.map(e => e.currentSrc || e.src || '').filter(Boolean)"
+            )
+            ordered = [s for s in after_srcs if s not in before_srcs] + list(reversed(after_srcs))
+            seen = set()
+            for src in ordered:
+                if not src or src in seen:
+                    continue
+                seen.add(src)
+                fetched = page.evaluate(async_fetch_script, src)
+                if fetched.get("ok") and fetched.get("b64"):
+                    raw_audio = base64.b64decode(fetched["b64"])
+                    if len(raw_audio) > 1000:
+                        out.write_bytes(raw_audio)
+                        recovered = {
+                            "method": "history_audio_element",
+                            "content_type": fetched.get("content_type"),
+                            "source_url": src.split("?", 1)[0],
+                        }
+                        break
+
+        if recovered is None or not out.exists():
+            raise RuntimeError("Existing SG - Chí Đạt history audio could not be recovered without regeneration")
+
         data = out.read_bytes()
         if not data:
-            raise RuntimeError("Recovered history download is empty")
+            raise RuntimeError("Recovered history audio is empty")
 
         payload = {
             "schema_version": "1.0",
@@ -126,7 +209,8 @@ def main() -> int:
             "size_bytes": len(data),
             "sha256": hashlib.sha256(data).hexdigest(),
             "output_path": str(out),
-            "history_item_text": result.get("text"),
+            "recovery": recovered,
+            "history_records_matched": len(records),
         }
         (evidence_dir / "history_recover.json").write_text(
             json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
