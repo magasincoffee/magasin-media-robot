@@ -1,0 +1,43 @@
+name: SAYDI Voice Catalog Collect
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-voice-catalog-trigger.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 5
+    steps:
+      - name: Collect latest local discovery catalog only
+        shell: powershell
+        run: |
+          $root = Join-Path $env:LOCALAPPDATA "MAGASIN\MediaRobot\saydivoice"
+          $out = Join-Path $env:RUNNER_TEMP "saydi-voice-catalog"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Path $out | Out-Null
+          $latest = Get-ChildItem (Join-Path $root "runs") -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne "d7_latest" } |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $latest) { throw "No Saydi discovery run found." }
+          Write-Host "LATEST_DISCOVERY_RUN=$($latest.Name)"
+          Get-ChildItem $latest.FullName -File -ErrorAction SilentlyContinue | ForEach-Object {
+            if ($_.Name -match "catalog|surface|selector|inventory") {
+              Copy-Item $_.FullName $out -Force
+              Write-Host "COPIED=$($_.Name)"
+            }
+          }
+
+      - name: Upload catalog evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: saydi-voice-catalog-${{ github.run_id }}
+          path: ${{ runner.temp }}\saydi-voice-catalog
+          if-no-files-found: error
+          retention-days: 1
