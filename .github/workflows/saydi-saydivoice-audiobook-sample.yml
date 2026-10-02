@@ -22,7 +22,7 @@ jobs:
     env:
       PYTHONIOENCODING: utf-8
       PYTHONUTF8: "1"
-      SAYDI_PRESET_KEY: audiobook_bright
+      SAYDI_PRESET_KEY: audiobook_south_male_clip
       SAYDI_SAMPLE_FILE: .github\tmp\saydi_doanh_nghiep_tu_hanh_sample.txt
     steps:
       - uses: actions/checkout@v4
