@@ -214,7 +214,26 @@ Acceptance:
 
 ### SAYDI002-004 — Run exactly one bounded SaydiVoice narration sample
 
-Status: PENDING
+Status: **FIELD EVIDENCE PASS / FORMAL CLOSURE DEFERRED UNTIL PREREQUISITE RECONCILIATION**
+
+Owner-directed field evidence on 2026-10-02:
+- voice: `HN - Mai Phương`;
+- preset: `audiobook_bright`;
+- source: short excerpt from the Owner-provided `Doanh Nghiệp Tự Hành` PDF;
+- field run: `37031068928`;
+- the GitHub job concluded failure only because Windows console encoding raised `UnicodeEncodeError` after successful generation/download;
+- diagnostic run `37031455419` recovered the durable evidence and MP3;
+- `attempt_count=1`;
+- `generate_click_count=1`;
+- `download_click_count=1`;
+- Saydi `POST /api/tts = 200` with `audio/mpeg`;
+- sample generation consumed 396 characters;
+- MP3 size: `82125` bytes;
+- SHA256: `500e53e8bea25316b82b6b84855425a0cd55494e6bb85c6125e2dd1ad3cbb0cf`;
+- no duplicate Generate is authorized for this exact sample;
+- console UTF-8 fix committed in `80e7da9d63d54e36e34798426fdf0d6ad64258e7`.
+
+This evidence may satisfy the bounded live sample requirement after SAYDI002-002/003 are formally reconciled. Do not generate a duplicate merely to obtain a green workflow conclusion.
 
 Goal:
 Produce one controlled high-quality-provider audio sample through the production SaydiVoice adapter.
