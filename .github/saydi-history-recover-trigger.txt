@@ -1,1 +1,1 @@
-Recover latest SG - Chi Dat audio via history API/audio source; no Generate.
+Download latest SG - Chi Dat history item via overflow menu; no Generate.
