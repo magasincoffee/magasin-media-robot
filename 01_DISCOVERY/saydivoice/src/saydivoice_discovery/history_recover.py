@@ -167,31 +167,78 @@ async (url) => {
                     break
 
         if recovered is None:
-            before_srcs = page.eval_on_selector_all(
-                "audio", "els => els.map(e => e.currentSrc || e.src || '').filter(Boolean)"
+            # History cards expose an overflow "..." menu. Open the menu for the
+            # newest SG - Chí Đạt row and download the existing audio from there.
+            tagged = page.evaluate(
+                r"""
+(targetVoice) => {
+  const norm=(v)=>(v||'').replace(/\s+/g,' ').trim();
+  const vis=(e)=>{if(!e)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
+  const nodes=Array.from(document.querySelectorAll('body *')).filter(vis)
+    .filter(e=>norm(e.innerText||e.textContent)===targetVoice);
+  for(const n of nodes){
+    let p=n;
+    for(let d=0; d<10 && p; d++, p=p.parentElement){
+      const buttons=Array.from(p.querySelectorAll('button,[role="button"]')).filter(vis);
+      const menu=buttons.find(b=>{
+        const txt=norm(b.innerText||b.textContent);
+        const aria=norm(b.getAttribute('aria-label')||'');
+        return txt==='...' || txt==='…' || /more|thêm|tuỳ chọn|tùy chọn|menu/i.test(aria);
+      });
+      if(menu){
+        menu.setAttribute('data-magasin-history-menu','1');
+        return {found:true,row_text:norm(p.innerText||p.textContent).slice(0,300)};
+      }
+    }
+  }
+  return {found:false};
+}
+""",
+                target_voice,
             )
-            voice_item.click(timeout=5_000)
-            page.wait_for_timeout(1_200)
-            after_srcs = page.eval_on_selector_all(
-                "audio", "els => els.map(e => e.currentSrc || e.src || '').filter(Boolean)"
-            )
-            ordered = [s for s in after_srcs if s not in before_srcs] + list(reversed(after_srcs))
-            seen = set()
-            for src in ordered:
-                if not src or src in seen:
-                    continue
-                seen.add(src)
-                fetched = page.evaluate(async_fetch_script, src)
-                if fetched.get("ok") and fetched.get("b64"):
-                    raw_audio = base64.b64decode(fetched["b64"])
-                    if len(raw_audio) > 1000:
-                        out.write_bytes(raw_audio)
-                        recovered = {
-                            "method": "history_audio_element",
-                            "content_type": fetched.get("content_type"),
-                            "source_url": src.split("?", 1)[0],
-                        }
-                        break
+            if tagged.get("found"):
+                page.locator('[data-magasin-history-menu="1"]').first.click(timeout=5_000)
+                page.wait_for_timeout(500)
+
+                menu_text = clean(page.locator("body").inner_text())
+                (evidence_dir / "history_menu_body.txt").write_text(menu_text[:6000], encoding="utf-8")
+
+                download_control = page.get_by_text(re.compile(r"^Tải(?: về| xuống)?$", re.I)).first
+                if download_control.count() < 1:
+                    download_control = page.get_by_role("button", name=re.compile(r"Tải|Download", re.I)).first
+                if download_control.count() > 0:
+                    try:
+                        with page.expect_download(timeout=20_000) as info:
+                            download_control.click(timeout=5_000)
+                        download = info.value
+                        download.save_as(str(out))
+                        if out.exists() and out.stat().st_size > 1000:
+                            recovered = {
+                                "method": "history_overflow_menu_download",
+                                "row_text": tagged.get("row_text"),
+                            }
+                    except Exception:
+                        # Some menu actions navigate/fetch without a browser download event.
+                        page.wait_for_timeout(800)
+
+            if recovered is None and tagged.get("found"):
+                # Final non-generative fallback: after opening the row menu, look for
+                # an audio element/source associated with the selected history state.
+                audio_srcs = page.eval_on_selector_all(
+                    "audio", "els => els.map(e => e.currentSrc || e.src || '').filter(Boolean)"
+                )
+                for src in reversed(audio_srcs):
+                    fetched = page.evaluate(async_fetch_script, src)
+                    if fetched.get("ok") and fetched.get("b64"):
+                        raw_audio = base64.b64decode(fetched["b64"])
+                        if len(raw_audio) > 1000:
+                            out.write_bytes(raw_audio)
+                            recovered = {
+                                "method": "history_menu_audio_element",
+                                "content_type": fetched.get("content_type"),
+                                "source_url": src.split("?", 1)[0],
+                            }
+                            break
 
         if recovered is None or not out.exists():
             raise RuntimeError("Existing SG - Chí Đạt history audio could not be recovered without regeneration")
