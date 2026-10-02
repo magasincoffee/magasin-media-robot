@@ -1,0 +1,27 @@
+name: SAYDI SaydiVoice Profile Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-saydivoice-profile-recovery-trigger.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-saydivoice-profile-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-auth-profile:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recover and verify persistent SaydiVoice profile without Generate
+        shell: cmd
+        run: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "01_DISCOVERY\saydivoice\scripts\ci_profile_recovery.ps1"
