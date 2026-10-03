@@ -20,14 +20,14 @@ $tempDir = "C:\SAYDI\temp"
 New-Item -ItemType Directory -Force -Path $LogDir,$tempDir | Out-Null
 
 $hostScript = @"
-$env:PYTHONUTF8 = "1"
-$env:PYTHONIOENCODING = "utf-8"
-$env:USERPROFILE = "$userProfile"
-$env:HOME = "$homeDir"
-$env:HF_HOME = "$hfHome"
-$env:TEMP = "$tempDir"
-$env:TMP = "$tempDir"
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+`$env:PYTHONUTF8 = "1"
+`$env:PYTHONIOENCODING = "utf-8"
+`$env:USERPROFILE = "$userProfile"
+`$env:HOME = "$homeDir"
+`$env:HF_HOME = "$hfHome"
+`$env:TEMP = "$tempDir"
+`$env:TMP = "$tempDir"
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(`$false)
 
 New-Item -ItemType Directory -Force -Path "$LogDir" | Out-Null
 Set-Location "C:\SAYDI\VieNeu-TTS"
