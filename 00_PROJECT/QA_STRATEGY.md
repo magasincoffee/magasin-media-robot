@@ -158,3 +158,66 @@ CI and Git artifacts must never contain private production book text/audio or au
 ## Phase completion
 
 A task exits only when its acceptance evidence is recorded and the Source of Truth advances the NEXT task.
+
+
+## Default-on local QC policy
+
+For the local audiobook production path, QC is not an optional operator-invoked step. It runs by default after chapter assembly.
+
+### Inaudible QC markers
+
+QC markers are metadata/event records only. Never add beeps, tones, spoken IDs or other audible markers to listener audio.
+
+A finding must identify, where available:
+
+- `book_id`;
+- chapter;
+- segment/chunk;
+- source span/hash;
+- assembled chapter timecode;
+- severity;
+- confidence/score;
+- finding type;
+- repair state.
+
+### Automatic checks after every chapter
+
+The default chapter QC pass must include:
+
+- decode/stream validation;
+- zero/near-zero audio;
+- duration plausibility;
+- clipping/peak anomaly;
+- excessive leading/trailing/internal silence;
+- abrupt or suspicious join discontinuity;
+- channel/sample-rate/format consistency;
+- missing/duplicate/out-of-order coverage.
+
+When the local ASR/alignment verifier is installed and accepted, it is also part of the default pass and must compare synthesized speech with the approved spoken text.
+
+### Listener-first acceptance model
+
+The Owner should not be required to manually search for faults.
+
+Normal reporting should be exception-based, for example:
+
+```text
+Chapter 4: REVIEW
+- chunk 12, ~18:42 — suspicious join pause
+- chunk 19, ~29:06 — ASR mismatch above threshold
+All other checked regions: PASS
+```
+
+A repair action targets only the affected unit and rebuilds only dependent artifacts.
+
+### Automation boundary
+
+Automatic repair is allowed only for retry-safe technical failures with high confidence and no semantic change.
+
+Require Owner review when:
+
+- spoken text/meaning may change;
+- source extraction is ambiguous;
+- ASR mismatch may be a source-text problem rather than synthesis;
+- a narration fingerprint or voice setting changes;
+- confidence is below policy threshold.
