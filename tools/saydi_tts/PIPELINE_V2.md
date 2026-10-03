@@ -36,3 +36,49 @@ Do not use raw FFmpeg concat of untrimmed VieNeu chunk WAVs for final audiobook 
 Create one queue job per chapter rather than one job for the whole book.
 Each chapter has independent chunk checkpoints and an MP3 output.
 After all chapters complete, optionally merge chapter files into a final audiobook container while keeping chapter boundaries.
+
+
+## Default local QC mode
+
+Default: **ON**.
+
+The Owner does not need to request QC for each audiobook run.
+
+After every chapter is assembled, the local pipeline should automatically:
+
+1. record chapter/chunk traceability metadata;
+2. run structural/coverage checks;
+3. run acoustic and join-continuity checks;
+4. record PASS/REVIEW/FAILED status;
+5. when available, run local ASR/alignment against approved spoken text;
+6. route only suspicious segments to review/repair.
+
+QC markers are metadata only and must be inaudible.
+
+### Repair behavior
+
+Do not regenerate an entire chapter when one segment fails.
+
+Repair flow:
+
+```text
+QC finding
+ -> chapter + chunk/segment + timecode
+ -> repair/regenerate only affected unit
+ -> rerun unit QC
+ -> rebuild chapter
+ -> keep all unaffected accepted audio
+```
+
+### Current deployment status
+
+On `DESKTOP-H4A16IL`:
+
+- default local VieNeu rendering: active;
+- boot/restart recovery: active;
+- chunk checkpoint/resume: active;
+- per-chapter MP3 assembly: active;
+- QC metadata/event store: active;
+- full local ASR/forced-alignment pass: required by default architecture, implementation/field acceptance pending.
+
+Until ASR acceptance is complete, do not claim semantic speech verification is fully automatic.
