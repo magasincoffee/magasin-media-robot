@@ -82,3 +82,31 @@ On `DESKTOP-H4A16IL`:
 - full local ASR/forced-alignment pass: required by default architecture, implementation/field acceptance pending.
 
 Until ASR acceptance is complete, do not claim semantic speech verification is fully automatic.
+
+
+## Post-render QC waiter
+
+For unattended long runs, install:
+
+`tools/saydi_tts/qc/INSTALL_WAIT_QC_50.ps1`
+
+Behavior:
+
+```text
+render chapter jobs
+ -> waiter checks durable book/chapter status every 5 minutes
+ -> after chapters 1-5 are COMPLETE
+ -> create isolated QC venv
+ -> install faster-whisper + acoustic dependencies
+ -> Acoustic QC
+ -> ASR reverse verification
+ -> exact chapter/chunk/timecode report
+ -> bounded technical auto-repair only
+ -> re-QC repaired chapter
+ -> write local report + Supabase QC metadata
+ -> disable waiter after success
+```
+
+The waiter is restart-safe because it is installed as a Windows Scheduled Task and does not require an open terminal.
+
+ASR mismatch alone is never auto-repaired because the mismatch may come from names, punctuation, source extraction, or ASR uncertainty. Automatic repair is restricted to high-confidence technical failures such as missing/corrupt/near-zero or severe clipping/duration failures.
