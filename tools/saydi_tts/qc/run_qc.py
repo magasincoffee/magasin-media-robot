@@ -108,7 +108,8 @@ def main():
             for idx in repair:
                 w=cdir/f"{idx:06d}.wav"
                 if w.exists(): w.unlink()
-            if out.exists(): out.unlink()
+            # Keep the last complete chapter MP3 available while repair runs.
+            # The worker will overwrite/rebuild it after the repaired chunks finish.
             call("repair_chunks",job_id=j["id"],chunk_indices=repair)
             j=wait_done(a.book_id,j["id"]); rep,again=check(model,j,2)
             if again:
