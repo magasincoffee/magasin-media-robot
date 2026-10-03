@@ -478,3 +478,77 @@ Required architectural paths:
 - local SQLite/state.
 
 External services such as SaydiVoice or ChatGPT may improve convenience or quality but remain optional adapters.
+
+
+## 16. Default local production loop and invisible QC
+
+The active local production path is default-on and unattended-capable.
+
+```text
+Windows boot
+  -> SAYDI Local Worker
+  -> durable queue/checkpoint state
+  -> VieNeu v3 Turbo / ONNX
+  -> approved voice: SAYDI Nam Mien Nam
+  -> chunk/segment WAV artifacts
+  -> chapter assembly + loudness normalization
+  -> invisible QC pass
+       -> structural/coverage checks
+       -> acoustic checks
+       -> join continuity checks
+       -> local ASR/alignment verification when available
+  -> PASS or REVIEW
+  -> repair only affected segment(s)
+  -> rebuild dependent chapter
+  -> chapter MP3
+```
+
+### Default behavior
+
+The operator does not need to request the following for each book:
+
+- worker startup;
+- queue polling;
+- restart recovery;
+- checkpoint resume;
+- per-chapter assembly;
+- ordinary QA/QC execution;
+- QA metadata recording.
+
+These are normal local runtime behavior.
+
+### Invisible traceability
+
+No audible QC marker is allowed in listener audio. Traceability lives in metadata/event records.
+
+Each produced unit must be addressable by:
+
+```text
+book_id
+chapter_number / chapter_id
+segment_or_chunk_id
+source span/hash
+artifact reference/hash
+assembled chapter timecode
+QA state
+QA findings
+```
+
+This allows a later review command to identify and repair an exact bad region without requiring the Owner to manually search the audiobook.
+
+### Repair scope
+
+Repair must be minimal:
+
+```text
+finding
+ -> exact segment/chunk
+ -> regenerate/reprocess affected unit only
+ -> rerun unit QC
+ -> rebuild chapter only
+ -> preserve unaffected accepted audio
+```
+
+### Active deployment note
+
+The currently field-validated local production host is `DESKTOP-H4A16IL` with VieNeu v3 Turbo / ONNX and the approved `SAYDI Nam Mien Nam` voice. Boot recovery and chapter synthesis have been validated. Full local ASR/forced-alignment QC remains a required default module but is not yet field-accepted on that worker.
