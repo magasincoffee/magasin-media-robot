@@ -355,6 +355,52 @@ SAYDI-002 may close only when all of the following are true:
 - operator has recorded the audio approval verdict;
 - no secrets/private runtime state are committed.
 
+
+## Owner directive — local VieNeu production/QC default (2026-10-03)
+
+This directive supplements the SAYDI-002 execution track and must be preserved during handoff to the main Source of Truth.
+
+Active field-validated local production path:
+
+- host: `DESKTOP-H4A16IL`;
+- TTS: VieNeu v3 Turbo / ONNX;
+- approved voice: `SAYDI Nam Mien Nam`;
+- durable Supabase-backed book/chapter/chunk progress;
+- Windows boot recovery validated;
+- checkpoint/resume validated;
+- FFmpeg chapter assembly validated.
+
+Owner decision:
+
+**Local audiobook QC is DEFAULT-ON. The Owner does not need to request it for each book or chapter.**
+
+Required default behavior after every chapter assembly:
+
+1. preserve invisible traceability metadata for book/chapter/chunk/source span/timecode;
+2. run structural/coverage checks;
+3. run acoustic + join-continuity checks;
+4. record chapter QC state: `pending | passed | review | failed`;
+5. when the local ASR/forced-alignment verifier is implemented and field-accepted, run it automatically as part of the same default chapter QC pass;
+6. report only exceptions with exact chapter + chunk/segment + timecode;
+7. repair/regenerate only affected units where safe, then rebuild the chapter.
+
+Never insert audible QC beeps/tones/spoken markers into listener audio.
+
+Owner experience requirement:
+
+- Owner listens for quality/enjoyment;
+- Owner is not expected to manually search for defects;
+- routine QC and defect localization are system responsibility;
+- Owner approval is required only for semantic ambiguity, low-confidence interpretation, or material narration/voice changes.
+
+Implementation boundary:
+
+- QC metadata/event storage is active;
+- full local ASR/forced-alignment verification is mandatory in the target default architecture but is not yet field-validated on H4A16IL;
+- do not claim full semantic audio QA until that module is implemented and accepted.
+
+This directive does not change the currently listed SAYDI002 task ordering by itself; robot execution must still obey the task-control section below unless the main SOT is deliberately advanced.
+
 ## Robot control protocol
 
 For discovery/bootstrap turns, do not execute project work. Identify exactly one authoritative next task from this temporary source.
