@@ -27,6 +27,8 @@ $hostScript = @"
 `$env:HF_HOME = "$hfHome"
 `$env:TEMP = "$tempDir"
 `$env:TMP = "$tempDir"
+`$env:LOCALAPPDATA = "$localAppData"
+`$env:PATH = "$pathValue"
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(`$false)
 
 New-Item -ItemType Directory -Force -Path "$LogDir" | Out-Null
