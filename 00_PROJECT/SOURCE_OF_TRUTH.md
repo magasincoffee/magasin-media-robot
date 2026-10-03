@@ -1,6 +1,6 @@
 # SAYDI Audiobook — Source of Truth
 
-Last updated: 2026-09-30
+Last updated: 2026-10-03
 
 ## Authority
 
@@ -691,3 +691,79 @@ SAYDI Audiobook V1 is production-ready when a clean supported Windows machine ca
 A full-book production acceptance is forbidden until `SAYDI-003`, `SAYDI-004`, and `SAYDI-005` satisfy their gates.
 
 `SAYDI-002` remains the immediate NEXT task because the project must become runnable before the deeper modules are built. It must establish provider-neutral AI/Voice boundaries and a bounded audible sample workflow. Punctuation repair, annotation policy, book intelligence, emotion and prosody remain upstream audiobook-domain logic rather than hard-wired into SaydiVoice browser automation.
+
+
+## Owner production directive — default local audiobook QC (2026-10-03)
+
+This directive is authoritative for the active local audiobook production path.
+
+### Default local runtime
+
+The default production narrator path is now:
+
+- local machine: `DESKTOP-H4A16IL`;
+- engine: VieNeu v3 Turbo / ONNX;
+- approved voice: `SAYDI Nam Mien Nam`;
+- durable queue/checkpoints: Supabase-backed TTS book/chapter/chunk state;
+- Windows boot recovery: SAYDI worker starts automatically and resumes queued/in-progress work;
+- output unit: one mastered MP3 per chapter, with chunk WAVs treated as intermediate artifacts.
+
+The local worker path is **default-on**. The Owner does not need to request VieNeu startup, queue polling, checkpoint resume, chapter assembly, or ordinary QC for every book.
+
+### Invisible QC is mandatory and default-on
+
+Production audio must carry technical traceability that is inaudible to the listener. Do not insert audible beeps, spoken IDs, tones, or other markers into the audiobook.
+
+Every chapter/segment/chunk must remain traceable through stable metadata sufficient to identify:
+
+- book;
+- chapter;
+- chunk/segment;
+- source text span;
+- generated artifact;
+- chapter timecode after assembly;
+- QA status and findings.
+
+After each chapter is assembled, the default local pipeline must automatically run a QC pass before the chapter is considered final.
+
+Minimum QC classes:
+
+1. **Structural/coverage QC** — missing, duplicate, out-of-order or unexpectedly short/long segments.
+2. **Acoustic QC** — decode failure, near-zero audio, clipping/peak anomaly, excessive silence, discontinuity at joins, and inconsistent format/loudness.
+3. **Text/audio verification** — ASR/forced-alignment comparison when the local verification module is available, with mismatch confidence and exact segment/timecode routing.
+
+QC findings are recorded as metadata only and must not alter listener audio.
+
+### Owner experience rule
+
+The Owner's normal role is to listen for enjoyment/acceptance, not to manually hunt errors.
+
+The system must:
+
+- automatically mark suspicious locations;
+- report exact chapter + segment/chunk + timecode;
+- regenerate only the affected segment when a repair is safe and approved;
+- rebuild only dependent chapter artifacts;
+- preserve unaffected accepted audio.
+
+Routine local QC runs automatically. Owner approval is required only when:
+
+- source text interpretation is ambiguous;
+- repair would change spoken content/meaning;
+- a voice/narration fingerprint changes materially;
+- confidence is below the configured automatic-repair threshold.
+
+### Current implementation boundary
+
+Already field-validated on `DESKTOP-H4A16IL`:
+
+- VieNeu v3 Turbo local synthesis;
+- `SAYDI Nam Mien Nam` voice;
+- automatic queue polling;
+- per-chunk checkpoint/resume;
+- restart-safe Windows boot recovery;
+- FFmpeg chapter assembly;
+- book/chapter/chunk progress state;
+- invisible QC metadata/event storage.
+
+The full local ASR/forced-alignment verification pass is now part of the **mandatory default architecture** but is not yet field-validated on the active worker. It must be implemented and accepted before claiming fully autonomous semantic audio QA.
