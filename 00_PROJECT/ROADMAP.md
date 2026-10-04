@@ -73,9 +73,15 @@ Exit gate: identical input/config generates identical segments and targeted sour
 Deliverables:
 
 - Rule Engine + local LLM decision path;
-- book-level genre/subgenre/tone profile;
-- segment-level context/emotion/prosody analysis;
+- hierarchical full-book analysis: book -> chapter -> scene -> segment;
+- book-level genre/subgenre/audience/tone profile;
+- scene boundary + contextual semantic analysis;
+- narrator/dialogue/speaker-role inference with confidence;
+- semantic emotion + intensity and mixed/contextual emotion;
+- emotional-arc smoothing across adjacent segments/scenes;
+- segment-level pace/energy/pause/emphasis/pronunciation delivery directives;
 - schema validation + confidence/review routing;
+- narrator/character continuity state;
 - narrator profile;
 - semantic style presets;
 - representative 3-5 passage sample selection;
