@@ -112,20 +112,30 @@ An accepted result is immutable. Regeneration creates a new attempt/result recor
 ```text
 segment_id
 audio_sha256
+attempt
 structural_status
 alignment_status
 alignment_confidence
+pronunciation_status
+pronunciation_min_word_confidence
+unclear_tokens[]
+prosody_status
+speaking_rate_wpm
+pause_ratio
+pitch_variation_semitones
+energy_variation_db
 material_mismatch
 acoustic_status
 duration_ms
 silence_findings[]
 clipping_finding
+repair_actions[]
 review_required
 accepted
 notes
 ```
 
-QA results are attached to the exact audio hash they evaluated.
+QA results are attached to the exact audio hash they evaluated. Pronunciation/prosody repair metadata is evidence, not permission to rewrite canonical source text. Spoken-form overrides must remain a separate versioned layer.
 
 ## 7. ChapterManifest.v1
 
