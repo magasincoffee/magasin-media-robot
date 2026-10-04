@@ -221,3 +221,26 @@ Require Owner review when:
 - ASR mismatch may be a source-text problem rather than synthesis;
 - a narration fingerprint or voice setting changes;
 - confidence is below policy threshold.
+
+## Pronunciation + prosody/style QC
+
+ASR similarity is necessary but not sufficient for audiobook acceptance. The local worker must also evaluate pronunciation clarity and delivery quality per chunk.
+
+Required pronunciation evidence:
+
+- word-level ASR/alignment confidence where available;
+- exact suspect tokens rather than only a chapter-level score;
+- pronunciation-lexicon/spoken-form version used for the render;
+- retry attempt and exact audio SHA-256.
+
+Required prosody evidence:
+
+- speaking rate;
+- pause/silence ratio and abnormal pause locations;
+- pitch/F0 variation or equivalent intonation metric;
+- energy/dynamics variation;
+- active narration-profile envelope.
+
+Automatic repair is bounded and local to the affected chunk. Safe repair order is pronunciation/spoken-form override, chunk-boundary adjustment, supported pace/pause adjustment, then rerender + full QC. A persistent defect after the retry budget becomes REVIEW; the system must never loop indefinitely.
+
+A human-like target is an acceptance goal, not a guarantee. The system reports residual defects rather than hiding them.

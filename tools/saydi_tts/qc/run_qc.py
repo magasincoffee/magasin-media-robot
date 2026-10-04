@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse,json,math,os,re,time,urllib.request
+import argparse,hashlib,json,math,os,re,time,urllib.request
 from difflib import SequenceMatcher
 from pathlib import Path
 import numpy as np
@@ -30,6 +30,39 @@ def sim(a,b):
     a,b=norm(a),norm(b)
     return SequenceMatcher(None,a,b).ratio() if a and b else 0.0
 
+def _sha256(p):
+    h=hashlib.sha256()
+    with open(p,"rb") as fh:
+        for block in iter(lambda:fh.read(1024*1024),b""): h.update(block)
+    return h.hexdigest()
+
+def _pitch_variation(a,sr):
+    # Coarse local F0 variation detector. It is intentionally provider-neutral
+    # and used as a QC signal, not as a phonetic truth source.
+    frame=max(256,int(sr*.05)); hop=max(128,int(sr*.05))
+    min_lag=max(1,int(sr/350)); max_lag=max(min_lag+1,int(sr/70))
+    f0=[]
+    for start in range(0,max(0,len(a)-frame+1),hop):
+        x=np.asarray(a[start:start+frame],dtype=np.float64)
+        rms=math.sqrt(float(np.mean(x*x))+1e-12)
+        if 20*math.log10(max(rms,1e-12))<-38: continue
+        x=x-float(np.mean(x)); x*=np.hanning(len(x))
+        nfft=1
+        while nfft < len(x)*2: nfft*=2
+        spec=np.fft.rfft(x,n=nfft); ac=np.fft.irfft(spec*np.conj(spec),n=nfft)[:len(x)]
+        if ac[0]<=1e-12: continue
+        hi=min(max_lag,len(ac)-1)
+        if hi<=min_lag: continue
+        lag=min_lag+int(np.argmax(ac[min_lag:hi+1]))
+        confidence=float(ac[lag]/ac[0])
+        if confidence<.25: continue
+        hz=sr/lag
+        if 70<=hz<=350: f0.append(float(hz))
+    if len(f0)<4: return None
+    arr=np.asarray(f0,dtype=np.float64); med=float(np.median(arr))
+    semi=12*np.log2(arr/med)
+    return float(np.std(semi))
+
 def metrics(p):
     a,sr=sf.read(str(p),dtype="float32",always_2d=False)
     if getattr(a,"ndim",1)>1: a=a.mean(axis=1)
@@ -39,20 +72,29 @@ def metrics(p):
     if active.size:
         lead=active[0]/sr; trail=(len(a)-1-active[-1])/sr
     else: lead=trail=dur
-    frame=max(1,int(sr*.02)); longest=cur=0
-    for i in range(len(a)//frame):
+    frame=max(1,int(sr*.02)); longest=cur=0; silent=0; frame_db=[]
+    frame_count=len(a)//frame
+    for i in range(frame_count):
         x=a[i*frame:(i+1)*frame]; db=20*math.log10(max(math.sqrt(float(np.mean(x*x))+1e-12),1e-12))
-        if db<-45: cur+=1; longest=max(longest,cur)
-        else: cur=0
+        frame_db.append(db)
+        if db<-45:
+            silent+=1; cur+=1; longest=max(longest,cur)
+        else:
+            cur=0
+    active_db=[x for x in frame_db if x>=-45]
     return {"duration_sec":dur,"peak":peak,"rms_dbfs":20*math.log10(max(rms,1e-12)),"clipping_ratio":clip,
-            "leading_silence_sec":lead,"trailing_silence_sec":trail,"longest_silence_sec":longest*.02}
+            "leading_silence_sec":lead,"trailing_silence_sec":trail,"longest_silence_sec":longest*.02,
+            "pause_ratio":(silent/frame_count if frame_count else 1.0),
+            "energy_variation_db":(float(np.std(active_db)) if len(active_db)>=2 else 0.0),
+            "pitch_variation_semitones":_pitch_variation(a,sr),
+            "audio_sha256":_sha256(p)}
 
 def ev(t,sev,idx,s,e,score=None,**d):
     return {"event_type":t,"severity":sev,"chunk_index":idx,"time_start_sec":round(s,2),"time_end_sec":round(e,2),
             "score":None if score is None else round(float(score),4),"details":d}
 
 def check(model,job,attempt):
-    out=Path(job["output_file_name"]); cdir=out.parent/"chunks"; events=[]; repair=set(); cur=0.0; prevtrail=0.0
+    out=Path(job["output_file_name"]); cdir=out.parent/"chunks"; events=[]; observations=[]; repair=set(); cur=0.0; prevtrail=0.0
     rows=chunks(job["id"])
     chapter=int(job.get("chapter_number") or 0)
     total=len(rows)
@@ -87,18 +129,55 @@ def check(model,job,attempt):
         elif gap>.65: events.append(ev("join_discontinuity","warning",idx,s,s+gap,gap))
         prevtrail=m["trailing_silence_sec"]
         try:
-            segs,info=model.transcribe(str(wav),language="vi",beam_size=5,vad_filter=True,condition_on_previous_text=False)
+            segs,info=model.transcribe(str(wav),language="vi",beam_size=5,vad_filter=True,
+                                       condition_on_previous_text=False,word_timestamps=True)
+            segs=list(segs)
             heard=" ".join(z.text.strip() for z in segs if z.text.strip()); q=sim(text,heard)
+            words=[w for z in segs for w in (getattr(z,"words",None) or []) if getattr(w,"word","").strip()]
+            probs=[float(w.probability) for w in words if getattr(w,"probability",None) is not None]
+            min_conf=min(probs) if probs else None
+            mean_conf=(sum(probs)/len(probs)) if probs else None
+            unclear=[w.word.strip() for w in words
+                     if getattr(w,"probability",None) is not None and float(w.probability)<.60]
+            word_count=len(words) if words else len(norm(heard).split())
+            speaking_rate=(word_count/max(m["duration_sec"]/60.0,1e-6)) if word_count else 0.0
+            obs={"chunk_index":idx,"audio_sha256":m["audio_sha256"],"attempt":attempt,
+                 "asr_similarity":round(q,4),
+                 "min_word_confidence":None if min_conf is None else round(min_conf,4),
+                 "mean_word_confidence":None if mean_conf is None else round(mean_conf,4),
+                 "unclear_tokens":unclear[:20],
+                 "speaking_rate_wpm":round(speaking_rate,2),
+                 "pause_ratio":round(m["pause_ratio"],4),
+                 "pitch_variation_semitones":None if m["pitch_variation_semitones"] is None else round(m["pitch_variation_semitones"],4),
+                 "energy_variation_db":round(m["energy_variation_db"],4),
+                 "clipping_ratio":round(m["clipping_ratio"],6),
+                 "duration_sec":round(m["duration_sec"],3)}
+            observations.append(obs)
             took=time.time()-chunk_started
-            print(f"[QC] Chapter {chapter} | chunk {pos}/{total} DONE | similarity={q:.3f} | {took:.1f}s", flush=True)
+            print(f"[QC] Chapter {chapter} | chunk {pos}/{total} DONE | similarity={q:.3f} | "
+                  f"word_min={min_conf if min_conf is not None else 'n/a'} | wpm={speaking_rate:.1f} | "
+                  f"pause={m['pause_ratio']:.3f} | pitch_var={m['pitch_variation_semitones'] if m['pitch_variation_semitones'] is not None else 'n/a'} | {took:.1f}s", flush=True)
             if q<.55: events.append(ev("asr_mismatch","error",idx,s,e,q,expected=text[:160],heard=heard[:160]))
             elif q<.76: events.append(ev("asr_mismatch","warning",idx,s,e,q,expected=text[:160],heard=heard[:160]))
+            if min_conf is not None and min_conf<.45:
+                events.append(ev("pronunciation_clarity","warning",idx,s,e,min_conf,
+                                 unclear_tokens=unclear[:20],mean_word_confidence=mean_conf))
+            elif unclear:
+                events.append(ev("pronunciation_clarity","warning",idx,s,e,min_conf,
+                                 unclear_tokens=unclear[:20],mean_word_confidence=mean_conf))
         except Exception as x:
             print(f"[QC] Chapter {chapter} | chunk {pos}/{total} ASR ERROR: {x}", flush=True)
             events.append(ev("asr_mismatch","warning",idx,s,e,error=str(x)[:300]))
+            observations.append({"chunk_index":idx,"audio_sha256":m["audio_sha256"],"attempt":attempt,
+                                 "asr_error":str(x)[:180],"pause_ratio":round(m["pause_ratio"],4),
+                                 "pitch_variation_semitones":m["pitch_variation_semitones"],
+                                 "energy_variation_db":round(m["energy_variation_db"],4),
+                                 "clipping_ratio":round(m["clipping_ratio"],6),
+                                 "duration_sec":round(m["duration_sec"],3)})
     warn=sum(x["severity"]=="warning" for x in events); err=sum(x["severity"]=="error" for x in events)
-    report={"source":"local_qc_v1","attempt":attempt,"chapter_number":job.get("chapter_number"),"checked_chunks":len(rows),
-            "warnings":warn,"errors":err,"auto_repair_indices":sorted(repair),"asr_model":"small","audible_markers":False}
+    report={"source":"local_qc_v2","attempt":attempt,"chapter_number":job.get("chapter_number"),"checked_chunks":len(rows),
+            "warnings":warn,"errors":err,"auto_repair_indices":sorted(repair),"asr_model":"small","audible_markers":False,
+            "metric_schema":"pronunciation_prosody_v1","chunk_observations":observations}
     call("qc_report_batch",job_id=job["id"],qc_status="passed" if not warn and not err else "review",qc_report=report,events=events)
     print(f"[QC] Chapter {chapter}: DONE | warnings={warn} errors={err} | elapsed={(time.time()-started)/60:.1f}m", flush=True)
     return report,sorted(repair)
