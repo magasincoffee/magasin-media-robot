@@ -110,3 +110,38 @@ render chapter jobs
 The waiter is restart-safe because it is installed as a Windows Scheduled Task and does not require an open terminal.
 
 ASR mismatch alone is never auto-repaired because the mismatch may come from names, punctuation, source extraction, or ASR uncertainty. Automatic repair is restricted to high-confidence technical failures such as missing/corrupt/near-zero or severe clipping/duration failures.
+
+
+## Pipeline V3 — narration-preprocessed audiobook
+
+**This supersedes direct PDF-text -> fixed-size chunk rendering for production books.**
+
+Before queue creation:
+
+1. clean PDF extraction artifacts;
+2. reconstruct paragraphs and sentences;
+3. classify semantic blocks;
+4. generate `spoken_text`;
+5. generate narration directives;
+6. render headings as dedicated segments;
+7. segment body text on semantic/paragraph boundaries;
+8. run a Chapter 1 preview gate before full-book synthesis.
+
+### Default heading treatment
+
+```text
+[PAUSE]
+"Chương 3."
+[short pause]
+"Bước hai: Tuyên bố Vai Ong Chúa của doanh nghiệp."
+[longer pause]
+<body narration begins>
+```
+
+Do not concatenate heading + body into the same long chunk.
+
+### Production status rule
+
+A technically successful render that bypasses Narration Preprocess is `DRAFT`, not `FINAL`.
+
+The current Doanh Nghiệp Tự Hành run is the baseline draft used to validate worker/restart/assembly/QC infrastructure. The next production rerender must use Pipeline V3 and receive Chapter 1 listening approval before full-book replacement.
