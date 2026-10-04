@@ -154,7 +154,7 @@ This proves metric extraction and local persistence. It does **not** mean the ch
 
 ### SAYDI-QC-003 — Vietnamese pronunciation lexicon + spoken-form repair
 
-Status: IMPLEMENTED_IN_PR — CI / merge verification pending
+Status: DONE — merged in PR #64; CI PASS
 
 Required:
 - versioned pronunciation lexicon; **IMPLEMENTED: vi-pronunciation-v1 + custom lexicon loader**
@@ -166,6 +166,24 @@ Required:
 Acceptance:
 - known hard words can be corrected without changing source text;
 - regression fixtures cover Vietnamese diacritics and common ambiguous forms.
+
+### SAYDI-QC-003 completion evidence
+
+Accepted on 2026-10-04.
+
+Evidence:
+
+- PR #64 merged to `main`;
+- SAYDI Core Tests: PASS;
+- versioned default lexicon: `vi-pronunciation-v1`;
+- custom/local lexicon loader implemented;
+- TTS-only spoken-form generation preserves canonical text;
+- explicit provenance records lexicon key, category, source text, spoken text and source span;
+- targeted repair planning accepts QC suspect tokens and leaves unknown tokens unresolved for review;
+- conservative standalone-integer Vietnamese normalization implemented;
+- names and foreign terms require explicit lexicon entries instead of guessing;
+- regression fixture covers Vietnamese diacritics, abbreviations, units and unresolved foreign terms;
+- local `pronunciation-preview` CLI added for non-destructive inspection.
 
 ### SAYDI-QC-004 — Targeted automatic rerender loop
 
@@ -213,5 +231,5 @@ Acceptance:
 
 ## Current next task
 
-Complete CI/merge verification for `SAYDI-QC-003`. After merge, advance to `SAYDI-QC-004` — targeted automatic rerender loop.
+`SAYDI-QC-004` — Targeted automatic rerender loop.
 
