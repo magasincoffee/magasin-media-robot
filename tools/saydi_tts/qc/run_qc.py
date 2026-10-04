@@ -193,7 +193,12 @@ def wait_done(book,jobid,limit=7200):
     raise TimeoutError(jobid)
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument("--book-id",required=True); p.add_argument("--max-chapter",type=int,default=5); a=p.parse_args()
+    p=argparse.ArgumentParser()
+    p.add_argument("--book-id",required=True)
+    p.add_argument("--max-chapter",type=int,default=5)
+    p.add_argument("--observe-only",action="store_true",
+                   help="Run QC and persist observations without deleting audio or requesting repair jobs.")
+    a=p.parse_args()
     REPORTS.mkdir(parents=True,exist_ok=True); MODELS.mkdir(parents=True,exist_ok=True)
     print("[QC] Loading faster-whisper model: small / CPU int8 ...", flush=True)
     model=WhisperModel("small",device="cpu",compute_type="int8",download_root=str(MODELS),cpu_threads=max(2,min(8,os.cpu_count() or 4)))
@@ -204,7 +209,7 @@ def main():
     for j in jobs:
         if j.get("status")!="completed": raise RuntimeError(f"chapter {j.get('chapter_number')} not complete")
         rep,repair=check(model,j,1)
-        if repair:
+        if repair and not a.observe_only:
             out=Path(j["output_file_name"]); cdir=out.parent/"chunks"
             for idx in repair:
                 w=cdir/f"{idx:06d}.wav"
@@ -216,6 +221,9 @@ def main():
             if again:
                 rep["repair_exhausted"]=again
                 call("qc_report_batch",job_id=j["id"],qc_status="failed",qc_report=rep,events=[])
+        elif repair and a.observe_only:
+            rep["observe_only"] = True
+            rep["repair_suppressed"] = repair
         summary.append(rep)
     folder=REPORTS/a.book_id; folder.mkdir(parents=True,exist_ok=True)
     (folder/"qc_summary.json").write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding="utf-8")

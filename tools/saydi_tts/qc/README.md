@@ -23,3 +23,20 @@ Each rendered chunk now records a structured observation keyed to the exact audi
 These observations are persisted through the existing local QC report path. They are not uploaded as GitHub artifacts.
 
 Important: word confidence and pitch variation are QC signals, not ground truth. Pronunciation repair remains bounded and must not silently change canonical book meaning.
+
+## Safe H4A16IL field gate
+
+Use `INSTALL_QC_V2_FIELD_H4A16IL.ps1` for SAYDI-QC-002 validation.
+
+The field gate:
+
+- backs up the current `C:\SAYDI\qc\run_qc.py`;
+- downloads the current `main` QC script;
+- runs Chapter 1 in `--observe-only` mode;
+- does not delete WAV files;
+- does not call `repair_chunks`;
+- verifies word confidence, speaking rate, pause ratio, energy variation and audio SHA-256 observations;
+- reports pitch/F0 coverage as an additional field signal;
+- keeps manuscript/audio/report data local.
+
+This field gate is intended to prove measurement extraction before pronunciation/prosody repair is enabled.
