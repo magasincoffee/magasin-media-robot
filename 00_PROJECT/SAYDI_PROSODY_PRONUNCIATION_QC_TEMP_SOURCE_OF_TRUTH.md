@@ -154,14 +154,14 @@ This proves metric extraction and local persistence. It does **not** mean the ch
 
 ### SAYDI-QC-003 — Vietnamese pronunciation lexicon + spoken-form repair
 
-Status: PENDING
+Status: IMPLEMENTED_IN_PR — CI / merge verification pending
 
 Required:
-- versioned pronunciation lexicon;
-- safe TTS-only spoken-form layer;
-- rules for abbreviations, numbers, names and foreign terms;
-- record exact suspect tokens and applied overrides;
-- keep canonical source immutable.
+- versioned pronunciation lexicon; **IMPLEMENTED: vi-pronunciation-v1 + custom lexicon loader**
+- safe TTS-only spoken-form layer; **IMPLEMENTED**
+- rules for abbreviations, numbers, names and foreign terms; **IMPLEMENTED with conservative explicit-entry policy**
+- record exact suspect tokens and applied overrides; **IMPLEMENTED**
+- keep canonical source immutable. **IMPLEMENTED + regression tested**
 
 Acceptance:
 - known hard words can be corrected without changing source text;
@@ -213,5 +213,5 @@ Acceptance:
 
 ## Current next task
 
-`SAYDI-QC-003` — Vietnamese pronunciation lexicon + spoken-form repair.
+Complete CI/merge verification for `SAYDI-QC-003`. After merge, advance to `SAYDI-QC-004` — targeted automatic rerender loop.
 
