@@ -103,7 +103,7 @@ For a chunk outside the active narration profile:
 
 ### SAYDI-QC-001 — Core quality contracts and deterministic repair policy
 
-Status: DONE (code + unit-test foundation; current-main PR verification pending)
+Status: DONE — merged to main in PR #60; CI PASS
 
 Required:
 - provider-neutral quality observation/report contracts;
@@ -118,7 +118,7 @@ Acceptance:
 
 ### SAYDI-QC-002 — Local worker metric extraction
 
-Status: IMPLEMENTED_IN_PR — FIELD ACCEPTANCE PENDING
+Status: CODE_MERGED — FIELD ACCEPTANCE PENDING
 
 Required on `C:\SAYDI\worker`:
 - preserve current ASR similarity QC; **IMPLEMENTED**
@@ -195,5 +195,5 @@ Acceptance:
 
 ## Current next task
 
-After the current QC PR is green and merged, field-validate `SAYDI-QC-002` on DESKTOP-H4A16IL. If PASS, advance to `SAYDI-QC-003`.
+Field-validate `SAYDI-QC-002` on DESKTOP-H4A16IL using `tools/saydi_tts/qc/INSTALL_QC_V2_FIELD_H4A16IL.ps1` in non-mutating `--observe-only` mode. If the required metrics persist successfully, mark SAYDI-QC-002 DONE and advance to `SAYDI-QC-003`.
 
