@@ -56,12 +56,12 @@ Owner supplies a legally usable book
 | Heading/title delivery policy | 🟡 PARTIAL | Architecture/SOT defines separate heading segments and pauses | Enforced in production narration manifest |
 | Provider-safe mapping of emotion/prosody | 🟡 PARTIAL | Provider-neutral design exists; unsupported controls must not be fabricated | Map only to verified TTS capabilities: segmentation, punctuation, pace, pause, supported reference/style controls |
 | ASR text similarity QC | ✅ AVAILABLE | Local QC currently produces similarity/warning/error evidence | Keep as one QC signal, not final acceptance by itself |
-| Word-level pronunciation clarity / “lơ lớ” detection | 🟡 FIELD PENDING | Core + local metric extraction merged in PR #60; DESKTOP-H4A16IL validation pending | Exact suspect token + confidence + timecode |
+| Word-level pronunciation clarity / “lơ lớ” detection | 🟡 PARTIAL | Word-confidence + suspect-token measurement field-validated 24/24 chunks; automatic pronunciation repair is not built yet | Exact suspect token + confidence + timecode, then bounded repair |
 | Vietnamese pronunciation lexicon / spoken-form overrides | 🟡 PARTIAL | Lexicon is architectural requirement; production repair layer not complete | Versioned safe TTS-only overrides without modifying canonical source |
-| Prosody QC: speaking rate | 🟡 FIELD PENDING | Metric extraction merged in PR #60; local validation pending | Compare against active narration profile envelope |
-| Prosody QC: pause/silence pattern | 🟡 FIELD PENDING | Metric extraction merged in PR #60; local validation pending | Detect too little/too much/unnatural pause |
-| Prosody QC: pitch/intonation variation | 🟡 FIELD PENDING | Coarse F0-variation extraction merged in PR #60; local validation pending | Detect flat/robotic delivery and profile mismatch |
-| Prosody QC: energy/dynamics | 🟡 FIELD PENDING | Energy-variation extraction merged in PR #60; local validation pending | Detect lifeless or overexpressive delivery |
+| Prosody QC: speaking rate | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced speaking-rate metrics | Compare against active narration profile envelope |
+| Prosody QC: pause/silence pattern | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced pause-ratio metrics | Detect too little/too much/unnatural pause |
+| Prosody QC: pitch/intonation variation | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced coarse F0-variation metrics | Detect flat/robotic delivery and profile mismatch |
+| Prosody QC: energy/dynamics | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced energy-variation metrics | Detect lifeless or overexpressive delivery |
 | Acoustic QC / joins / clipping / silence | 🟡 PARTIAL | Existing QA architecture and some local checks; full unified gate still evolving | Default-on after synthesis and chapter assembly |
 | Targeted automatic rerender | 🟡 PARTIAL | Repair policy exists; complete local worker loop not yet integrated | Repair only affected chunk/segment, never whole chapter unnecessarily |
 | Bounded retry / no infinite rerender | 🔒 LOCKED | Owner-approved architecture; bounded policy merged in PR #60 | Retry-safe only; exhaustion -> REVIEW |

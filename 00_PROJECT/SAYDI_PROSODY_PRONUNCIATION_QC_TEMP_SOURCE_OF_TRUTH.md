@@ -118,7 +118,7 @@ Acceptance:
 
 ### SAYDI-QC-002 — Local worker metric extraction
 
-Status: CODE_MERGED — FIELD ACCEPTANCE PENDING
+Status: DONE — field acceptance PASS on DESKTOP-H4A16IL
 
 Required on `C:\SAYDI\worker`:
 - preserve current ASR similarity QC; **IMPLEMENTED**
@@ -133,6 +133,24 @@ Acceptance:
 - works on DESKTOP-H4A16IL;
 - metrics are persisted locally;
 - no private audio/text is uploaded.
+
+### SAYDI-QC-002 field evidence
+
+Accepted on 2026-10-04 using Chapter 1 in non-mutating `--observe-only` mode.
+
+Observed evidence:
+
+- chunks observed: 24/24;
+- word-confidence metric: 24/24;
+- speaking-rate metric: 24/24;
+- pause-ratio metric: 24/24;
+- pitch-variation metric: 24/24;
+- energy-variation metric: 24/24;
+- audio SHA-256 traceability: 24/24;
+- field gate result: `FIELD GATE CORE METRICS: PASS`;
+- observe-only safety confirmed: no WAV deletion and no `repair_chunks` request.
+
+This proves metric extraction and local persistence. It does **not** mean the chapter itself is quality-clean: the same QC pass reported 25 warnings and 1 error, which become input evidence for subsequent pronunciation/prosody repair tasks.
 
 ### SAYDI-QC-003 — Vietnamese pronunciation lexicon + spoken-form repair
 
@@ -195,5 +213,5 @@ Acceptance:
 
 ## Current next task
 
-Field-validate `SAYDI-QC-002` on DESKTOP-H4A16IL using `tools/saydi_tts/qc/INSTALL_QC_V2_FIELD_H4A16IL.ps1` in non-mutating `--observe-only` mode. If the required metrics persist successfully, mark SAYDI-QC-002 DONE and advance to `SAYDI-QC-003`.
+`SAYDI-QC-003` — Vietnamese pronunciation lexicon + spoken-form repair.
 
