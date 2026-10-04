@@ -629,7 +629,7 @@ A production export requires all applicable gates:
 
 ## Current authoritative status
 
-**Architecture generation:** SAYDI-AUDIOBOOK-V1.2  
+**Architecture generation:** SAYDI-AUDIOBOOK-V1.3  
 **Current phase:** SAYDI-002 executable vertical slice implementation.  
 **SaydiVoice discovery:** retained and considered the verified provider foundation.  
 **Audiobook production implementation:** STARTED. The first core runner now has provider-neutral contracts, rules analysis, local Ollama adapter boundary, narration fingerprint, representative sample selection, text approval, local prototype voice provider, audio approval state and duplicate-operation guard.
@@ -640,7 +640,7 @@ A production export requires all applicable gates:
 - **SAYDI-002 — Executable vertical slice + provider/AI contracts:** NEXT.
 - **SAYDI-003 — PDF-first book ingest + canonical manifest:** classify text/scanned PDF, extract/OCR, reconstruct reading order, remove repeated page furniture, detect chapters/blocks, preserve provenance and expose OCR exceptions.
 - **SAYDI-004 — Text interpretation foundation:** implement `original_text -> normalized_text -> spoken_text`, punctuation/sentence reconstruction, number/date/unit/abbreviation speech normalization, annotation parser/policy, stable segmentation and confidence/review outputs.
-- **SAYDI-005 — Professional narration director:** implement dialogue/context interpretation, semantic emotion, prosody/pause/emphasis/pace plans, pronunciation lexicon, narration fingerprint and sample approval.
+- **SAYDI-005 — Professional narration director:** implement hierarchical book/chapter/scene/segment intelligence, contextual semantics, dialogue/speaker-role inference, semantic emotion + intensity, emotional-arc smoothing, prosody/pause/emphasis/pace delivery directives, pronunciation lexicon, narration fingerprint and representative sample approval.
 - **SAYDI-006 — Segment synthesis orchestration + resume/idempotency.**
 - **SAYDI-007 — Audio processing, chapter assembly and mastering.**
 - **SAYDI-008 — Alignment/acoustic QA + isolated repair loop.**
@@ -835,3 +835,47 @@ review_required
 ### Current-book disposition
 
 The current "Doanh Nghiệp Tự Hành" render remains useful for infrastructure/QC evidence, but must not be labeled FINAL. A production rerender should be based on the new narration-preprocessed manifest, beginning with a Chapter 1 approval sample before replacing the whole book.
+
+## Owner architecture lock — hierarchical semantic narration (2026-10-04)
+
+The Owner has approved the target architecture for determining tone, meaning, emotion and delivery from a supplied book.
+
+This is now a product invariant:
+
+```text
+BOOK
+ -> BOOK INTELLIGENCE
+ -> CHAPTER INTELLIGENCE
+ -> SCENE INTELLIGENCE
+ -> SEGMENT INTELLIGENCE
+ -> EMOTIONAL ARC
+ -> DELIVERY DIRECTIVE
+ -> TTS
+ -> PRONUNCIATION QC
+ -> PROSODY/STYLE QC
+ -> ACOUSTIC/JOIN QC
+ -> PASS / bounded isolated repair / REVIEW
+```
+
+Mandatory interpretation behavior:
+
+- analyze the complete canonical book hierarchically rather than treating one excerpt as sufficient book context;
+- infer scene semantics and emotional state with context, not keyword matching;
+- support emotion intensity and confidence, not only a single binary emotion label;
+- distinguish narrator prose, dialogue and speaker/character role where reliably inferable;
+- preserve narrator/character continuity across scenes;
+- smooth emotional transitions across neighboring segments so delivery does not jump unnaturally;
+- translate semantic intent into provider-neutral pace/energy/pause/emphasis/pronunciation directives;
+- map only to controls actually supported by the active TTS provider;
+- keep canonical source meaning immutable;
+- route low-confidence semantic decisions to REVIEW;
+- run pronunciation/prosody/acoustic QC after synthesis and repair only affected units with a bounded retry policy.
+
+The durable implementation checklist is:
+
+`00_PROJECT/NARRATION_INTELLIGENCE_CAPABILITY_MATRIX.md`
+
+That matrix may grow whenever the Owner discovers a missing or improvable capability. It records implementation coverage only; authoritative task ordering remains in this Source of Truth.
+
+The Owner's intended end-state is minimal-input operation: supply the legally usable book and optional narrator/style preference; SAYDI handles routine semantic narration planning, generation, QC and safe repair. Owner intervention should normally be limited to initial narration approval and genuine semantic/quality exceptions.
+

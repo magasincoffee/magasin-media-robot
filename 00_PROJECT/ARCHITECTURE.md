@@ -616,3 +616,147 @@ Narration emotion and emphasis are semantic metadata. If VieNeu does not expose 
 - approved voice/reference settings.
 
 Do not claim unsupported per-sentence emotion control.
+
+## 18. Locked hierarchical narration-intelligence architecture
+
+Owner decision (2026-10-04): the final audiobook intelligence path is hierarchical and context-aware. SAYDI must not classify each sentence independently or rely on emotion keywords alone.
+
+Canonical analysis flow:
+
+```text
+CANONICAL BOOK
+  -> BOOK INTELLIGENCE
+  -> CHAPTER INTELLIGENCE
+  -> SCENE INTELLIGENCE
+  -> SEGMENT INTELLIGENCE
+  -> EMOTIONAL ARC
+  -> DELIVERY DIRECTIVE
+  -> VOICE PROVIDER
+  -> PRONUNCIATION QC
+  -> PROSODY / STYLE QC
+  -> ACOUSTIC / JOIN QC
+  -> PASS or isolated bounded repair
+```
+
+### Book intelligence
+
+Creates the stable narration identity for the book:
+
+- genre / subgenre;
+- audience;
+- overall tone;
+- narrator identity and voice constraints;
+- dialogue/technical density;
+- expected emotion range;
+- default narration profile;
+- representative preview requirements.
+
+Book context must be derived hierarchically from the complete canonical work. Long books must not be approximated by treating only one opening excerpt as the complete book.
+
+### Chapter and scene intelligence
+
+Each chapter is analyzed with book context. Scene boundaries are then inferred from semantic continuity rather than arbitrary character counts.
+
+Scene analysis must produce structured, validated metadata including:
+
+```text
+scene_role
+semantic_summary_ref
+primary_emotion
+secondary_emotion
+emotion_intensity
+tension
+pace_intent
+energy_intent
+confidence
+review_required
+```
+
+Emotion interpretation is contextual. Literal keywords never override the surrounding meaning. Example: a phrase equivalent to “a bitter smile” must not be classified as joyful merely because “smile” appears.
+
+### Segment intelligence
+
+Each synthesis segment receives book + chapter + scene context and neighboring context where available.
+
+Target metadata:
+
+```text
+segment_type
+speaker_role
+speaker_or_character_key
+emotion
+emotion_intensity
+pace
+energy
+pause_before_ms
+pause_after_ms
+emphasis[]
+pronunciation_keys[]
+confidence
+review_required
+```
+
+Speaker inference is allowed only when confidence is sufficient. Ambiguous speaker attribution becomes REVIEW.
+
+### Emotional arc
+
+Delivery state must be smoothed across neighboring segments and scenes.
+
+Forbidden behavior:
+
+```text
+sentence 1 = joyful
+sentence 2 = sad
+sentence 3 = joyful
+sentence 4 = tense
+```
+
+when the changes are artifacts of isolated classification rather than the story.
+
+Target behavior:
+
+```text
+neutral
+  -> slightly tense
+  -> tense
+  -> climax
+  -> release
+  -> reflective
+```
+
+The narrator/character identity remains stable while emotional state changes gradually unless the source clearly requires an abrupt transition.
+
+### Delivery directive
+
+Semantic intent is converted into provider-neutral delivery directives. These may include:
+
+- pace;
+- energy;
+- pause policy;
+- emphasis;
+- expression;
+- pronunciation hints;
+- sentence/chunk boundary choices.
+
+The provider adapter may use only controls actually supported by the active TTS engine. If a model lacks direct emotion controls, SAYDI may approximate delivery only through validated techniques such as segmentation, punctuation, supported pace/pause controls and approved reference/voice settings.
+
+### QC closes the loop
+
+Generation is not final acceptance.
+
+Every rendered unit must pass:
+
+1. pronunciation clarity / word-level evidence where available;
+2. prosody/style checks against the active narration profile;
+3. acoustic/join checks.
+
+A safe defect triggers repair only for the affected unit, followed by full QC again. Repair is bounded; retry exhaustion becomes REVIEW.
+
+### Capability registry
+
+Implementation coverage is tracked in:
+
+`00_PROJECT/NARRATION_INTELLIGENCE_CAPABILITY_MATRIX.md`
+
+This registry is intentionally extensible. Missing capabilities and future improvements are appended there, while task ordering remains authoritative in `SOURCE_OF_TRUTH.md`.
+
