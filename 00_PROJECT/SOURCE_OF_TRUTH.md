@@ -1,6 +1,6 @@
 # SAYDI Audiobook — Source of Truth
 
-Last updated: 2026-10-03
+Last updated: 2026-10-04
 
 ## Authority
 
@@ -767,3 +767,71 @@ Already field-validated on `DESKTOP-H4A16IL`:
 - invisible QC metadata/event storage.
 
 The full local ASR/forced-alignment verification pass is now part of the **mandatory default architecture** but is not yet field-validated on the active worker. It must be implemented and accepted before claiming fully autonomous semantic audio QA.
+
+
+## Owner listening verdict — narration preprocessing is mandatory (2026-10-04)
+
+The first full local VieNeu render is now classified as a **DRAFT BASELINE**, not a final audiobook.
+
+Owner listening feedback from Chapter 1 established that technically correct TTS is insufficient. Production acceptance now requires a mandatory **Narration Preprocess** stage before synthesis.
+
+Default pre-TTS behavior must:
+
+1. analyze the complete source book before chunk generation;
+2. remove non-spoken PDF artifacts such as page numbers, repeated headers/footers, extraction debris and meaningless layout residue;
+3. reconstruct sentences and paragraphs from PDF line wrapping;
+4. detect chapters, section headings, subheadings, lists, quotations, dialogue and transitions;
+5. preserve source meaning while producing a derived `spoken_text`;
+6. assign provider-neutral narration metadata per semantic block;
+7. create explicit title/heading delivery with stronger prominence and longer pauses before/after;
+8. use paragraph/semantic boundaries for segmentation rather than character-count boundaries alone;
+9. preserve low-confidence edits as REVIEW rather than silently guessing.
+
+### Heading delivery policy
+
+Headings are semantic audio landmarks.
+
+Minimum default behavior:
+
+- chapter title is rendered as its own segment;
+- section/subsection headings are rendered as separate segments;
+- heading pace is slightly slower than body narration where supported;
+- heading energy/emphasis is elevated where supported;
+- insert a deliberate pause before and after headings;
+- do not merge the first body sentence into the heading chunk;
+- unsupported emotional/prosody controls must be approximated only through verified provider behavior such as segmentation, punctuation and pause policy; never fabricate provider controls.
+
+### Narration-state classification
+
+Every semantic block should carry a provider-neutral role such as:
+
+```text
+CHAPTER_TITLE
+SECTION_HEADING
+NARRATOR_BODY
+DIALOGUE
+QUOTE
+LIST_ITEM
+REFLECTIVE
+EXPLANATORY
+EMPHATIC
+TRANSITION
+ANNOTATION
+```
+
+and a narration plan such as:
+
+```text
+pace
+energy
+pause_before_ms
+pause_after_ms
+emphasis
+emotion
+confidence
+review_required
+```
+
+### Current-book disposition
+
+The current "Doanh Nghiệp Tự Hành" render remains useful for infrastructure/QC evidence, but must not be labeled FINAL. A production rerender should be based on the new narration-preprocessed manifest, beginning with a Chapter 1 approval sample before replacing the whole book.
