@@ -54,8 +54,23 @@ def ev(t,sev,idx,s,e,score=None,**d):
 def check(model,job,attempt):
     out=Path(job["output_file_name"]); cdir=out.parent/"chunks"; events=[]; repair=set(); cur=0.0; prevtrail=0.0
     rows=chunks(job["id"])
-    for c in rows:
+    chapter=int(job.get("chapter_number") or 0)
+    total=len(rows)
+    started=time.time()
+    progress_path=QC/"qc_progress.json"
+    print(f"[QC] Chapter {chapter}: START | {total} chunks | attempt={attempt}", flush=True)
+    for pos,c in enumerate(rows, start=1):
         idx=int(c["chunk_index"]); text=str(c.get("text_content") or ""); wav=cdir/f"{idx:06d}.wav"
+        chunk_started=time.time()
+        elapsed=chunk_started-started
+        avg=(elapsed/(pos-1)) if pos>1 else 0.0
+        eta=avg*(total-pos+1)
+        print(f"[QC] Chapter {chapter} | chunk {pos}/{total} (id={idx}) | ASR starting | elapsed={elapsed/60:.1f}m | ETA~{eta/60:.1f}m", flush=True)
+        progress_path.write_text(json.dumps({
+            "chapter":chapter,"chunk_position":pos,"chunk_index":idx,"total_chunks":total,
+            "attempt":attempt,"stage":"asr","elapsed_sec":round(elapsed,1),"eta_sec":round(eta,1),
+            "updated_at":time.strftime("%Y-%m-%d %H:%M:%S")
+        },ensure_ascii=False,indent=2),encoding="utf-8")
         if not wav.exists() or wav.stat().st_size<1024:
             events.append(ev("missing_audio","error",idx,cur,cur)); repair.add(idx); continue
         try: m=metrics(wav)
@@ -74,13 +89,18 @@ def check(model,job,attempt):
         try:
             segs,info=model.transcribe(str(wav),language="vi",beam_size=5,vad_filter=True,condition_on_previous_text=False)
             heard=" ".join(z.text.strip() for z in segs if z.text.strip()); q=sim(text,heard)
+            took=time.time()-chunk_started
+            print(f"[QC] Chapter {chapter} | chunk {pos}/{total} DONE | similarity={q:.3f} | {took:.1f}s", flush=True)
             if q<.55: events.append(ev("asr_mismatch","error",idx,s,e,q,expected=text[:160],heard=heard[:160]))
             elif q<.76: events.append(ev("asr_mismatch","warning",idx,s,e,q,expected=text[:160],heard=heard[:160]))
-        except Exception as x: events.append(ev("asr_mismatch","warning",idx,s,e,error=str(x)[:300]))
+        except Exception as x:
+            print(f"[QC] Chapter {chapter} | chunk {pos}/{total} ASR ERROR: {x}", flush=True)
+            events.append(ev("asr_mismatch","warning",idx,s,e,error=str(x)[:300]))
     warn=sum(x["severity"]=="warning" for x in events); err=sum(x["severity"]=="error" for x in events)
     report={"source":"local_qc_v1","attempt":attempt,"chapter_number":job.get("chapter_number"),"checked_chunks":len(rows),
             "warnings":warn,"errors":err,"auto_repair_indices":sorted(repair),"asr_model":"small","audible_markers":False}
     call("qc_report_batch",job_id=job["id"],qc_status="passed" if not warn and not err else "review",qc_report=report,events=events)
+    print(f"[QC] Chapter {chapter}: DONE | warnings={warn} errors={err} | elapsed={(time.time()-started)/60:.1f}m", flush=True)
     return report,sorted(repair)
 
 def wait_done(book,jobid,limit=7200):
@@ -96,7 +116,9 @@ def wait_done(book,jobid,limit=7200):
 def main():
     p=argparse.ArgumentParser(); p.add_argument("--book-id",required=True); p.add_argument("--max-chapter",type=int,default=5); a=p.parse_args()
     REPORTS.mkdir(parents=True,exist_ok=True); MODELS.mkdir(parents=True,exist_ok=True)
+    print("[QC] Loading faster-whisper model: small / CPU int8 ...", flush=True)
     model=WhisperModel("small",device="cpu",compute_type="int8",download_root=str(MODELS),cpu_threads=max(2,min(8,os.cpu_count() or 4)))
+    print("[QC] Model ready.", flush=True)
     jobs=call("book_jobs",book_id=a.book_id,max_chapter=a.max_chapter).get("jobs") or []
     jobs=[j for j in jobs if 1<=int(j.get("chapter_number") or 0)<=a.max_chapter]
     summary=[]
