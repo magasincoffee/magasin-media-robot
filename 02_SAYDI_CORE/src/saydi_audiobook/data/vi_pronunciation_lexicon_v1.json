@@ -1,0 +1,54 @@
+{
+  "version": "vi-pronunciation-v1",
+  "locale": "vi-VN",
+  "entries": [
+    {
+      "key": "abbr:AI",
+      "source": "AI",
+      "spoken": "ây ai",
+      "category": "abbreviation",
+      "case_sensitive": true,
+      "whole_word": true
+    },
+    {
+      "key": "abbr:API",
+      "source": "API",
+      "spoken": "ây pi ai",
+      "category": "abbreviation",
+      "case_sensitive": true,
+      "whole_word": true
+    },
+    {
+      "key": "abbr:CEO",
+      "source": "CEO",
+      "spoken": "xi i ô",
+      "category": "abbreviation",
+      "case_sensitive": true,
+      "whole_word": true
+    },
+    {
+      "key": "unit:kg",
+      "source": "kg",
+      "spoken": "ki-lô-gam",
+      "category": "unit",
+      "case_sensitive": false,
+      "whole_word": true
+    },
+    {
+      "key": "unit:km",
+      "source": "km",
+      "spoken": "ki-lô-mét",
+      "category": "unit",
+      "case_sensitive": false,
+      "whole_word": true
+    },
+    {
+      "key": "currency:USD",
+      "source": "USD",
+      "spoken": "đô la Mỹ",
+      "category": "foreign_term",
+      "case_sensitive": true,
+      "whole_word": true
+    }
+  ]
+}
