@@ -56,15 +56,15 @@ Owner supplies a legally usable book
 | Heading/title delivery policy | 🟡 PARTIAL | Architecture/SOT defines separate heading segments and pauses | Enforced in production narration manifest |
 | Provider-safe mapping of emotion/prosody | 🟡 PARTIAL | Provider-neutral design exists; unsupported controls must not be fabricated | Map only to verified TTS capabilities: segmentation, punctuation, pace, pause, supported reference/style controls |
 | ASR text similarity QC | ✅ AVAILABLE | Local QC currently produces similarity/warning/error evidence | Keep as one QC signal, not final acceptance by itself |
-| Word-level pronunciation clarity / “lơ lớ” detection | 🟡 BUILDING | Core policy implemented in PR #58; local worker extraction not yet integrated | Exact suspect token + confidence + timecode |
+| Word-level pronunciation clarity / “lơ lớ” detection | 🟡 FIELD PENDING | Core + local metric extraction merged in PR #60; DESKTOP-H4A16IL validation pending | Exact suspect token + confidence + timecode |
 | Vietnamese pronunciation lexicon / spoken-form overrides | 🟡 PARTIAL | Lexicon is architectural requirement; production repair layer not complete | Versioned safe TTS-only overrides without modifying canonical source |
-| Prosody QC: speaking rate | 🟡 BUILDING | Core policy in PR #58; local metric extraction pending | Compare against active narration profile envelope |
-| Prosody QC: pause/silence pattern | 🟡 BUILDING | Core policy in PR #58; local metric extraction pending | Detect too little/too much/unnatural pause |
-| Prosody QC: pitch/intonation variation | 🟡 BUILDING | Core policy in PR #58; local metric extraction pending | Detect flat/robotic delivery and profile mismatch |
-| Prosody QC: energy/dynamics | 🟡 BUILDING | Contract/policy direction exists; worker extraction pending | Detect lifeless or overexpressive delivery |
+| Prosody QC: speaking rate | 🟡 FIELD PENDING | Metric extraction merged in PR #60; local validation pending | Compare against active narration profile envelope |
+| Prosody QC: pause/silence pattern | 🟡 FIELD PENDING | Metric extraction merged in PR #60; local validation pending | Detect too little/too much/unnatural pause |
+| Prosody QC: pitch/intonation variation | 🟡 FIELD PENDING | Coarse F0-variation extraction merged in PR #60; local validation pending | Detect flat/robotic delivery and profile mismatch |
+| Prosody QC: energy/dynamics | 🟡 FIELD PENDING | Energy-variation extraction merged in PR #60; local validation pending | Detect lifeless or overexpressive delivery |
 | Acoustic QC / joins / clipping / silence | 🟡 PARTIAL | Existing QA architecture and some local checks; full unified gate still evolving | Default-on after synthesis and chapter assembly |
 | Targeted automatic rerender | 🟡 PARTIAL | Repair policy exists; complete local worker loop not yet integrated | Repair only affected chunk/segment, never whole chapter unnecessarily |
-| Bounded retry / no infinite rerender | 🔒 LOCKED | Owner-approved architecture; PR #58 policy defaults to bounded attempts | Retry-safe only; exhaustion -> REVIEW |
+| Bounded retry / no infinite rerender | 🔒 LOCKED | Owner-approved architecture; bounded policy merged in PR #60 | Retry-safe only; exhaustion -> REVIEW |
 | Owner exception-only review | 🔒 LOCKED | SOT owner experience rule | Owner should not manually hunt defects |
 | Final “submit book and SAYDI handles narration” flow | ❌ NOT YET COMPLETE | Depends on scene intelligence, narration director and full QC/repair integration | Primary end-state for the product |
 
