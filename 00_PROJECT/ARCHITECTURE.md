@@ -552,3 +552,67 @@ finding
 ### Active deployment note
 
 The currently field-validated local production host is `DESKTOP-H4A16IL` with VieNeu v3 Turbo / ONNX and the approved `SAYDI Nam Mien Nam` voice. Boot recovery and chapter synthesis have been validated. Full local ASR/forced-alignment QC remains a required default module but is not yet field-accepted on that worker.
+
+
+## 17. Narration Preprocess pipeline
+
+A book must not flow directly from PDF extraction into TTS chunks.
+
+Required production path:
+
+```text
+SOURCE PDF
+ -> extraction/OCR
+ -> layout cleanup
+ -> structure reconstruction
+ -> semantic block classification
+ -> original_text
+ -> normalized_text
+ -> spoken_text
+ -> narration plan
+ -> heading/title pause plan
+ -> sentence/paragraph-aware segmentation
+ -> preview/sample approval
+ -> TTS
+ -> chapter assembly
+ -> QC/ASR
+```
+
+### Layout cleanup
+
+Remove or classify before speech:
+
+- standalone/repeated page numbers;
+- repeated headers and footers;
+- broken line-wrap artifacts;
+- duplicated whitespace;
+- extraction control characters;
+- decorative text that has no spoken meaning;
+- indexes/navigation residue that the active book policy marks non-spoken.
+
+Never delete meaningful footnotes, citations, annotations or sidebars merely because they are inconvenient. They require an explicit read/skip/defer/review policy.
+
+### Semantic narration blocks
+
+The canonical narration manifest separates headings from body prose. A heading is never treated as just another sentence in a long TTS chunk.
+
+Recommended default timing:
+
+- chapter title: pause before 800–1200 ms, pause after 1200–1800 ms;
+- section heading: pause before 500–900 ms, pause after 800–1400 ms;
+- paragraph transition: 250–500 ms;
+- ordinary sentence boundary: provider/default natural pause.
+
+These are provider-neutral targets. Adapters map them to verified capabilities.
+
+### Expressiveness
+
+Narration emotion and emphasis are semantic metadata. If VieNeu does not expose a reliable direct emotion control, the adapter may only use validated techniques such as:
+
+- independent segment rendering;
+- punctuation;
+- pause boundaries;
+- pace/profile selection supported by the engine;
+- approved voice/reference settings.
+
+Do not claim unsupported per-sentence emotion control.
