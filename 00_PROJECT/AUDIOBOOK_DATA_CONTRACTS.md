@@ -52,6 +52,30 @@ narration_directive_id
 
 `content_sha256` represents the exact spoken content plus normalization version needed for dependency invalidation.
 
+## 2A. PronunciationOverride.v1
+
+```text
+lexicon_version
+key
+category
+source_text
+spoken_text
+source_start
+source_end
+```
+
+Pronunciation overrides belong only to the derived spoken/TTS layer. The canonical source is never overwritten. Unknown or ambiguous names/foreign terms remain unresolved until an explicit approved entry exists.
+
+A targeted pronunciation repair proposal also records:
+
+```text
+canonical_text
+spoken_text
+applied_overrides[]
+unresolved_suspect_tokens[]
+```
+
+
 ## 3. NarrationProfile.v1
 
 ```text

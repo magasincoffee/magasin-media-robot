@@ -14,3 +14,6 @@ saydi-audiobook = "saydi_audiobook.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+saydi_audiobook = ["data/*.json"]
