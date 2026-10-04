@@ -70,7 +70,7 @@ if (-not (Test-Path $QcPython)) {
     if ($LASTEXITCODE -ne 0) { throw "uv venv failed" }
 }
 
-& $uv pip install --python $QcPython "faster-whisper>=1.1,<2" "numpy>=1.26,<3" "soundfile>=0.12,<1"
+& $uv pip install --python $QcPython "faster-whisper>=1.1,<2" "av>=11,<19" "numpy>=1.26,<3" "soundfile>=0.12,<1"
 if ($LASTEXITCODE -ne 0) { throw "QC dependencies install failed" }
 
 & $QcPython $RunQc --book-id $BookId --max-chapter $MaxChapter *>> $RunLog
