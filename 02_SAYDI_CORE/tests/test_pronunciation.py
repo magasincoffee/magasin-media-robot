@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 import unittest
 
 from saydi_audiobook.pronunciation import (
@@ -135,6 +137,51 @@ class PronunciationTests(unittest.TestCase):
         self.assertEqual(lexicon.version, "vi-pronunciation-v1")
         self.assertEqual(lexicon.locale, "vi-VN")
         self.assertGreaterEqual(len(lexicon.entries), 6)
+
+
+    def test_regression_fixture_for_diacritics_abbreviations_units_and_unknown_terms(self):
+        fixture_path = (
+            Path(__file__).resolve().parents[1]
+            / "fixtures"
+            / "pronunciation_regression_vi.json"
+        )
+        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        for case in payload["cases"]:
+            with self.subTest(case=case["id"]):
+                if case.get("use_default_lexicon"):
+                    lexicon = None
+                else:
+                    lexicon = PronunciationLexicon(
+                        version="fixture-v1",
+                        locale="vi-VN",
+                        entries=tuple(
+                            PronunciationEntry(
+                                key=item["key"],
+                                source=item["source"],
+                                spoken=item["spoken"],
+                                category=item["category"],
+                                case_sensitive=bool(item.get("case_sensitive", False)),
+                                whole_word=bool(item.get("whole_word", True)),
+                            )
+                            for item in case.get("lexicon", [])
+                        ),
+                    )
+
+                suspects = case.get("suspect_tokens")
+                if suspects is None:
+                    result = build_spoken_form(case["source"], lexicon=lexicon)
+                else:
+                    result = build_pronunciation_repair_plan(
+                        case["source"],
+                        suspect_tokens=suspects,
+                        lexicon=lexicon,
+                    )
+
+                self.assertEqual(result.spoken_text, case["expected"])
+                self.assertEqual(
+                    list(result.unresolved_suspect_tokens),
+                    case.get("expected_unresolved", []),
+                )
 
 
 if __name__ == "__main__":
