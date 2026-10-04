@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
+import json
 from pathlib import Path
 
 from .analysis import OllamaAnalysisProvider, RuleBasedAnalysisProvider
+from .pronunciation import build_pronunciation_repair_plan, load_pronunciation_lexicon
 from .voice import WindowsSapiVoiceProvider
 from .workflow import decide_audio, decide_text, prepare_run, synthesize_sample
 
@@ -49,6 +52,20 @@ def build_parser() -> argparse.ArgumentParser:
     da = sub.add_parser("decide-audio")
     da.add_argument("--run-dir", required=True, type=Path)
     da.add_argument("--decision", required=True, choices=["approve", "reject"])
+
+    pron = sub.add_parser(
+        "pronunciation-preview",
+        help="Build a local, non-destructive spoken-form repair proposal.",
+    )
+    pron.add_argument("--input", required=True, type=Path, help="UTF-8 text input")
+    pron.add_argument(
+        "--suspect",
+        action="append",
+        default=[],
+        help="Suspect token/phrase from QC. Repeat for multiple values.",
+    )
+    pron.add_argument("--lexicon", type=Path, default=None)
+    pron.add_argument("--output", type=Path, default=None, help="Optional JSON output path")
     return p
 
 
@@ -73,5 +90,33 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "decide-audio":
         state = decide_audio(args.run_dir, args.decision)
         print(f"audio decision: {state['audio_decision']} status={state['status']}")
+        return 0
+    if args.command == "pronunciation-preview":
+        source = args.input.read_text(encoding="utf-8")
+        lexicon = load_pronunciation_lexicon(args.lexicon) if args.lexicon else None
+        result = build_pronunciation_repair_plan(
+            source,
+            suspect_tokens=args.suspect,
+            lexicon=lexicon,
+        )
+        payload = {
+            "canonical_text": result.canonical_text,
+            "spoken_text": result.spoken_text,
+            "lexicon_version": result.lexicon_version,
+            "changed": result.changed,
+            "applied_overrides": [asdict(x) for x in result.applied_overrides],
+            "unresolved_suspect_tokens": list(result.unresolved_suspect_tokens),
+        }
+        rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(rendered, encoding="utf-8")
+            print(
+                f"pronunciation preview written: {args.output} "
+                f"overrides={len(result.applied_overrides)} "
+                f"unresolved={len(result.unresolved_suspect_tokens)}"
+            )
+        else:
+            print(rendered, end="")
         return 0
     return 1
