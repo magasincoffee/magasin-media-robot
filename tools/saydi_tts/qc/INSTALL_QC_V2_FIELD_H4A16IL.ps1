@@ -50,9 +50,11 @@ if (-not (Test-Path $QcPython)) {
 if ($LASTEXITCODE -ne 0) { throw "QC dependencies install failed" }
 
 Add-Content $Log ("===== QC V2 FIELD START " + (Get-Date -Format s) + " =====")
-& $QcPython $RunQc --book-id $BookId --max-chapter $MaxChapter --observe-only *>> $Log
-if ($LASTEXITCODE -ne 0) {
-    throw "QC v2 field run failed. Xem log: $Log"
+Write-Host "Bắt đầu QC V2. Tiến trình sẽ hiển thị trực tiếp bên dưới và đồng thời ghi vào log." -ForegroundColor Cyan
+& $QcPython $RunQc --book-id $BookId --max-chapter $MaxChapter --observe-only 2>&1 | Tee-Object -FilePath $Log -Append
+$qcExit = $LASTEXITCODE
+if ($qcExit -ne 0) {
+    throw "QC v2 field run failed (exit=$qcExit). Xem log: $Log"
 }
 
 $report = Join-Path $QcRoot ("reports\" + $BookId + "\qc_summary.json")
