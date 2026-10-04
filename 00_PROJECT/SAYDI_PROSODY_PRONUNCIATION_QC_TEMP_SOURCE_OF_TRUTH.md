@@ -103,7 +103,7 @@ For a chunk outside the active narration profile:
 
 ### SAYDI-QC-001 — Core quality contracts and deterministic repair policy
 
-Status: IMPLEMENTED_IN_PR
+Status: DONE (code + unit-test foundation; current-main PR verification pending)
 
 Required:
 - provider-neutral quality observation/report contracts;
@@ -118,16 +118,16 @@ Acceptance:
 
 ### SAYDI-QC-002 — Local worker metric extraction
 
-Status: PENDING
+Status: IMPLEMENTED_IN_PR — FIELD ACCEPTANCE PENDING
 
 Required on `C:\SAYDI\worker`:
-- preserve current ASR similarity QC;
-- add word-level confidence/alignment evidence;
-- calculate speaking rate;
-- calculate pause/silence ratio;
-- calculate pitch/intonation variation;
-- calculate energy/dynamics variation;
-- emit one structured observation per chunk keyed by audio SHA-256.
+- preserve current ASR similarity QC; **IMPLEMENTED**
+- add word-level confidence/alignment evidence; **IMPLEMENTED via faster-whisper word timestamps**
+- calculate speaking rate; **IMPLEMENTED**
+- calculate pause/silence ratio; **IMPLEMENTED**
+- calculate pitch/intonation variation; **IMPLEMENTED coarse local F0 variation**
+- calculate energy/dynamics variation; **IMPLEMENTED**
+- emit one structured observation per chunk keyed by audio SHA-256. **IMPLEMENTED**
 
 Acceptance:
 - works on DESKTOP-H4A16IL;
@@ -195,7 +195,5 @@ Acceptance:
 
 ## Current next task
 
-After SAYDI-QC-001 PR is green and merged:
-
-`SAYDI-QC-002`
+After the current QC PR is green and merged, field-validate `SAYDI-QC-002` on DESKTOP-H4A16IL. If PASS, advance to `SAYDI-QC-003`.
 
