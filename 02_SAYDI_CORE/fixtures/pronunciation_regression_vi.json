@@ -1,0 +1,43 @@
+{
+  "schema_version": "pronunciation-regression-v1",
+  "locale": "vi-VN",
+  "cases": [
+    {
+      "id": "diacritics-name",
+      "source": "Tôi đến Đắk Lắk.",
+      "lexicon": [
+        {
+          "key": "name:dak-lak",
+          "source": "Đắk Lắk",
+          "spoken": "Đắc Lắc",
+          "category": "name"
+        }
+      ],
+      "expected": "Tôi đến Đắc Lắc."
+    },
+    {
+      "id": "abbreviation-ai",
+      "source": "AI hỗ trợ người đọc.",
+      "use_default_lexicon": true,
+      "expected": "ây ai hỗ trợ người đọc."
+    },
+    {
+      "id": "unit-kg",
+      "source": "Khối lượng là 15 kg.",
+      "use_default_lexicon": true,
+      "expected": "Khối lượng là mười lăm ki-lô-gam."
+    },
+    {
+      "id": "foreign-explicit-only",
+      "source": "Zephyr xuất hiện trong câu.",
+      "lexicon": [],
+      "suspect_tokens": [
+        "Zephyr"
+      ],
+      "expected": "Zephyr xuất hiện trong câu.",
+      "expected_unresolved": [
+        "Zephyr"
+      ]
+    }
+  ]
+}
