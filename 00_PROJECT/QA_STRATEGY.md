@@ -244,3 +244,19 @@ Required prosody evidence:
 Automatic repair is bounded and local to the affected chunk. Safe repair order is pronunciation/spoken-form override, chunk-boundary adjustment, supported pace/pause adjustment, then rerender + full QC. A persistent defect after the retry budget becomes REVIEW; the system must never loop indefinitely.
 
 A human-like target is an acceptance goal, not a guarantee. The system reports residual defects rather than hiding them.
+
+## Pronunciation lexicon and spoken-form safety
+
+Pronunciation repair is a derived TTS layer only. Canonical source and normalized text remain immutable evidence.
+
+Rules:
+
+- explicit lexicon entries are versioned and auditable;
+- names and foreign terms are never guessed automatically when no approved entry exists;
+- abbreviations/units may use approved deterministic entries;
+- integer normalization is conservative and limited to unambiguous standalone integers;
+- decimals, phone numbers, long identifiers and mixed alphanumeric strings remain unchanged unless an explicit rule exists;
+- targeted repair records the exact source span, replacement spoken form, lexicon key/category and unresolved suspect tokens;
+- unresolved pronunciation suspects become REVIEW evidence for later repair rather than silent replacement.
+
+The default Vietnamese lexicon ships as package data and may be extended with a local/private lexicon without committing manuscript content or private names to Git.
