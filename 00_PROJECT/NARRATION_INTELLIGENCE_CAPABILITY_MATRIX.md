@@ -63,7 +63,7 @@ Owner supplies a legally usable book
 | Prosody QC: pitch/intonation variation | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced coarse F0-variation metrics | Detect flat/robotic delivery and profile mismatch |
 | Prosody QC: energy/dynamics | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced energy-variation metrics | Detect lifeless or overexpressive delivery |
 | Acoustic QC / joins / clipping / silence | 🟡 PARTIAL | Existing QA architecture and some local checks; full unified gate still evolving | Default-on after synthesis and chapter assembly |
-| Targeted automatic rerender | 🟡 FIELD PENDING | QC-004 code adds TTS-only overrides, per-chunk bounded/idempotent repair, safe WAV staging, worker-compatible effective text and post-repair QC; local field gate pending | Repair only affected chunk/segment, preserve accepted chunks, then PASS/REVIEW |
+| Targeted automatic rerender | 🟡 CORRECT-HOST FIELD PENDING | QC-004 code merged and Supabase/Edge v7 deployed; automated runner reached DESKTOP-4K7IM13 and was safely blocked because authoritative TTS host is DESKTOP-H4A16IL | Run the one-command H4A16IL field gate; prove only the target chunk changes, then PASS/REVIEW |
 | Bounded retry / no infinite rerender | 🔒 LOCKED | Owner-approved architecture; bounded policy merged in PR #60 | Retry-safe only; exhaustion -> REVIEW |
 | Owner exception-only review | 🔒 LOCKED | SOT owner experience rule | Owner should not manually hunt defects |
 | Final “submit book and SAYDI handles narration” flow | ❌ NOT YET COMPLETE | Depends on scene intelligence, narration director and full QC/repair integration | Primary end-state for the product |
