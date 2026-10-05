@@ -282,13 +282,13 @@ Evidence:
 
 ### SAYDI-QC-006 — Field acceptance on local VieNeu
 
-Status: PENDING
+Status: IMPLEMENTED_IN_PR — SYNTHETIC RENDER + LOCAL TECHNICAL GATE / OWNER LISTENING PENDING
 
 Required:
-- use synthetic/public-domain Vietnamese test passages;
-- include intentionally difficult pronunciation and expressive passages;
-- demonstrate defect detection, targeted rerender, and final PASS/REVIEW;
-- compare before/after samples by Owner listening only at the final acceptance gate.
+- use synthetic/public-domain Vietnamese test passages; **IMPLEMENTED with synthetic-only field fixtures**
+- include intentionally difficult pronunciation and expressive passages; **IMPLEMENTED across BUSINESS_CLEAR / STORY_NARRATIVE / GENERAL_CLEAR**
+- demonstrate defect detection, targeted rerender, and final PASS/REVIEW; **FIELD HARNESS IMPLEMENTED; local execution pending**
+- compare before/after samples by Owner listening only at the final acceptance gate. **OWNER LISTENING GATE IMPLEMENTED; pending Owner review**
 
 Acceptance:
 - pronunciation defects are localized;
@@ -296,7 +296,24 @@ Acceptance:
 - automatic repairs are bounded;
 - chapter output remains traceable and listener audio contains no QC markers.
 
+### SAYDI-QC-006 implementation / field evidence
+
+Prepared on 2026-10-05.
+
+Evidence:
+
+- synthetic-only field manifest committed at `tools/saydi_tts/qc/fixtures/qc006_field_manifest.json`;
+- one-command H4A16IL harness committed at `tools/saydi_tts/qc/INSTALL_QC006_FIELD_H4A16IL.ps1`;
+- durable acceptance plan committed at `00_PROJECT/QC006_FIELD_ACCEPTANCE_PLAN.md`;
+- five synthetic Supabase test jobs were queued on MAGASIN-NOIBO, including three profile cases and two controlled repair probes;
+- production TTS worker `DESKTOP-H4A16IL-SAYDI-TTS` was online and began rendering the queued fixtures;
+- targeted-repair fixture uses three chunks: chunk 1 contains a synthetic wrong TTS-only override while chunks 0 and 2 are controls;
+- field harness records pre/post SHA-256, profile metrics, localized pronunciation/prosody findings, bounded repair count, canonical-text preservation, and Owner before/after WAV samples;
+- no private book/manuscript content is used or uploaded.
+
+Final QC-006 acceptance remains blocked on the local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
+
 ## Current next task
 
-`SAYDI-QC-006` — prepare and run local VieNeu field acceptance with synthetic/public-domain Vietnamese passages. QC-004 remains a separate unresolved required gate: final QC project completion is not allowed until QC-004 prints `FIELD GATE QC-004: PASS` on DESKTOP-H4A16IL.
+Run `tools/saydi_tts/qc/INSTALL_QC006_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL after the synthetic jobs complete. Require `Technical field gate: PASS`, then Owner listens to the generated BEFORE/AFTER WAV pair. QC-004 correct-host field PASS remains separately mandatory before declaring the QC track complete.
 
