@@ -39,7 +39,23 @@ Deno.serve(async (req) => {
     return json({ error: "unauthorized" }, 401);
   }
 
-  const body = await req.json().catch(() => ({}));
+  const requestContentType = req.headers.get("content-type") ?? "";
+  const rawBody = await req.text();
+  let body: any = {};
+  try {
+    body = JSON.parse(rawBody);
+  } catch (error) {
+    return json(
+      {
+        error: "invalid_json",
+        parse_error: error instanceof Error ? error.message : String(error),
+        body_length_chars: rawBody.length,
+        content_type: requestContentType,
+      },
+      400,
+    );
+  }
+
   const actionRaw = String(body.action ?? "");
   const action = actionRaw.trim().toLowerCase();
 
@@ -53,7 +69,7 @@ Deno.serve(async (req) => {
   });
 
   if (action === "health") {
-    return json({ ok: true, service: "saydi-tts-worker-api", version: 6 });
+    return json({ ok: true, service: "saydi-tts-worker-api", version: 7 });
   }
 
   if (action === "claim") {
