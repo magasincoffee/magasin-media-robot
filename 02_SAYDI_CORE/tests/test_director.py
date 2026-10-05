@@ -12,22 +12,23 @@ from saydi_audiobook.director import (
 
 
 class NarrationDirectorTests(unittest.TestCase):
-    def test_reflective_sentence_gets_slower_delivery(self):
+    def test_reflective_sentence_uses_pause_not_global_slowdown(self):
         segment = direct_story_segment(
             "Minh nhớ đến ngày cha mất, cổ họng nghẹn lại.",
             segment_id="s1",
         )
         self.assertEqual(segment.beat, "REFLECTIVE_SAD")
-        self.assertLess(segment.tempo_factor, STORY_POLICIES["NARRATIVE"].tempo_factor)
+        self.assertEqual(segment.tempo_factor, 1.0)
         self.assertGreater(segment.pause_after_ms, STORY_POLICIES["NARRATIVE"].pause_after_ms)
 
-    def test_tension_sentence_stays_more_forward_moving(self):
+    def test_tension_keeps_natural_speed_with_shorter_pause(self):
         segment = direct_story_segment(
             "Bất ngờ cánh cửa bật mở, Minh giật mình quay lại.",
             segment_id="s2",
         )
         self.assertEqual(segment.beat, "TENSION")
-        self.assertGreater(segment.tempo_factor, STORY_POLICIES["REFLECTIVE_SAD"].tempo_factor)
+        self.assertEqual(segment.tempo_factor, 1.0)
+        self.assertLess(segment.pause_after_ms, STORY_POLICIES["REFLECTIVE_SAD"].pause_after_ms)
 
     def test_tender_dialogue_is_detected(self):
         beat, cues, confidence = classify_story_beat('“Mẹ ơi, con về rồi.”')
@@ -64,11 +65,10 @@ class NarrationDirectorTests(unittest.TestCase):
         self.assertEqual(len({s.segment_id for s in plan}), len(plan))
         self.assertEqual(len(plan_fingerprint(plan)), 64)
 
-    def test_policy_factors_are_safe_for_ffmpeg_atempo(self):
+    def test_pause_first_policy_does_not_time_stretch_voice(self):
         for policy in STORY_POLICIES.values():
             policy.validate()
-            self.assertGreaterEqual(policy.tempo_factor, 0.5)
-            self.assertLessEqual(policy.tempo_factor, 1.0)
+            self.assertEqual(policy.tempo_factor, 1.0)
 
 
 if __name__ == "__main__":
