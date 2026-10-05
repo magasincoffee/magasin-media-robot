@@ -312,7 +312,9 @@ Evidence:
 - field harness records pre/post SHA-256, profile metrics, localized pronunciation/prosody findings, bounded repair count, canonical-text preservation, and Owner before/after WAV samples;
 - no private book/manuscript content is used or uploaded.
 
-Final QC-006 acceptance remains blocked on the local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
+Field finding on 2026-10-05: the first QC-006 run reached all four cases but the controlled fault gate compared ASR to the effective TTS override, producing similarity 0.9534. This was a test-harness semantic error, not a TTS/QC engine failure. A canonical similarity correction now records both effective-TTS and canonical-source ASR similarity and uses the canonical value for fault acceptance.
+
+Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
 ## Current next task
 
