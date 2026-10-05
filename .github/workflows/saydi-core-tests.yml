@@ -41,7 +41,8 @@ jobs:
         run: |
           $paths = @(
             "tools\saydi_tts\qc\INSTALL_QC006_FIELD_H4A16IL.ps1",
-            "tools\saydi_tts\qc\RESUME_QC006_POST_REPAIR_H4A16IL.ps1"
+            "tools\saydi_tts\qc\RESUME_QC006_POST_REPAIR_H4A16IL.ps1",
+            "tools\saydi_tts\qc\FIX_QC006_UTF8_REPAIR_H4A16IL.ps1"
           )
           foreach ($path in $paths) {
             $tokens = $null
