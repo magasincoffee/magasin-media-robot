@@ -38,6 +38,7 @@ New-Item -ItemType Directory -Force -Path $PkgRoot,$PkgData | Out-Null
 Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/__init__.py" -OutFile (Join-Path $PkgRoot "__init__.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/pronunciation.py" -OutFile (Join-Path $PkgRoot "pronunciation.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/repair.py" -OutFile (Join-Path $PkgRoot "repair.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/contracts.py" -OutFile (Join-Path $PkgRoot "contracts.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/prosody.py" -OutFile (Join-Path $PkgRoot "prosody.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/data/vi_pronunciation_lexicon_v1.json" -OutFile (Join-Path $PkgData "vi_pronunciation_lexicon_v1.json")
 
