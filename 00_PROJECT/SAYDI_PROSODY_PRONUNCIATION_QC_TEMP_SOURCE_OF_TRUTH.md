@@ -187,14 +187,14 @@ Evidence:
 
 ### SAYDI-QC-004 — Targeted automatic rerender loop
 
-Status: PENDING
+Status: IMPLEMENTED_IN_PR — LOCAL FIELD ACCEPTANCE PENDING
 
 Required:
-- rerender only failed chunks;
-- bounded retry budget (default maximum two attempts);
-- re-run all QC layers after each repair;
-- prevent duplicate/infinite jobs;
-- rebuild only dependent chapter artifact after chunk acceptance.
+- rerender only failed chunks; **IMPLEMENTED with chunk-scoped queue reset and local WAV staging**
+- bounded retry budget (default maximum two attempts); **IMPLEMENTED in Edge API**
+- re-run all QC layers after each repair; **IMPLEMENTED for repaired chunk(s)**
+- prevent duplicate/infinite jobs; **IMPLEMENTED with repair-request idempotency + per-chunk attempt counter**
+- rebuild only dependent chapter artifact after chunk acceptance. **IMPLEMENTED through existing worker chapter assembly**
 
 Acceptance:
 - one bad chunk does not regenerate accepted chunks;
@@ -231,5 +231,5 @@ Acceptance:
 
 ## Current next task
 
-`SAYDI-QC-004` — Targeted automatic rerender loop.
+Run the self-hosted `SAYDI QC004 Local Field Gate` on DESKTOP-H4A16IL. If PASS, mark `SAYDI-QC-004` DONE and advance to `SAYDI-QC-005`.
 

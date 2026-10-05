@@ -15,6 +15,15 @@ New-Item -ItemType Directory -Force -Path $QcRoot | Out-Null
 
 $base = "https://raw.githubusercontent.com/magasincoffee/magasin-media-robot/main/tools/saydi_tts/qc"
 Invoke-WebRequest -UseBasicParsing -Uri "$base/run_qc.py" -OutFile "$QcRoot\run_qc.py"
+
+$CoreBase = "https://raw.githubusercontent.com/magasincoffee/magasin-media-robot/main/02_SAYDI_CORE/src/saydi_audiobook"
+$PkgRoot = Join-Path $QcRoot "saydi_audiobook"
+$PkgData = Join-Path $PkgRoot "data"
+New-Item -ItemType Directory -Force -Path $PkgRoot,$PkgData | Out-Null
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/__init__.py" -OutFile (Join-Path $PkgRoot "__init__.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/pronunciation.py" -OutFile (Join-Path $PkgRoot "pronunciation.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/repair.py" -OutFile (Join-Path $PkgRoot "repair.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/data/vi_pronunciation_lexicon_v1.json" -OutFile (Join-Path $PkgData "vi_pronunciation_lexicon_v1.json")
 Invoke-WebRequest -UseBasicParsing -Uri "$base/qc_after_50.ps1" -OutFile "$QcRoot\qc_after_50.ps1"
 
 $taskName = "SAYDI QC 50 Percent Waiter"

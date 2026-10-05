@@ -1,0 +1,28 @@
+name: SAYDI QC004 Local Field Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/saydi-qc004-trigger.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-qc004-local-field
+  cancel-in-progress: false
+
+jobs:
+  qc004-field:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run QC-004 targeted rerender field gate
+        shell: powershell
+        run: |
+          & ".\tools\saydi_tts\qc\RUN_QC004_FIELD_H4A16IL.ps1"

@@ -31,6 +31,15 @@ if (Test-Path $RunQc) {
 $uri = "https://raw.githubusercontent.com/magasincoffee/magasin-media-robot/main/tools/saydi_tts/qc/run_qc.py"
 Invoke-WebRequest -UseBasicParsing -Uri $uri -OutFile $RunQc
 
+$CoreBase = "https://raw.githubusercontent.com/magasincoffee/magasin-media-robot/main/02_SAYDI_CORE/src/saydi_audiobook"
+$PkgRoot = Join-Path $QcRoot "saydi_audiobook"
+$PkgData = Join-Path $PkgRoot "data"
+New-Item -ItemType Directory -Force -Path $PkgRoot,$PkgData | Out-Null
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/__init__.py" -OutFile (Join-Path $PkgRoot "__init__.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/pronunciation.py" -OutFile (Join-Path $PkgRoot "pronunciation.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/repair.py" -OutFile (Join-Path $PkgRoot "repair.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$CoreBase/data/vi_pronunciation_lexicon_v1.json" -OutFile (Join-Path $PkgData "vi_pronunciation_lexicon_v1.json")
+
 $uv = $null
 $uvCmd = Get-Command uv.exe -ErrorAction SilentlyContinue
 if ($uvCmd) { $uv = $uvCmd.Source }
