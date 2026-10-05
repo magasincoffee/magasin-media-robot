@@ -7,6 +7,7 @@ from saydi_audiobook.director import (
     classify_story_beat,
     direct_story_segment,
     direct_story_text,
+    direct_story_clauses,
     plan_fingerprint,
 )
 
@@ -64,6 +65,18 @@ class NarrationDirectorTests(unittest.TestCase):
         self.assertTrue(any(s.beat == "TENSION" for s in plan))
         self.assertEqual(len({s.segment_id for s in plan}), len(plan))
         self.assertEqual(len(plan_fingerprint(plan)), 64)
+
+
+    def test_clause_level_plan_keeps_natural_speed_and_more_breath_points(self):
+        text = (
+            "Minh muốn đáp thật bình thường, nhưng cổ họng nghẹn lại. "
+            "Anh đặt túi xuống ghế. “Con chỉ về mấy hôm thôi.” "
+            "Mẹ gật đầu, đôi tay vẫn chậm rãi nhặt từng cọng rau."
+        )
+        plan = direct_story_clauses(text)
+        self.assertGreaterEqual(len(plan), 4)
+        self.assertTrue(all(s.tempo_factor == 1.0 for s in plan))
+        self.assertEqual(" ".join(s.canonical_text for s in plan).replace("  ", " "), text)
 
     def test_pause_first_policy_does_not_time_stretch_voice(self):
         for policy in STORY_POLICIES.values():

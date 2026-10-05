@@ -9,7 +9,7 @@ from typing import Iterable
 from .contracts import canonical_hash
 
 
-NARRATION_DIRECTOR_VERSION = "narration-director-v2-pause-first"
+NARRATION_DIRECTOR_VERSION = "narration-director-v3-clause-level"
 
 
 @dataclass(frozen=True, slots=True)
@@ -361,6 +361,47 @@ def direct_story_text(text: str) -> list[DirectedNarrationSegment]:
         flush(pending)
 
     return segments
+
+
+
+def direct_story_clauses(text: str) -> list[DirectedNarrationSegment]:
+    """Plan short sentence/clause units so emotion comes from breathing, not slowdown.
+
+    Unlike direct_story_text(), this path never merges adjacent narrative
+    sentences. Long sentences may be split at strong semantic punctuation so
+    explicit pauses can be inserted between rendered units while every unit
+    keeps tempo_factor=1.0.
+    """
+
+    normalized = unicodedata.normalize("NFC", text).strip()
+    if not normalized:
+        return []
+
+    sentences = [
+        x.strip()
+        for x in re.findall(r'.+?(?:[.!?…](?:["”])?|$)(?=\s+|$)', normalized)
+        if x.strip()
+    ]
+    units: list[str] = []
+    for sentence in sentences or [normalized]:
+        if len(sentence) <= 125:
+            units.append(sentence)
+            continue
+        parts = [
+            x.strip()
+            for x in re.split(
+                r'(?<=[;:])\s+|,\s+(?=(?:nhưng|rồi|còn|và|chỉ|như|khi|nếu|vì|làm|mẹ|minh|anh|bà)\b)',
+                sentence,
+                flags=re.IGNORECASE,
+            )
+            if x.strip()
+        ]
+        units.extend(parts or [sentence])
+
+    return [
+        direct_story_segment(unit, segment_id=f"clause_{idx:03d}")
+        for idx, unit in enumerate(units)
+    ]
 
 
 def plan_fingerprint(segments: Iterable[DirectedNarrationSegment]) -> str:

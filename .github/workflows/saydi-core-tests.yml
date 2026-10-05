@@ -63,17 +63,19 @@ jobs:
       - name: Narration Director PowerShell syntax
         shell: powershell
         run: |
-          $path = "tools\saydi_tts\narration\BUILD_GOLDEN_STORY_V2_H4A16IL.ps1"
-          $tokens = $null
-          $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path $path),
-            [ref]$tokens,
-            [ref]$errors
-          )
-          if ($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Error $_.Message }
-            throw "Narration Director PowerShell syntax failed"
+          $paths = Get-ChildItem "tools\saydi_tts\narration" -Filter "BUILD_GOLDEN_STORY_*_H4A16IL.ps1" -File
+          foreach ($path in $paths) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              $path.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            )
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$($path.Name) :: $($_.Message)" }
+              throw "Narration Director PowerShell syntax failed: $($path.Name)"
+            }
           }
 
       - name: QC installer dependency closure
