@@ -187,7 +187,7 @@ Evidence:
 
 ### SAYDI-QC-004 — Targeted automatic rerender loop
 
-Status: IMPLEMENTED_IN_PR — LOCAL FIELD ACCEPTANCE PENDING
+Status: CODE_MERGED — LOCAL FIELD ACCEPTANCE PENDING ON DESKTOP-H4A16IL
 
 Required:
 - rerender only failed chunks; **IMPLEMENTED with chunk-scoped queue reset and local WAV staging**
@@ -199,6 +199,33 @@ Required:
 Acceptance:
 - one bad chunk does not regenerate accepted chunks;
 - retry exhaustion becomes REVIEW with exact location/evidence.
+
+### SAYDI-QC-004 implementation / field-gate evidence
+
+Implementation merged on 2026-10-05.
+
+Evidence:
+
+- PR #66 merged; GitHub `SAYDI Core Tests` PASS;
+- Supabase migration `saydi_qc004_targeted_rerender` applied to MAGASIN-NOIBO;
+- `saydi-tts-worker` Edge Function v7 ACTIVE;
+- durable chunk state now separates canonical `text_content` from TTS-only `spoken_text_override`;
+- per-chunk `qc_repair_attempts` + `last_repair_request_id` enforce bounded/idempotent repair;
+- repair eligibility is checked before local WAV staging;
+- failed queue calls restore staged WAVs instead of losing accepted audio;
+- repaired chunks are re-QC'd and persistent defects route to REVIEW;
+- self-hosted field run 37246808272 failed before execution because Windows PowerShell execution policy blocked the wrapper; fixed by PR #67;
+- retry field run 37246911756 reached the field script but was routed to `DESKTOP-4K7IM13`, not the authoritative TTS host `DESKTOP-H4A16IL`; the machine guard stopped before any audiobook mutation;
+- one-command correct-host launcher added: `tools/saydi_tts/qc/INSTALL_QC004_FIELD_H4A16IL.ps1`.
+
+Field acceptance is **not** complete until the correct host proves:
+
+1. only the selected failed chunk WAV changes;
+2. canonical text remains unchanged;
+3. a TTS-only spoken override is applied;
+4. repair attempt count is bounded;
+5. post-repair QC executes;
+6. persistent defects become REVIEW rather than an infinite rerender loop.
 
 ### SAYDI-QC-005 — Prosody/style profiles by audiobook type
 
@@ -231,5 +258,5 @@ Acceptance:
 
 ## Current next task
 
-Run the self-hosted `SAYDI QC004 Local Field Gate` on DESKTOP-H4A16IL. If PASS, mark `SAYDI-QC-004` DONE and advance to `SAYDI-QC-005`.
+Run `tools/saydi_tts/qc/INSTALL_QC004_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL. If it prints `FIELD GATE QC-004: PASS`, mark `SAYDI-QC-004` DONE and advance to `SAYDI-QC-005`. Do not advance while the correct-host field gate is pending.
 
