@@ -65,8 +65,8 @@ if ($LASTEXITCODE -ne 0) {
     throw "QC006 Python module import smoke failed."
 }
 
-$cfg = Get-Content $ConfigPath -Raw | ConvertFrom-Json
-$manifest = Get-Content $ManifestPath -Raw | ConvertFrom-Json
+$cfg = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$manifest = Get-Content $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $headers = @{
     "X-SAYDI-WORKER-TOKEN" = $cfg.worker_token
 }
@@ -147,7 +147,7 @@ function Run-ProfileQc($Case,[switch]$ObserveOnly) {
     if (-not (Test-Path $summaryPath)) { throw "Missing QC summary: $summaryPath" }
     $copy = Join-Path $FieldRoot ("$($Case.case_id)_qc_summary.json")
     Copy-Item $summaryPath $copy -Force
-    return @(Get-Content $summaryPath -Raw | ConvertFrom-Json)[0]
+    return @(Get-Content $summaryPath -Raw -Encoding UTF8 | ConvertFrom-Json)[0]
 }
 
 function Assert-ProfileEvidence($Case,$Report) {
@@ -198,7 +198,7 @@ Path(r"C:\SAYDI\qc\qc006\repair_spoken.txt").write_text(result.spoken_text, enco
     [IO.File]::WriteAllText($pyPath,$py,(New-Object Text.UTF8Encoding($false)))
     & $QcPython $pyPath
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $outPath)) { throw "Failed to build spoken form." }
-    return (Get-Content $outPath -Raw).Trim()
+    return (Get-Content $outPath -Raw -Encoding UTF8).Trim()
 }
 
 $jobs = @{}
