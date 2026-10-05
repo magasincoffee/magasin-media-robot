@@ -73,7 +73,20 @@ $headers = @{
 }
 
 function Invoke-Saydi([hashtable]$Body) {
-    return Invoke-RestMethod -Method Post -Uri $cfg.api_url -Headers $headers -Body ($Body | ConvertTo-Json -Depth 20) -TimeoutSec 90
+    $jsonBody = $Body | ConvertTo-Json -Depth 20 -Compress
+    try {
+        return Invoke-RestMethod -Method Post -Uri $cfg.api_url -Headers $headers -Body $jsonBody -TimeoutSec 90
+    } catch {
+        $detail = $_.Exception.Message
+        try {
+            if ($_.Exception.Response -and $_.Exception.Response.GetResponseStream()) {
+                $reader = New-Object IO.StreamReader($_.Exception.Response.GetResponseStream())
+                $responseBody = $reader.ReadToEnd()
+                if ($responseBody) { $detail = "$detail :: $responseBody" }
+            }
+        } catch {}
+        throw "SAYDI API call failed action=$($Body.action): $detail"
+    }
 }
 
 function Get-BookJob([string]$BookId) {
