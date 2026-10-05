@@ -16,6 +16,7 @@ import soundfile as sf
 from faster_whisper import WhisperModel
 
 from saydi_audiobook.repair import build_targeted_pronunciation_repair
+from saydi_audiobook.prosody import evaluate_prosody_metrics, get_prosody_envelope
 
 
 ROOT = Path(r"C:\SAYDI")
@@ -220,7 +221,7 @@ def _discard_staged(staged):
             backup.unlink()
 
 
-def check(model, job, attempt, *, only_chunks=None, replace_chunk_indices=None):
+def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace_chunk_indices=None):
     out = Path(job["output_file_name"])
     chunk_dir = out.parent / "chunks"
     events = []
@@ -403,6 +404,28 @@ def check(model, job, attempt, *, only_chunks=None, replace_chunk_indices=None):
                 if word_count
                 else 0.0
             )
+            prosody_evaluation = evaluate_prosody_metrics(
+                profile_key=prosody_profile_key,
+                speaking_rate_wpm=speaking_rate,
+                pause_ratio=measurement["pause_ratio"],
+                pitch_variation_semitones=measurement["pitch_variation_semitones"],
+                energy_variation_db=measurement["energy_variation_db"],
+            )
+            if prosody_evaluation.reasons:
+                events.append(
+                    ev(
+                        "prosody_style_mismatch",
+                        "warning",
+                        idx,
+                        start_time,
+                        end_time,
+                        None,
+                        profile_key=prosody_evaluation.profile_key,
+                        profile_fingerprint=prosody_evaluation.profile_fingerprint,
+                        reasons=list(prosody_evaluation.reasons),
+                        measured=prosody_evaluation.measured,
+                    )
+                )
 
             pronunciation_plan = None
             if not override_applied:
@@ -462,6 +485,10 @@ def check(model, job, attempt, *, only_chunks=None, replace_chunk_indices=None):
                 "spoken_override_applied": override_applied,
                 "qc_repair_attempts": int(chunk.get("qc_repair_attempts") or 0),
                 "pronunciation_repair_candidate": pronunciation_plan is not None,
+                "prosody_profile_key": prosody_evaluation.profile_key,
+                "prosody_profile_fingerprint": prosody_evaluation.profile_fingerprint,
+                "prosody_status": prosody_evaluation.status,
+                "prosody_reasons": list(prosody_evaluation.reasons),
             }
             observations.append(observation)
 
@@ -472,6 +499,7 @@ def check(model, job, attempt, *, only_chunks=None, replace_chunk_indices=None):
                 f"word_min={min_conf if min_conf is not None else 'n/a'} | "
                 f"wpm={speaking_rate:.1f} | pause={measurement['pause_ratio']:.3f} | "
                 f"pitch_var={measurement['pitch_variation_semitones'] if measurement['pitch_variation_semitones'] is not None else 'n/a'} | "
+                f"profile={prosody_evaluation.profile_key} | prosody={prosody_evaluation.status} | "
                 f"override={'yes' if override_applied else 'no'} | {took:.1f}s",
                 flush=True,
             )
@@ -560,9 +588,13 @@ def check(model, job, attempt, *, only_chunks=None, replace_chunk_indices=None):
 
     warnings = sum(item["severity"] == "warning" for item in events)
     errors = sum(item["severity"] == "error" for item in events)
+    active_envelope = get_prosody_envelope(prosody_profile_key)
     report = {
-        "source": "local_qc_v3",
+        "source": "local_qc_v4",
         "attempt": attempt,
+        "prosody_profile_key": active_envelope.profile_key,
+        "prosody_profile_fingerprint": active_envelope.fingerprint,
+        "prosody_profile_version": active_envelope.version,
         "chapter_number": job.get("chapter_number"),
         "checked_chunks": len(rows),
         "warnings": warnings,
@@ -716,6 +748,12 @@ def main():
         default=[],
         help="Field/debug mode: QC only the selected chunk index. Repeat as needed.",
     )
+    parser.add_argument(
+        "--narration-profile",
+        choices=("BUSINESS_CLEAR", "STORY_NARRATIVE", "GENERAL_CLEAR"),
+        default="GENERAL_CLEAR",
+        help="Active profile envelope used by prosody/style QC.",
+    )
     args = parser.parse_args()
 
     REPORTS.mkdir(parents=True, exist_ok=True)
@@ -753,6 +791,7 @@ def main():
             model,
             job,
             1,
+            prosody_profile_key=args.narration_profile,
             only_chunks=only_chunks,
         )
 
@@ -780,6 +819,7 @@ def main():
                     model,
                     refreshed,
                     2,
+                    prosody_profile_key=args.narration_profile,
                     only_chunks=set(queued),
                     replace_chunk_indices=queued,
                 )
