@@ -6,7 +6,8 @@ on:
       - "02_SAYDI_CORE/**"
       - ".github/workflows/saydi-core-tests.yml"
       - "tools/saydi_tts/qc/**"
-      - "tools/saydi_tts/qc/**"
+      - "tools/saydi_tts/narration/**"
+      - "tools/saydi_tts/narration/**"
   push:
     branches:
       - main
@@ -35,6 +36,7 @@ jobs:
           $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
           python -m compileall -q 02_SAYDI_CORE\src 02_SAYDI_CORE\tests
           python -m py_compile tools\saydi_tts\qc\run_qc.py
+          python -m py_compile tools\saydi_tts\narration\build_directed_audio.py
 
       - name: PowerShell field harness syntax
         shell: powershell
@@ -56,6 +58,22 @@ jobs:
               $errors | ForEach-Object { Write-Error "$path :: $($_.Message)" }
               throw "QC006 PowerShell syntax failed: $path"
             }
+          }
+
+      - name: Narration Director PowerShell syntax
+        shell: powershell
+        run: |
+          $path = "tools\saydi_tts\narration\BUILD_GOLDEN_STORY_V2_H4A16IL.ps1"
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path $path),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw "Narration Director PowerShell syntax failed"
           }
 
       - name: QC installer dependency closure
