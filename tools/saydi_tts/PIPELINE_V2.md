@@ -145,3 +145,53 @@ Do not concatenate heading + body into the same long chunk.
 A technically successful render that bypasses Narration Preprocess is `DRAFT`, not `FINAL`.
 
 The current Doanh Nghiệp Tự Hành run is the baseline draft used to validate worker/restart/assembly/QC infrastructure. The next production rerender must use Pipeline V3 and receive Chapter 1 listening approval before full-book replacement.
+
+## Pipeline V4 — Narration Director
+
+**This is the target path for expressive long-form STORY_NARRATIVE output.**
+
+The first Golden Story sample proved that post-render prosody QC alone is insufficient: a technically valid render can still be too fast, under-paused and semantically flat.
+
+Before TTS, Pipeline V4 creates a versioned narration plan:
+
+```text
+canonical text
+ -> semantic beat classification
+ -> sentence/scene segmentation
+ -> provider-safe punctuation hint
+ -> VieNeu semantic-unit render
+ -> beat-specific pitch-preserving tempo
+ -> explicit semantic pause insertion
+ -> loudness normalization
+ -> pronunciation/prosody QC
+ -> Owner preview gate
+```
+
+Narration Director v1 beats:
+
+- NARRATIVE
+- REFLECTIVE_SAD
+- TENSION
+- DIALOGUE_TENDER
+- DIALOGUE_TENSION
+- WARM_RELIEF
+- SCENE_TRANSITION
+- RESOLUTION
+
+### Important provider rule
+
+Do not label structural approximation as a native VieNeu emotion feature.
+
+Until a native emotion/style control is field-verified, emotional delivery is approximated only through:
+
+- semantic segmentation;
+- punctuation;
+- verified voice/reference selection;
+- explicit inter-segment pauses;
+- pitch-preserving post-render tempo.
+
+### Production gate
+
+Golden Story V2 is the field gate for this architecture.
+
+Only after Owner accepts its A/B listening result may Narration Director become the default STORY_NARRATIVE path for production books.

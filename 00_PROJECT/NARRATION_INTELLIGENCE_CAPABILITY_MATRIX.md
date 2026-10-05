@@ -67,6 +67,7 @@ Owner supplies a legally usable book
 | Bounded retry / no infinite rerender | 🔒 LOCKED | Owner-approved architecture; bounded policy merged in PR #60 | Retry-safe only; exhaustion -> REVIEW |
 | Owner exception-only review | 🔒 LOCKED | SOT owner experience rule | Owner should not manually hunt defects |
 | VieNeu end-to-end pronunciation/prosody field acceptance | 🟡 LOCAL + OWNER GATES PENDING | QC-006 synthetic fixtures/harness implemented; H4A16IL technical run and Owner BEFORE/AFTER listening remain | Prove localized defects, targeted rerender, bounded repair and final PASS/REVIEW on real local audio |
+| Narration Director semantic beat planning | 🟡 FIELD PENDING | `narration-director-v1` implements semantic beats, provider-safe punctuation, scene-specific tempo/pause policy, canonical/spoken hashes and Golden Story V2 field path | Owner A/B acceptance required before production integration |
 | Final “submit book and SAYDI handles narration” flow | ❌ NOT YET COMPLETE | Depends on scene intelligence, narration director and full QC/repair integration | Primary end-state for the product |
 
 ## Locked semantic narration architecture
