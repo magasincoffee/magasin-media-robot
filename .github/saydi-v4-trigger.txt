@@ -1,0 +1,2 @@
+trigger Golden Story V4 field build after PR #89
+job=66100000-0000-4000-8000-000000000008
