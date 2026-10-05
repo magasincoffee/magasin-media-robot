@@ -122,7 +122,7 @@ The worker renders semantic units from TTS-only spoken text. The builder then ap
 
 ### SAYDI-ND-001 — Narration Director core
 
-Status: IMPLEMENTED_IN_PR — CI / merge verification pending
+Status: DONE — merged in PR #83; CI PASS
 
 Required:
 
@@ -136,7 +136,7 @@ Required:
 
 ### SAYDI-ND-002 — Golden Story V2 field sample
 
-Status: RUNNING — VieNeu render queued on DESKTOP-H4A16IL
+Status: RAW_RENDER_COMPLETE — directed master build + Owner listening pending
 
 Required:
 
@@ -146,6 +146,16 @@ Required:
 - effective WPM within 135–165;
 - export final MP3 + machine-readable report;
 - Owner A/B listening against V1.
+
+### SAYDI-ND-002 render evidence
+
+Accepted raw-render evidence on 2026-10-05:
+
+- field job `66100000-0000-4000-8000-000000000007` completed;
+- 17/17 semantic chunks rendered on `DESKTOP-H4A16IL-SAYDI-TTS`;
+- render error: none;
+- raw chapter output: `C:\SAYDI\output\SAYDI_STORY_GOLDEN_V2_DIRECTED__66100000\SAYDI_STORY_GOLDEN_V2_DIRECTED.mp3`;
+- the listener-facing directed master is intentionally separate from this raw render and must be built with the Narration Director tempo/pause assembler before Owner review.
 
 ### SAYDI-ND-003 — Production integration
 
@@ -161,4 +171,4 @@ After Owner accepts Golden V2:
 
 ## Current next task
 
-Complete CI/merge for `SAYDI-ND-001`, allow field job `66100000-0000-4000-8000-000000000007` to finish, then run the Golden Story V2 local builder and require Owner listening acceptance.
+Run `tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V2_H4A16IL.ps1` on DESKTOP-H4A16IL. Require directed-audio technical gate PASS, then Owner A/B listening acceptance. After acceptance, advance to `SAYDI-ND-003` production integration.
