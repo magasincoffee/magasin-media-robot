@@ -280,6 +280,16 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
         if not wav.exists() or wav.stat().st_size < 1024:
             events.append(ev("missing_audio", "error", idx, current_time, current_time))
             technical_repair.add(idx)
+            observations.append(
+                {
+                    "chunk_index": idx,
+                    "attempt": attempt,
+                    "technical_error": "missing_audio",
+                    "spoken_override_applied": override_applied,
+                    "qc_repair_attempts": int(chunk.get("qc_repair_attempts") or 0),
+                    "prosody_profile_key": prosody_profile_key,
+                }
+            )
             continue
 
         try:
@@ -289,6 +299,17 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
                 ev("decode", "error", idx, current_time, current_time, error=str(exc))
             )
             technical_repair.add(idx)
+            observations.append(
+                {
+                    "chunk_index": idx,
+                    "attempt": attempt,
+                    "audio_sha256": _sha256(wav),
+                    "technical_error": "decode: " + str(exc)[:180],
+                    "spoken_override_applied": override_applied,
+                    "qc_repair_attempts": int(chunk.get("qc_repair_attempts") or 0),
+                    "prosody_profile_key": prosody_profile_key,
+                }
+            )
             continue
 
         start_time = current_time
