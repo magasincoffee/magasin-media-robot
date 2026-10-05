@@ -1,6 +1,6 @@
 # SAYDI Narration Intelligence Capability Matrix
 
-Last updated: 2026-10-04
+Last updated: 2026-10-05
 
 Purpose: this file is the durable checklist for the audiobook intelligence/narration architecture. It shows what already exists, what is partial, and what is still missing. New capabilities can be appended here without losing sight of the target architecture.
 
