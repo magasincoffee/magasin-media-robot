@@ -185,7 +185,7 @@ def build_directed_audio(
             audio, sr = sf.read(str(directed), dtype="float32", always_2d=False)
             if sr != sample_rate:
                 raise RuntimeError(f"unexpected sample rate {sr} in {directed}")
-            audio = _fade(_trim_edges(np.asarray(audio)), sample_rate)
+            audio = _fade(_trim_edges(np.asarray(audio), sample_rate), sample_rate)
             pieces.append(audio)
             directed_duration = len(audio) / sample_rate
 
