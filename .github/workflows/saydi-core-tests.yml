@@ -52,6 +52,17 @@ jobs:
             throw "QC006 PowerShell syntax failed"
           }
 
+      - name: QC installer dependency closure
+        shell: powershell
+        run: |
+          $scripts = Get-ChildItem "tools\saydi_tts\qc" -Filter "*.ps1" -File
+          foreach ($script in $scripts) {
+            $content = Get-Content $script.FullName -Raw
+            if ($content -match "prosody\.py" -and $content -notmatch "contracts\.py") {
+              throw "$($script.Name) installs prosody.py without contracts.py"
+            }
+          }
+
       - name: Unit tests
         shell: powershell
         run: |
