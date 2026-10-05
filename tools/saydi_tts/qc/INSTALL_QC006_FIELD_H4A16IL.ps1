@@ -211,8 +211,11 @@ $preReport = Run-ProfileQc $repairCase -ObserveOnly
 Assert-ProfileEvidence $repairCase $preReport
 $preObs = @($preReport.chunk_observations | Where-Object { [int]$_.chunk_index -eq $targetIndex })[0]
 if (-not $preObs) { throw "Missing pre-repair target observation." }
-if ([double]$preObs.asr_similarity -ge 0.76) {
-    throw "Controlled fault was not detected strongly enough. similarity=$($preObs.asr_similarity)"
+if ($null -eq $preObs.canonical_asr_similarity) {
+    throw "Missing canonical ASR similarity for controlled fault."
+}
+if ([double]$preObs.canonical_asr_similarity -ge 0.76) {
+    throw "Controlled fault was not detected strongly enough against canonical text. canonical_similarity=$($preObs.canonical_asr_similarity)"
 }
 
 $chunksBefore = Get-AllChunks $repairJob.id
@@ -329,8 +332,8 @@ $results += [pscustomobject]@{
     warnings = [int]$postReport.warnings
     errors = [int]$postReport.errors
     qc_result = if (($postReport.warnings + $postReport.errors) -gt 0) { "REVIEW" } else { "PASS" }
-    pre_similarity = [double]$preObs.asr_similarity
-    post_similarity = [double]$postObs.asr_similarity
+    pre_similarity = [double]$preObs.canonical_asr_similarity
+    post_similarity = [double]$postObs.canonical_asr_similarity
     changed_wavs = $changed -join ","
     repair_attempts = [int]$targetAfter.qc_repair_attempts
 }
@@ -348,8 +351,8 @@ $summary = [ordered]@{
         canonical_text_preserved = $true
         repair_attempts = [int]$targetAfter.qc_repair_attempts
         max_repair_attempts = 2
-        pre_similarity = [double]$preObs.asr_similarity
-        post_similarity = [double]$postObs.asr_similarity
+        pre_similarity = [double]$preObs.canonical_asr_similarity
+        post_similarity = [double]$postObs.canonical_asr_similarity
         before_audio = $beforeCopy
         after_audio = $afterCopy
     }
@@ -386,8 +389,8 @@ Write-Host "SAYDI QC-006 TECHNICAL FIELD RESULT" -ForegroundColor Cyan
 $results | Format-Table -AutoSize
 Write-Host ""
 Write-Host "Targeted repair changed only: $($changed -join ', ')" -ForegroundColor Green
-Write-Host "Pre similarity:  $($preObs.asr_similarity)"
-Write-Host "Post similarity: $($postObs.asr_similarity)"
+Write-Host "Pre canonical similarity:  $($preObs.canonical_asr_similarity)"
+Write-Host "Post canonical similarity: $($postObs.canonical_asr_similarity)"
 Write-Host "Repair attempts: $($targetAfter.qc_repair_attempts)/2"
 Write-Host "Technical field gate: PASS" -ForegroundColor Green
 Write-Host "Owner listening gate: PENDING" -ForegroundColor Yellow
