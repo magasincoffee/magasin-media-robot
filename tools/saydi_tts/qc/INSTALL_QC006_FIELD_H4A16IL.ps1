@@ -28,6 +28,7 @@ Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/tools/saydi_tts/qc/run_qc.py" 
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/__init__.py" -OutFile (Join-Path $PkgRoot "__init__.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/pronunciation.py" -OutFile (Join-Path $PkgRoot "pronunciation.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/repair.py" -OutFile (Join-Path $PkgRoot "repair.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/contracts.py" -OutFile (Join-Path $PkgRoot "contracts.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/prosody.py" -OutFile (Join-Path $PkgRoot "prosody.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/data/vi_pronunciation_lexicon_v1.json" -OutFile (Join-Path $PkgData "vi_pronunciation_lexicon_v1.json")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/tools/saydi_tts/qc/fixtures/qc006_field_manifest.json" -OutFile $ManifestPath
