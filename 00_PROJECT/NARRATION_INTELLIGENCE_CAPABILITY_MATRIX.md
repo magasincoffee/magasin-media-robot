@@ -66,6 +66,7 @@ Owner supplies a legally usable book
 | Targeted automatic rerender | 🟡 CORRECT-HOST FIELD PENDING | QC-004 code merged and Supabase/Edge v7 deployed; automated runner reached DESKTOP-4K7IM13 and was safely blocked because authoritative TTS host is DESKTOP-H4A16IL | Run the one-command H4A16IL field gate; prove only the target chunk changes, then PASS/REVIEW |
 | Bounded retry / no infinite rerender | 🔒 LOCKED | Owner-approved architecture; bounded policy merged in PR #60 | Retry-safe only; exhaustion -> REVIEW |
 | Owner exception-only review | 🔒 LOCKED | SOT owner experience rule | Owner should not manually hunt defects |
+| VieNeu end-to-end pronunciation/prosody field acceptance | 🟡 LOCAL + OWNER GATES PENDING | QC-006 synthetic fixtures/harness implemented; H4A16IL technical run and Owner BEFORE/AFTER listening remain | Prove localized defects, targeted rerender, bounded repair and final PASS/REVIEW on real local audio |
 | Final “submit book and SAYDI handles narration” flow | ❌ NOT YET COMPLETE | Depends on scene intelligence, narration director and full QC/repair integration | Primary end-state for the product |
 
 ## Locked semantic narration architecture

@@ -1,0 +1,43 @@
+{
+  "schema_version": "saydi-qc006-field-v1",
+  "created_at": "2026-10-05",
+  "voice_name": "SAYDI Nam Mien Nam",
+  "privacy": "synthetic_only_no_manuscript",
+  "cases": [
+    {
+      "case_id": "business_clear",
+      "book_id": "66000000-0000-4000-8000-000000000001",
+      "job_id": "66100000-0000-4000-8000-000000000001",
+      "profile_key": "BUSINESS_CLEAR",
+      "purpose": "Field-measure business narration with numbers, AI/API/CEO and practical prose.",
+      "expected_chunks": 3
+    },
+    {
+      "case_id": "story_narrative",
+      "book_id": "66000000-0000-4000-8000-000000000002",
+      "job_id": "66100000-0000-4000-8000-000000000002",
+      "profile_key": "STORY_NARRATIVE",
+      "purpose": "Field-measure expressive Vietnamese narration with sadness, tension, dialogue and joy.",
+      "expected_chunks": 3
+    },
+    {
+      "case_id": "general_clear",
+      "book_id": "66000000-0000-4000-8000-000000000003",
+      "job_id": "66100000-0000-4000-8000-000000000003",
+      "profile_key": "GENERAL_CLEAR",
+      "purpose": "Field-measure neutral explanatory narration.",
+      "expected_chunks": 3
+    },
+    {
+      "case_id": "targeted_repair",
+      "book_id": "66000000-0000-4000-8000-000000000005",
+      "job_id": "66100000-0000-4000-8000-000000000005",
+      "profile_key": "GENERAL_CLEAR",
+      "purpose": "Controlled synthetic fault injection in chunk 1 to prove detection, single-chunk rerender, bounded repair and post-repair QC.",
+      "expected_chunks": 3,
+      "repair_chunk_index": 1,
+      "fault_injection": true,
+      "canonical_text": "AI xử lý 15 kg dữ liệu trong năm 2026, còn CEO kiểm tra kết quả trước khi hệ thống gửi báo cáo qua API."
+    }
+  ]
+}
