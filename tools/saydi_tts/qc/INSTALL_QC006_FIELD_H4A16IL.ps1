@@ -70,7 +70,7 @@ function Wait-BookCompleted([string]$BookId,[string]$CaseId) {
             return $job
         }
         if ($job -and $job.status -eq "failed") {
-            throw "QC006 render failed for $CaseId: $($job.error)"
+            throw "QC006 render failed for ${CaseId}: $($job.error)"
         }
         $state = if ($job) { $job.status } else { "missing" }
         Write-Host "[QC006] waiting $CaseId ... status=$state"
