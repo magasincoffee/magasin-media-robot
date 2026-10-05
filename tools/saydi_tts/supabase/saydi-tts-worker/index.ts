@@ -269,8 +269,32 @@ Deno.serve(async (req) => {
     if (jobReadError) return json({ error: jobReadError.message }, 500);
     if (!job) return json({ error: "job_not_found" }, 404);
 
-    const autoTypes = ["acoustic", "asr_mismatch", "join_discontinuity", "silence", "clipping", "duration", "decode", "missing_audio"];
-    await supabase.from("saydi_tts_qc_events").delete().eq("job_id", jobId).in("event_type", autoTypes);
+    const autoTypes = [
+      "acoustic",
+      "asr_mismatch",
+      "join_discontinuity",
+      "silence",
+      "clipping",
+      "duration",
+      "decode",
+      "missing_audio",
+      "pronunciation_clarity",
+      "pronunciation_repair_candidate",
+      "repair_exhausted",
+    ];
+    const replaceChunkIndices = Array.isArray(body.replace_chunk_indices)
+      ? [...new Set(body.replace_chunk_indices.map((x: any) => Number(x)).filter((x: number) => Number.isInteger(x) && x >= 0))].slice(0, 50)
+      : [];
+    let deleteQuery = supabase
+      .from("saydi_tts_qc_events")
+      .delete()
+      .eq("job_id", jobId)
+      .in("event_type", autoTypes);
+    if (replaceChunkIndices.length) {
+      deleteQuery = deleteQuery.in("chunk_index", replaceChunkIndices);
+    }
+    const { error: deleteError } = await deleteQuery;
+    if (deleteError) return json({ error: deleteError.message }, 500);
 
     if (events.length) {
       const rows = events.map((e: any) => ({
@@ -289,18 +313,28 @@ Deno.serve(async (req) => {
       if (insertError) return json({ error: insertError.message }, 500);
     }
 
-    const issueCount = events.filter((e: any) => String(e.severity) !== "info").length;
+    const { count: issueCount, error: issueCountError } = await supabase
+      .from("saydi_tts_qc_events")
+      .select("*", { count: "exact", head: true })
+      .eq("job_id", jobId)
+      .eq("resolved", false)
+      .in("severity", ["warning", "error"]);
+    if (issueCountError) return json({ error: issueCountError.message }, 500);
+
+    const effectiveQcStatus = (issueCount ?? 0) > 0 ? "review" : qcStatus;
     const { error: jobUpdateError } = await supabase
       .from("saydi_tts_jobs")
       .update({
-        qc_status: qcStatus,
-        qc_issue_count: issueCount,
+        qc_status: effectiveQcStatus,
+        qc_issue_count: issueCount ?? 0,
         qc_report: report,
         updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
 
-    return jobUpdateError ? json({ error: jobUpdateError.message }, 500) : json({ ok: true, issue_count: issueCount });
+    return jobUpdateError
+      ? json({ error: jobUpdateError.message }, 500)
+      : json({ ok: true, issue_count: issueCount ?? 0, qc_status: effectiveQcStatus });
   }
 
   if (action === "repair_eligibility") {
