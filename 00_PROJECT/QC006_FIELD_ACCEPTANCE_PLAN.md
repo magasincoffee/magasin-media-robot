@@ -1,6 +1,6 @@
 # SAYDI-QC-006 — VieNeu Field Acceptance Plan
 
-Status: TECHNICAL HARNESS IMPLEMENTED — LOCAL RUN + OWNER LISTENING PENDING  
+Status: SYNTHETIC VIE​NEU RENDERS COMPLETE — LOCAL QC RUN + OWNER LISTENING PENDING  
 Date: 2026-10-05  
 Host: `DESKTOP-H4A16IL`  
 Voice: `SAYDI Nam Mien Nam`
@@ -52,6 +52,12 @@ The harness first proves a strong ASR mismatch, then:
 - runs QC again;
 - records bounded repair count and pre/post similarity;
 - copies the before/after target WAVs into the Owner review folder.
+
+## Render evidence
+
+All synthetic fixture jobs completed on `DESKTOP-H4A16IL-SAYDI-TTS` on 2026-10-05 with no TTS render error.
+
+The local QC harness can therefore run immediately; it does not need to wait for initial synthesis.
 
 ## Local command
 
