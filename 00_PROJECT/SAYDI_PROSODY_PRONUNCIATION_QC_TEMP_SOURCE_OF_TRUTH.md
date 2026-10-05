@@ -233,7 +233,7 @@ Field acceptance is **not** complete until the correct host proves:
 
 ### SAYDI-QC-005 — Prosody/style profiles by audiobook type
 
-Status: IMPLEMENTED_IN_PR — CI / merge verification pending
+Status: DONE — merged in PR #69; CI PASS
 
 Required:
 - define per-profile pace, pause and intonation envelopes for at least BUSINESS_CLEAR, STORY_NARRATIVE and GENERAL_CLEAR; **IMPLEMENTED in `prosody-profile-v1`**
@@ -261,6 +261,25 @@ Evidence:
 - Supabase `saydi-tts-worker` Edge Function v8 deployed to persist/replace prosody QC events safely;
 - profile definitions documented in `00_PROJECT/PROSODY_STYLE_PROFILES_V1.md`.
 
+### SAYDI-QC-005 completion evidence
+
+Accepted on 2026-10-05.
+
+Evidence:
+
+- PR #69 merged to `main`;
+- exact-main commit after merge: `80645101f29a3562d9317b3f065594135916716b`;
+- pull-request CI: PASS;
+- main-branch CI: PASS;
+- `prosody-profile-v1` ships versioned envelopes for `BUSINESS_CLEAR`, `STORY_NARRATIVE`, and `GENERAL_CLEAR`;
+- deterministic Owner style mapping is covered by unit tests;
+- deliberately too-fast, too-slow, flat-intonation and flat-dynamics fixtures are detected;
+- profile fingerprints are distinct and changing profile invalidates previous acceptance;
+- local QC records active profile key/version/fingerprint and emits exact prosody mismatch reasons;
+- provider-control filtering rejects unsupported semantic controls rather than inventing them;
+- Supabase `saydi-tts-worker` Edge Function v8 is ACTIVE for prosody event persistence;
+- durable profile specification: `00_PROJECT/PROSODY_STYLE_PROFILES_V1.md`.
+
 ### SAYDI-QC-006 — Field acceptance on local VieNeu
 
 Status: PENDING
@@ -279,5 +298,5 @@ Acceptance:
 
 ## Current next task
 
-QC-004 remains pending its DESKTOP-H4A16IL field gate. In parallel per Owner directive, complete CI/merge verification for `SAYDI-QC-005`. After QC-005 merges, `SAYDI-QC-006` may be prepared, but final QC project completion still requires QC-004 field PASS.
+`SAYDI-QC-006` — prepare and run local VieNeu field acceptance with synthetic/public-domain Vietnamese passages. QC-004 remains a separate unresolved required gate: final QC project completion is not allowed until QC-004 prints `FIELD GATE QC-004: PASS` on DESKTOP-H4A16IL.
 
