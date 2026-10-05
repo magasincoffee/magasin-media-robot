@@ -31,6 +31,7 @@ New-Item -ItemType Directory -Force -Path $PkgRoot,$PkgData | Out-Null
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/__init__.py" -OutFile (Join-Path $PkgRoot "__init__.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/pronunciation.py" -OutFile (Join-Path $PkgRoot "pronunciation.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/repair.py" -OutFile (Join-Path $PkgRoot "repair.py")
+Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/contracts.py" -OutFile (Join-Path $PkgRoot "contracts.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/prosody.py" -OutFile (Join-Path $PkgRoot "prosody.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/data/vi_pronunciation_lexicon_v1.json" -OutFile (Join-Path $PkgData "vi_pronunciation_lexicon_v1.json")
 
