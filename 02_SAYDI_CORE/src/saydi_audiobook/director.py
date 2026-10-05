@@ -379,7 +379,7 @@ def direct_story_clauses(text: str) -> list[DirectedNarrationSegment]:
 
     sentences = [
         x.strip()
-        for x in re.split(r'(?<=[.!?…]["”]?)\\s+(?=[A-ZÀ-ỸĐ“"])', normalized)
+        for x in re.findall(r'.+?(?:[.!?…](?:["”])?|$)(?=\\s+|$)', normalized)
         if x.strip()
     ]
     units: list[str] = []
