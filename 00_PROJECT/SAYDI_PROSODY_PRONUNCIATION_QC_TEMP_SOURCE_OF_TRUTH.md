@@ -320,6 +320,8 @@ Third field finding: after the helper-import fix, the next run reported `targete
 
 Fourth field finding: the recovered run reached the repair API but PowerShell received `HTTP 400 Bad Request`. The only 400 path in the deployed repair endpoint was `no_chunk_indices`; this exposed a client-shape compatibility edge case for single-item PowerShell payloads. The worker API now normalizes scalar or array `chunk_indices` and scalar or array `spoken_overrides`; Edge Function v9 is ACTIVE. The field installer now also includes the API response body in any future HTTP error.
 
+Fifth field finding: Edge v10 confirmed the failing request reached the correct deployment, but returned `received_action=""` and `normalized_action=""` while the PowerShell caller still had `action=repair_chunks`. This isolates the defect to HTTP request-body serialization/parsing between Windows PowerShell and the Edge runtime, not VieNeu, the queue, or action routing. The installer now sends JSON as explicit UTF-8 bytes with `application/json; charset=utf-8`; Edge v11 no longer silently swallows JSON parse failures and returns safe parse diagnostics (length/content-type/error) without echoing audiobook text.
+
 Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
 ## Current next task
