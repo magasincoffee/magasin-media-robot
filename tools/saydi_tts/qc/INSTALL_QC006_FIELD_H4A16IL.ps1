@@ -59,6 +59,12 @@ Get-QcFile "02_SAYDI_CORE/src/saydi_audiobook/data/vi_pronunciation_lexicon_v1.j
 Get-QcFile "tools/saydi_tts/qc/fixtures/qc006_field_manifest.json" $ManifestPath
 Write-Host "[QC006] Local QC modules ready." -ForegroundColor Green
 
+Write-Host "[QC006] Verifying local Python module imports..." -ForegroundColor Cyan
+& $QcPython -c "import sys; sys.path.insert(0, r'C:\SAYDI\qc'); from saydi_audiobook.pronunciation import build_spoken_form; from saydi_audiobook.prosody import get_prosody_envelope; print('[QC006] Python module import smoke: OK')"
+if ($LASTEXITCODE -ne 0) {
+    throw "QC006 Python module import smoke failed."
+}
+
 $cfg = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 $manifest = Get-Content $ManifestPath -Raw | ConvertFrom-Json
 $headers = @{
@@ -167,7 +173,7 @@ source = Path(r"C:\SAYDI\qc\qc006\repair_source.txt").read_text(encoding="utf-8"
 result = build_spoken_form(source)
 Path(r"C:\SAYDI\qc\qc006\repair_spoken.txt").write_text(result.spoken_text, encoding="utf-8")
 '@
-    $pyPath = Join-Path $FieldRoot "build_spoken_form.py"
+    $pyPath = Join-Path $QcRoot "build_spoken_form_qc006.py"
     [IO.File]::WriteAllText($pyPath,$py,(New-Object Text.UTF8Encoding($false)))
     & $QcPython $pyPath
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $outPath)) { throw "Failed to build spoken form." }
