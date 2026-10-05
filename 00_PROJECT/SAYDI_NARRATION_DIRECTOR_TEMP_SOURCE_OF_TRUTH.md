@@ -174,11 +174,42 @@ Wrapper:
 
 `tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V3_H4A16IL.ps1`
 
+### SAYDI-ND-002C — Golden Story V4 clause-level natural narration
+
+Status: READY_TO_RENDER
+
+Owner directive:
+
+- keep articulation speed natural; never simulate emotion by slowing the entire waveform;
+- create emotion through sentence/clause boundaries, breathing space, dialogue timing, semantic landing and scene resets;
+- render a new independent field job so V2/V3 evidence remains immutable.
+
+Locked V4 field contract:
+
+- job: `66100000-0000-4000-8000-000000000008`;
+- title: `SAYDI_STORY_GOLDEN_V4_CLAUSE_LEVEL`;
+- source parent blocks: 17;
+- rendered semantic units: 73;
+- every unit uses `tempo_factor = 1.0`;
+- manifest: `tools/saydi_tts/narration/golden_story_v4_manifest.json`;
+- wrapper: `tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V4_H4A16IL.ps1`;
+- output: `SAYDI_STORY_GOLDEN_V4_FINAL.mp3`;
+- Owner listening is the acceptance authority.
+
+Acceptance:
+
+- no dragged/slow-motion articulation;
+- audible breathing inside former 17-block boundaries;
+- dialogue has human turn-taking space;
+- reflective/emotional sentences land before the next thought;
+- transitions reset clearly without becoming theatrical or choppy;
+- only after Owner acceptance may production integration proceed.
+
 ### SAYDI-ND-003 — Production integration
 
 Status: PENDING
 
-After Owner accepts Golden V2:
+After Owner accepts Golden V4:
 
 - integrate Narration Director into Pipeline V3 preprocessing;
 - generate narration manifest automatically for Chapter 1 preview;
@@ -188,4 +219,4 @@ After Owner accepts Golden V2:
 
 ## Current next task
 
-Run `tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V3_H4A16IL.ps1` on DESKTOP-H4A16IL using the existing 17 raw chunks. Owner listening acceptance is required before `SAYDI-ND-003`. V2 is rejected and must not be promoted to production.
+Render and build SAYDI-ND-002C / Golden Story V4 on DESKTOP-H4A16IL. The V4 worker job is independent from V2/V3. Require technical completion, then Owner listening acceptance. Do not advance to SAYDI-ND-003 until V4 is accepted.
