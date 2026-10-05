@@ -4,6 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+Write-Host "[QC006] Installer started on $env:COMPUTERNAME" -ForegroundColor Cyan
+
 if ($env:COMPUTERNAME -ne "DESKTOP-H4A16IL") {
     throw "QC-006 field acceptance chỉ chạy trên DESKTOP-H4A16IL. Máy hiện tại: $env:COMPUTERNAME"
 }
@@ -24,14 +26,38 @@ if (-not (Test-Path $QcPython)) { throw "Missing QC Python: $QcPython" }
 New-Item -ItemType Directory -Force -Path $QcRoot,$PkgRoot,$PkgData,$FieldRoot,$OwnerReview | Out-Null
 
 $RawBase = "https://raw.githubusercontent.com/magasincoffee/magasin-media-robot/main"
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/tools/saydi_tts/qc/run_qc.py" -OutFile $RunQc
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/__init__.py" -OutFile (Join-Path $PkgRoot "__init__.py")
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/pronunciation.py" -OutFile (Join-Path $PkgRoot "pronunciation.py")
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/repair.py" -OutFile (Join-Path $PkgRoot "repair.py")
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/contracts.py" -OutFile (Join-Path $PkgRoot "contracts.py")
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/prosody.py" -OutFile (Join-Path $PkgRoot "prosody.py")
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/02_SAYDI_CORE/src/saydi_audiobook/data/vi_pronunciation_lexicon_v1.json" -OutFile (Join-Path $PkgData "vi_pronunciation_lexicon_v1.json")
-Invoke-WebRequest -UseBasicParsing -Uri "$RawBase/tools/saydi_tts/qc/fixtures/qc006_field_manifest.json" -OutFile $ManifestPath
+
+function Get-QcFile([string]$RelativePath,[string]$OutFile) {
+    $uri = "$RawBase/$RelativePath"
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            Write-Host "[QC006] download $RelativePath (attempt $attempt/3) ..." -ForegroundColor DarkCyan
+            Invoke-WebRequest -UseBasicParsing -Uri $uri -OutFile $OutFile -TimeoutSec 30
+            if (-not (Test-Path $OutFile) -or (Get-Item $OutFile).Length -eq 0) {
+                throw "Downloaded file is empty: $OutFile"
+            }
+            Write-Host "[QC006] download OK: $RelativePath" -ForegroundColor Green
+            return
+        } catch {
+            if ($attempt -eq 3) {
+                throw "QC006 download failed after 3 attempts: $RelativePath :: $($_.Exception.Message)"
+            }
+            Write-Host "[QC006] retrying download: $RelativePath" -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+        }
+    }
+}
+
+Write-Host "[QC006] Preparing local QC modules..." -ForegroundColor Cyan
+Get-QcFile "tools/saydi_tts/qc/run_qc.py" $RunQc
+Get-QcFile "02_SAYDI_CORE/src/saydi_audiobook/__init__.py" (Join-Path $PkgRoot "__init__.py")
+Get-QcFile "02_SAYDI_CORE/src/saydi_audiobook/pronunciation.py" (Join-Path $PkgRoot "pronunciation.py")
+Get-QcFile "02_SAYDI_CORE/src/saydi_audiobook/repair.py" (Join-Path $PkgRoot "repair.py")
+Get-QcFile "02_SAYDI_CORE/src/saydi_audiobook/contracts.py" (Join-Path $PkgRoot "contracts.py")
+Get-QcFile "02_SAYDI_CORE/src/saydi_audiobook/prosody.py" (Join-Path $PkgRoot "prosody.py")
+Get-QcFile "02_SAYDI_CORE/src/saydi_audiobook/data/vi_pronunciation_lexicon_v1.json" (Join-Path $PkgData "vi_pronunciation_lexicon_v1.json")
+Get-QcFile "tools/saydi_tts/qc/fixtures/qc006_field_manifest.json" $ManifestPath
+Write-Host "[QC006] Local QC modules ready." -ForegroundColor Green
 
 $cfg = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 $manifest = Get-Content $ManifestPath -Raw | ConvertFrom-Json
