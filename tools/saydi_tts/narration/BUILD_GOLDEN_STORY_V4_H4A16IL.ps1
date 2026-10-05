@@ -1,5 +1,6 @@
 param(
-    [int]$WaitMinutes = 45
+    [int]$WaitMinutes = 45,
+    [switch]$NoOpen
 )
 
 $ErrorActionPreference = "Stop"
@@ -105,4 +106,6 @@ Write-Host "Report: $Report"
 Write-Host ""
 Write-Host "Owner listening gate: PENDING" -ForegroundColor Yellow
 
-Start-Process explorer.exe -ArgumentList "/select,`"$FinalMp3`""
+if (-not $NoOpen) {
+    Start-Process explorer.exe -ArgumentList "/select,`"$FinalMp3`""
+}
