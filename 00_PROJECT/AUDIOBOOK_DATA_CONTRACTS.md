@@ -76,6 +76,28 @@ unresolved_suspect_tokens[]
 ```
 
 
+## 2B. ChunkRepairState.v1
+
+The durable queue keeps canonical chunk text separate from a temporary TTS-only repair override:
+
+```text
+chunk_index
+text_content                  # canonical queue text
+spoken_text_override          # nullable derived TTS-only repair text
+spoken_text_override_meta     # lexicon/provenance/source-audio evidence
+qc_repair_attempts
+last_repair_request_id
+status
+```
+
+Rules:
+
+- `text_content` is not overwritten by pronunciation/prosody repair;
+- existing workers receive `spoken_text_override` as effective TTS text only when present;
+- every repair is chunk-addressed and bounded;
+- `last_repair_request_id` makes repeated repair requests idempotent;
+- retry exhaustion becomes REVIEW rather than another automatic loop.
+
 ## 3. NarrationProfile.v1
 
 ```text
