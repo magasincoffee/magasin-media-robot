@@ -68,14 +68,19 @@ if ($LASTEXITCODE -ne 0) {
 $cfg = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 $manifest = Get-Content $ManifestPath -Raw | ConvertFrom-Json
 $headers = @{
-    "Content-Type" = "application/json"
     "X-SAYDI-WORKER-TOKEN" = $cfg.worker_token
 }
 
 function Invoke-Saydi([hashtable]$Body) {
     $jsonBody = $Body | ConvertTo-Json -Depth 20 -Compress
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    $bodyBytes = $utf8.GetBytes($jsonBody)
+    $bodyHash = [BitConverter]::ToString(
+        [Security.Cryptography.SHA256]::Create().ComputeHash($bodyBytes)
+    ).Replace("-","").ToLowerInvariant()
+    Write-Host "[QC006] API action=$($Body.action) bytes=$($bodyBytes.Length) sha256=$($bodyHash.Substring(0,12))" -ForegroundColor DarkGray
     try {
-        return Invoke-RestMethod -Method Post -Uri $cfg.api_url -Headers $headers -Body $jsonBody -TimeoutSec 90
+        return Invoke-RestMethod -Method Post -Uri $cfg.api_url -Headers $headers -ContentType "application/json; charset=utf-8" -Body $bodyBytes -TimeoutSec 90
     } catch {
         $detail = $_.Exception.Message
         try {
@@ -85,7 +90,7 @@ function Invoke-Saydi([hashtable]$Body) {
                 if ($responseBody) { $detail = "$detail :: $responseBody" }
             }
         } catch {}
-        throw "SAYDI API call failed action=$($Body.action): $detail"
+        throw "SAYDI API call failed action=$($Body.action) bytes=$($bodyBytes.Length) sha256=$($bodyHash.Substring(0,12)): $detail"
     }
 }
 
