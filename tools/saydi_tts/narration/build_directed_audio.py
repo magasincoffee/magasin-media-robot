@@ -53,14 +53,20 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _run(cmd: list[str]) -> None:
-    process = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+def _run(cmd: list[str], *, timeout_seconds: int = 120) -> None:
+    try:
+        process = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"command timed out after {timeout_seconds}s:\n" + " ".join(cmd)
+        ) from exc
     if process.returncode != 0:
         raise RuntimeError("command failed:\n" + " ".join(cmd) + "\n" + process.stderr[-6000:])
 
@@ -145,8 +151,13 @@ def build_directed_audio(
         temp_dir = Path(temp_name)
 
         previous_pause_after = 0
+        total_segments = len(segments)
         for position, segment in enumerate(segments):
             index = int(segment["index"])
+            print(
+                f"[DIRECTOR] segment {position + 1}/{total_segments} index={index}: start",
+                flush=True,
+            )
             beat = str(segment["beat"])
             tempo_factor = float(segment["tempo_factor"])
             pause_before = int(segment.get("pause_before_ms", 0))
@@ -202,6 +213,11 @@ def build_directed_audio(
                 )
             )
             previous_pause_after = pause_after
+            print(
+                f"[DIRECTOR] segment {position + 1}/{total_segments} index={index}: done "
+                f"({directed_duration:.2f}s)",
+                flush=True,
+            )
 
         if previous_pause_after:
             pieces.append(np.zeros(int(sample_rate * previous_pause_after / 1000.0), dtype=np.float32))
@@ -214,6 +230,7 @@ def build_directed_audio(
         temp_wav = temp_dir / "golden_story_v2_directed.wav"
         sf.write(str(temp_wav), merged, sample_rate, subtype="PCM_16")
 
+        print("[DIRECTOR] final loudness normalization: start", flush=True)
         _run(
             [
                 ffmpeg,
@@ -234,8 +251,10 @@ def build_directed_audio(
                 "-b:a",
                 "128k",
                 str(output_mp3),
-            ]
+            ],
+            timeout_seconds=180,
         )
+        print("[DIRECTOR] final loudness normalization: done", flush=True)
 
     duration_sec = len(merged) / sample_rate
     effective_wpm = word_count / max(duration_sec / 60.0, 1e-9)
