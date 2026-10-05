@@ -322,6 +322,8 @@ Fourth field finding: the recovered run reached the repair API but PowerShell re
 
 Fifth field finding: Edge v10 confirmed the failing request reached the correct deployment, but returned `received_action=""` and `normalized_action=""` while the PowerShell caller still had `action=repair_chunks`. This isolates the defect to HTTP request-body serialization/parsing between Windows PowerShell and the Edge runtime, not VieNeu, the queue, or action routing. The installer now sends JSON as explicit UTF-8 bytes with `application/json; charset=utf-8`; Edge v11 no longer silently swallows JSON parse failures and returns safe parse diagnostics (length/content-type/error) without echoing audiobook text.
 
+Sixth field finding: the targeted repair itself completed successfully (3/3 chunks), but the immediate post-repair QC failed while loading faster-whisper with `mkl_malloc: failed to allocate memory`. Supabase confirmed the render job was complete and error-free; the local TTS worker remained online after rendering and retained enough RAM to starve the new Whisper process. QC-006 now temporarily stops the idle scheduled TTS worker before post-repair Whisper QC, limits MKL/OMP threads during that check, and restores the worker afterward.
+
 Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
 ## Current next task
