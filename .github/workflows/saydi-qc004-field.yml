@@ -23,6 +23,5 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run QC-004 targeted rerender field gate
-        shell: powershell
-        run: |
-          & ".\tools\saydi_tts\qc\RUN_QC004_FIELD_H4A16IL.ps1"
+        shell: cmd
+        run: powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "tools\saydi_tts\qc\RUN_QC004_FIELD_H4A16IL.ps1"
