@@ -316,3 +316,12 @@ def profile_fingerprints() -> dict[str, str]:
         key: envelope.fingerprint
         for key, envelope in PROSODY_ENVELOPES.items()
     }
+
+
+def acceptance_matches_profile(
+    accepted_profile_fingerprint: str | None,
+    profile_key: str,
+) -> bool:
+    if not accepted_profile_fingerprint:
+        return False
+    return accepted_profile_fingerprint == get_prosody_envelope(profile_key).fingerprint
