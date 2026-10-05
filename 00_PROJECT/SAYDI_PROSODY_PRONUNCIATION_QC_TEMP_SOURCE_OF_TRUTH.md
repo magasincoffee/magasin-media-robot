@@ -316,6 +316,8 @@ Field finding on 2026-10-05: the first QC-006 run reached all four cases but the
 
 Second field finding: the corrected run reached the targeted-repair helper, then failed because `build_spoken_form.py` executed from `C:\SAYDI\qc\qc006` and therefore could not import sibling package `C:\SAYDI\qc\saydi_audiobook`. The helper is now executed from the QC package root and the installer performs a Python import smoke check before any long QC work.
 
+Third field finding: after the helper-import fix, the next run reported `targeted_repair: observation count mismatch`. Inspection showed the previous interrupted run had already moved target chunk `000001.wav` to the QC staging backup before the helper failed, leaving the next observe-only pass with only two audio observations and `auto_repair_indices=[1]`. The harness now recovers an interrupted staged target before QC, builds the corrective spoken form before touching the accepted WAV, and local QC emits explicit technical observations for missing/decode failures instead of silently reducing observation count.
+
 Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
 ## Current next task

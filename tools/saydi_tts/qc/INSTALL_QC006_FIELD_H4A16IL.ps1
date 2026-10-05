@@ -147,6 +147,9 @@ function Assert-ProfileEvidence($Case,$Report) {
         throw "$($Case.case_id): observation count mismatch"
     }
     foreach ($obs in $observations) {
+        if ($obs.technical_error) {
+            throw "$($Case.case_id): chunk $($obs.chunk_index) technical error: $($obs.technical_error)"
+        }
         if ($obs.audio_sha256 -notmatch '^[0-9a-fA-F]{64}$') {
             throw "$($Case.case_id): invalid audio hash for chunk $($obs.chunk_index)"
         }
@@ -213,6 +216,29 @@ foreach ($case in @($manifest.cases | Where-Object { $_.case_id -in @("business_
 $repairCase = @($manifest.cases | Where-Object { $_.case_id -eq "targeted_repair" })[0]
 $repairJob = $jobs["targeted_repair"]
 $targetIndex = [int]$repairCase.repair_chunk_index
+
+$chunkDir = Join-Path (Split-Path $repairJob.output_file_name -Parent) "chunks"
+$targetName = ("{0:D6}.wav" -f $targetIndex)
+$targetWav = Join-Path $chunkDir $targetName
+$staged = "$targetWav.qc006.before"
+
+# Recover safely from an interrupted previous QC006 run that staged the target
+# WAV but failed before the repair request could be queued.
+if (-not (Test-Path $targetWav) -and (Test-Path $staged)) {
+    Write-Host "[QC006] Recovering staged target WAV from previous interrupted run..." -ForegroundColor Yellow
+    Move-Item $staged $targetWav -Force
+    Write-Host "[QC006] Recovery OK: $targetName restored." -ForegroundColor Green
+} elseif ((Test-Path $targetWav) -and (Test-Path $staged)) {
+    $staleCopy = Join-Path $OwnerReview "stale_target_before_repair.wav"
+    Copy-Item $staged $staleCopy -Force
+    Remove-Item $staged -Force
+    Write-Host "[QC006] Archived stale staged WAV: $staleCopy" -ForegroundColor Yellow
+}
+
+if (-not (Test-Path $targetWav)) {
+    throw "Target WAV missing before QC: $targetWav"
+}
+
 $preReport = Run-ProfileQc $repairCase -ObserveOnly
 Assert-ProfileEvidence $repairCase $preReport
 $preObs = @($preReport.chunk_observations | Where-Object { [int]$_.chunk_index -eq $targetIndex })[0]
@@ -233,7 +259,6 @@ if ([int]$targetBefore.qc_repair_attempts -ge 2) {
     throw "Target repair budget already exhausted."
 }
 
-$chunkDir = Join-Path (Split-Path $repairJob.output_file_name -Parent) "chunks"
 $wavFiles = Get-ChildItem $chunkDir -Filter "*.wav" -File
 if ($wavFiles.Count -ne [int]$repairCase.expected_chunks) {
     throw "Expected $($repairCase.expected_chunks) WAV files, got $($wavFiles.Count)"
@@ -243,16 +268,16 @@ foreach ($wav in $wavFiles) {
     $hashBefore[$wav.Name] = (Get-FileHash $wav.FullName -Algorithm SHA256).Hash
 }
 
-$targetName = ("{0:D6}.wav" -f $targetIndex)
-$targetWav = Join-Path $chunkDir $targetName
+# Build and validate the corrective spoken form before touching the accepted WAV.
+$spoken = New-SpokenForm ([string]$repairCase.canonical_text)
+if (-not $spoken) { throw "Corrective spoken form is empty." }
+
 $beforeCopy = Join-Path $OwnerReview "target_before_repair.wav"
 Copy-Item $targetWav $beforeCopy -Force
 
-$staged = "$targetWav.qc006.before"
 if (Test-Path $staged) { Remove-Item $staged -Force }
 Move-Item $targetWav $staged
 
-$spoken = New-SpokenForm ([string]$repairCase.canonical_text)
 $requestId = "qc006-field-v1-target-1"
 try {
     $repairResponse = Invoke-Saydi @{
