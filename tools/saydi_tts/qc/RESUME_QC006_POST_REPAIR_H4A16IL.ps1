@@ -26,7 +26,7 @@ if (-not (Test-Path $PreReportPath)) {
     throw "Missing pre-repair QC evidence: $PreReportPath"
 }
 
-$cfg = Get-Content $ConfigPath -Raw | ConvertFrom-Json
+$cfg = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $headers = @{ "X-SAYDI-WORKER-TOKEN" = $cfg.worker_token }
 
 function Invoke-Saydi([hashtable]$Body) {
@@ -69,7 +69,7 @@ $targetName = ("{0:D6}.wav" -f $TargetIndex)
 $targetWav = Join-Path $chunkDir $targetName
 if (-not (Test-Path $targetWav)) { throw "Post-repair target WAV missing: $targetWav" }
 
-$pre = @(Get-Content $PreReportPath -Raw | ConvertFrom-Json)[0]
+$pre = @(Get-Content $PreReportPath -Raw -Encoding UTF8 | ConvertFrom-Json)[0]
 $preObs = @($pre.chunk_observations)
 if ($preObs.Count -ne 3) { throw "Pre-repair evidence must contain 3 observations; got $($preObs.Count)" }
 
@@ -141,7 +141,7 @@ try {
 
 $postPath = Join-Path $QcRoot ("reports\" + $BookId + "\qc_summary.json")
 if (-not (Test-Path $postPath)) { throw "Missing post-repair QC report: $postPath" }
-$post = @(Get-Content $postPath -Raw | ConvertFrom-Json)[0]
+$post = @(Get-Content $postPath -Raw -Encoding UTF8 | ConvertFrom-Json)[0]
 if ([int]$post.checked_chunks -ne 3) { throw "Post-repair QC did not observe all 3 chunks." }
 if ($post.prosody_profile_key -ne "GENERAL_CLEAR") { throw "Post-repair profile mismatch." }
 
