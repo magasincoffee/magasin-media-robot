@@ -318,6 +318,8 @@ Second field finding: the corrected run reached the targeted-repair helper, then
 
 Third field finding: after the helper-import fix, the next run reported `targeted_repair: observation count mismatch`. Inspection showed the previous interrupted run had already moved target chunk `000001.wav` to the QC staging backup before the helper failed, leaving the next observe-only pass with only two audio observations and `auto_repair_indices=[1]`. The harness now recovers an interrupted staged target before QC, builds the corrective spoken form before touching the accepted WAV, and local QC emits explicit technical observations for missing/decode failures instead of silently reducing observation count.
 
+Fourth field finding: the recovered run reached the repair API but PowerShell received `HTTP 400 Bad Request`. The only 400 path in the deployed repair endpoint was `no_chunk_indices`; this exposed a client-shape compatibility edge case for single-item PowerShell payloads. The worker API now normalizes scalar or array `chunk_indices` and scalar or array `spoken_overrides`; Edge Function v9 is ACTIVE. The field installer now also includes the API response body in any future HTTP error.
+
 Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
 ## Current next task
