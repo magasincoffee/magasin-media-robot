@@ -176,7 +176,7 @@ Wrapper:
 
 ### SAYDI-ND-002C — Golden Story V4 clause-level natural narration
 
-Status: READY_TO_RENDER
+Status: RAW_RENDER_COMPLETE — 73/73 rendered; directed master build + Owner listening pending
 
 Owner directive:
 
@@ -195,6 +195,15 @@ Locked V4 field contract:
 - wrapper: `tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V4_H4A16IL.ps1`;
 - output: `SAYDI_STORY_GOLDEN_V4_FINAL.mp3`;
 - Owner listening is the acceptance authority.
+
+
+V4 render evidence on 2026-10-05:
+
+- Supabase job `66100000-0000-4000-8000-000000000008` completed successfully;
+- 73/73 clause-level chunks rendered on `DESKTOP-H4A16IL-SAYDI-TTS`;
+- render error: none;
+- raw output: `C:\SAYDI\output\SAYDI_STORY_GOLDEN_V4_CLAUSE_LEVEL__66100000\SAYDI_STORY_GOLDEN_V4_CLAUSE_LEVEL.mp3`;
+- final directed master still requires the V4 wrapper on DESKTOP-H4A16IL, then Owner listening acceptance.
 
 Acceptance:
 
@@ -219,4 +228,4 @@ After Owner accepts Golden V4:
 
 ## Current next task
 
-Render and build SAYDI-ND-002C / Golden Story V4 on DESKTOP-H4A16IL. The V4 worker job is independent from V2/V3. Require technical completion, then Owner listening acceptance. Do not advance to SAYDI-ND-003 until V4 is accepted.
+Run the directed V4 master build on DESKTOP-H4A16IL from the completed 73 raw chunks, then require Owner listening acceptance. Do not advance to SAYDI-ND-003 until V4 is accepted.
