@@ -346,7 +346,35 @@ if ($changed.Count -ne 1 -or $changed[0] -ne $targetName) {
 $afterCopy = Join-Path $OwnerReview "target_after_repair.wav"
 Copy-Item $targetWav $afterCopy -Force
 
-$postReport = Run-ProfileQc $repairCase -ObserveOnly
+$workerTaskName = "SAYDI TTS Worker At Startup"
+$workerWasRunning = $false
+$workerTask = Get-ScheduledTask -TaskName $workerTaskName -ErrorAction SilentlyContinue
+if ($workerTask -and $workerTask.State -eq "Running") {
+    $workerWasRunning = $true
+    Write-Host "[QC006] Stopping idle TTS worker temporarily to free RAM for post-repair Whisper QC..." -ForegroundColor Yellow
+    Stop-ScheduledTask -TaskName $workerTaskName
+    $deadline = (Get-Date).AddSeconds(30)
+    do {
+        Start-Sleep -Seconds 2
+        $workerTask = Get-ScheduledTask -TaskName $workerTaskName -ErrorAction SilentlyContinue
+    } while ($workerTask -and $workerTask.State -eq "Running" -and (Get-Date) -lt $deadline)
+    Start-Sleep -Seconds 5
+}
+
+$oldMklThreads = $env:MKL_NUM_THREADS
+$oldOmpThreads = $env:OMP_NUM_THREADS
+$env:MKL_NUM_THREADS = "2"
+$env:OMP_NUM_THREADS = "2"
+try {
+    $postReport = Run-ProfileQc $repairCase -ObserveOnly
+} finally {
+    $env:MKL_NUM_THREADS = $oldMklThreads
+    $env:OMP_NUM_THREADS = $oldOmpThreads
+    if ($workerWasRunning) {
+        Write-Host "[QC006] Restarting SAYDI TTS worker after post-repair QC..." -ForegroundColor Cyan
+        Start-ScheduledTask -TaskName $workerTaskName
+    }
+}
 Assert-ProfileEvidence $repairCase $postReport
 $postObs = @($postReport.chunk_observations | Where-Object { [int]$_.chunk_index -eq $targetIndex })[0]
 if (-not $postObs) { throw "Missing post-repair target observation." }
