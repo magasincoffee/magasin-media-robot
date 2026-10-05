@@ -40,7 +40,8 @@ Deno.serve(async (req) => {
   }
 
   const body = await req.json().catch(() => ({}));
-  const action = String(body.action ?? "");
+  const actionRaw = String(body.action ?? "");
+  const action = actionRaw.trim().toLowerCase();
 
   const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
   const legacyServiceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
   });
 
   if (action === "health") {
-    return json({ ok: true, service: "saydi-tts-worker-api", version: 5 });
+    return json({ ok: true, service: "saydi-tts-worker-api", version: 6 });
   }
 
   if (action === "claim") {
@@ -505,5 +506,5 @@ Deno.serve(async (req) => {
         });
   }
 
-  return json({ error: "unknown action" }, 400);
+  return json({ error: "unknown action", received_action: actionRaw, normalized_action: action }, 400);
 });
