@@ -47,7 +47,7 @@ VieNeu local does **not** currently have a verified discrete control for:
 - arbitrary emotion labels;
 - direct scene-level speaking-rate parameter.
 
-Therefore Narration Director v1 creates emotion structurally:
+Owner listening on 2026-10-05 rejected V2 despite technical PASS: the delivery was more expressive than V1, but emotion was being created by slowing the voice. Owner directive: **truyền cảm bằng nghỉ/ngắt nhịp, không phải bằng làm tốc độ giọng chậm**.\n\nTherefore Narration Director v2 uses a pause-first architecture:
 
 ```text
 canonical text
@@ -157,6 +157,23 @@ Accepted raw-render evidence on 2026-10-05:
 - raw chapter output: `C:\SAYDI\output\SAYDI_STORY_GOLDEN_V2_DIRECTED__66100000\SAYDI_STORY_GOLDEN_V2_DIRECTED.mp3`;
 - the listener-facing directed master is intentionally separate from this raw render and must be built with the Narration Director tempo/pause assembler before Owner review.
 
+### SAYDI-ND-002B — Golden Story V3 natural-speed + semantic-pauses
+
+Status: READY
+
+Required:
+
+- reuse the already completed 17 raw WAV chunks; do not rerender unless V3 listening proves internal phrase pauses are still insufficient;
+- set all post-render tempo factors to 1.0;
+- express reflective, dialogue, transition and resolution emotion primarily through pause duration, punctuation and semantic phrasing;
+- build `SAYDI_STORY_GOLDEN_V3_FINAL.mp3`;
+- Owner listening is the acceptance authority;
+- if V3 still lacks internal pauses, advance to clause-level segmentation and targeted rerender rather than slowing audio.
+
+Wrapper:
+
+`tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V3_H4A16IL.ps1`
+
 ### SAYDI-ND-003 — Production integration
 
 Status: PENDING
@@ -171,4 +188,4 @@ After Owner accepts Golden V2:
 
 ## Current next task
 
-Run `tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V2_H4A16IL.ps1` on DESKTOP-H4A16IL. Require directed-audio technical gate PASS, then Owner A/B listening acceptance. After acceptance, advance to `SAYDI-ND-003` production integration.
+Run `tools/saydi_tts/narration/BUILD_GOLDEN_STORY_V3_H4A16IL.ps1` on DESKTOP-H4A16IL using the existing 17 raw chunks. Owner listening acceptance is required before `SAYDI-ND-003`. V2 is rejected and must not be promoted to production.
