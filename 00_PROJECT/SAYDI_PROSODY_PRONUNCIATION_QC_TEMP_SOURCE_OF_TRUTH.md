@@ -314,6 +314,8 @@ Evidence:
 
 Field finding on 2026-10-05: the first QC-006 run reached all four cases but the controlled fault gate compared ASR to the effective TTS override, producing similarity 0.9534. This was a test-harness semantic error, not a TTS/QC engine failure. A canonical similarity correction now records both effective-TTS and canonical-source ASR similarity and uses the canonical value for fault acceptance.
 
+Second field finding: the corrected run reached the targeted-repair helper, then failed because `build_spoken_form.py` executed from `C:\SAYDI\qc\qc006` and therefore could not import sibling package `C:\SAYDI\qc\saydi_audiobook`. The helper is now executed from the QC package root and the installer performs a Python import smoke check before any long QC work.
+
 Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
 ## Current next task
