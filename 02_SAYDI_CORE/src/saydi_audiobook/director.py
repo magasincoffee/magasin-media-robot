@@ -9,7 +9,7 @@ from typing import Iterable
 from .contracts import canonical_hash
 
 
-NARRATION_DIRECTOR_VERSION = "narration-director-v1"
+NARRATION_DIRECTOR_VERSION = "narration-director-v2-pause-first"
 
 
 @dataclass(frozen=True, slots=True)
