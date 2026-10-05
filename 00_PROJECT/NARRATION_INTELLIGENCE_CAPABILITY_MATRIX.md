@@ -41,7 +41,7 @@ Owner supplies a legally usable book
 | Book genre classification | ✅ AVAILABLE | Rule-based classifier + `AnalysisProvider` | Expand taxonomy without coupling to TTS |
 | Local LLM analysis boundary | ✅ AVAILABLE | Ollama `AnalysisProvider` interface exists | Local semantic analysis remains default; cloud optional |
 | Whole-book style/tone understanding | 🟡 PARTIAL | Current first slice can create `BOOK_PROFILE`; current Ollama implementation analyzes an excerpt rather than a hierarchical full-book pass | Hierarchical book -> chapter -> scene analysis over the complete canonical book |
-| Narration profiles `BUSINESS_CLEAR / STORY_NARRATIVE / GENERAL_CLEAR` | ✅ AVAILABLE | Profile selection/fingerprint code exists | Expand into versioned genre/style presets |
+| Narration profiles `BUSINESS_CLEAR / STORY_NARRATIVE / GENERAL_CLEAR` | ✅ AVAILABLE | QC-005 adds versioned `prosody-profile-v1` envelopes, Owner style mapping and fingerprints | Tune thresholds only with field evidence; fingerprint changes invalidate acceptance |
 | Representative passages for preview | ✅ AVAILABLE | Current selector returns up to ~3 passages | Target 3–5 passages spanning normal prose, difficult terms, dialogue/emotion and edge cases |
 | Text approval + audio sample approval | ✅ AVAILABLE | Workflow state supports both gates | Approval is tied to active narration fingerprint |
 | Semantic block roles (heading/body/dialogue/quote/etc.) | 🟡 PARTIAL | Locked in SOT/architecture; production parser not complete | Every block gets a role + confidence |
@@ -54,14 +54,14 @@ Owner supplies a legally usable book
 | Emotional arc across adjacent segments | ❌ MISSING | No smoothing/state transition model | Emotion should evolve smoothly across scene/paragraph boundaries |
 | Segment delivery directives | 🟡 PARTIAL | Architecture defines pace/energy/pause/emphasis/emotion; no full production director | Every segment receives validated provider-neutral delivery metadata |
 | Heading/title delivery policy | 🟡 PARTIAL | Architecture/SOT defines separate heading segments and pauses | Enforced in production narration manifest |
-| Provider-safe mapping of emotion/prosody | 🟡 PARTIAL | Provider-neutral design exists; unsupported controls must not be fabricated | Map only to verified TTS capabilities: segmentation, punctuation, pace, pause, supported reference/style controls |
+| Provider-safe mapping of emotion/prosody | ✅ AVAILABLE FOR PROFILE QC | QC-005 provider whitelist filters controls; VieNeu does not claim discrete emotion/mood/direct-speed controls without field evidence | Semantic intent remains provider-neutral; map only verified controls |
 | ASR text similarity QC | ✅ AVAILABLE | Local QC currently produces similarity/warning/error evidence | Keep as one QC signal, not final acceptance by itself |
 | Word-level pronunciation clarity / “lơ lớ” detection | 🟡 PARTIAL | Word-confidence + suspect-token measurement field-validated 24/24 chunks; automatic pronunciation repair is not built yet | Exact suspect token + confidence + timecode, then bounded repair |
 | Vietnamese pronunciation lexicon / spoken-form overrides | ✅ AVAILABLE | QC-003 merged in PR #64 with versioned lexicon, conservative integer rules, explicit name/foreign-term entries, provenance and regression tests | Connect approved repair plans to targeted rerender in QC-004 |
-| Prosody QC: speaking rate | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced speaking-rate metrics | Compare against active narration profile envelope |
-| Prosody QC: pause/silence pattern | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced pause-ratio metrics | Detect too little/too much/unnatural pause |
-| Prosody QC: pitch/intonation variation | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced coarse F0-variation metrics | Detect flat/robotic delivery and profile mismatch |
-| Prosody QC: energy/dynamics | ✅ AVAILABLE | Field-validated on DESKTOP-H4A16IL: 24/24 chunks produced energy-variation metrics | Detect lifeless or overexpressive delivery |
+| Prosody QC: speaking rate | ✅ PROFILE-AWARE | Field metric exists; QC-005 compares WPM against active versioned profile envelope | Profile-specific PASS/REVIEW |
+| Prosody QC: pause/silence pattern | ✅ PROFILE-AWARE | Field metric exists; QC-005 compares pause ratio against active profile envelope | Detect insufficient/excessive pauses by profile |
+| Prosody QC: pitch/intonation variation | ✅ PROFILE-AWARE | Field metric exists; QC-005 compares F0 variation against active profile envelope | Detect flat or excessive intonation by profile |
+| Prosody QC: energy/dynamics | ✅ PROFILE-AWARE | Field metric exists; QC-005 compares dynamics against active profile envelope | Detect flat or excessive dynamics by profile |
 | Acoustic QC / joins / clipping / silence | 🟡 PARTIAL | Existing QA architecture and some local checks; full unified gate still evolving | Default-on after synthesis and chapter assembly |
 | Targeted automatic rerender | 🟡 CORRECT-HOST FIELD PENDING | QC-004 code merged and Supabase/Edge v7 deployed; automated runner reached DESKTOP-4K7IM13 and was safely blocked because authoritative TTS host is DESKTOP-H4A16IL | Run the one-command H4A16IL field gate; prove only the target chunk changes, then PASS/REVIEW |
 | Bounded retry / no infinite rerender | 🔒 LOCKED | Owner-approved architecture; bounded policy merged in PR #60 | Retry-safe only; exhaustion -> REVIEW |

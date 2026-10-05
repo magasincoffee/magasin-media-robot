@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
   });
 
   if (action === "health") {
-    return json({ ok: true, service: "saydi-tts-worker-api", version: 3 });
+    return json({ ok: true, service: "saydi-tts-worker-api", version: 4 });
   }
 
   if (action === "claim") {
@@ -281,6 +281,7 @@ Deno.serve(async (req) => {
       "pronunciation_clarity",
       "pronunciation_repair_candidate",
       "repair_exhausted",
+      "prosody_style_mismatch",
     ];
     const replaceChunkIndices = Array.isArray(body.replace_chunk_indices)
       ? [...new Set(body.replace_chunk_indices.map((x: any) => Number(x)).filter((x: number) => Number.isInteger(x) && x >= 0))].slice(0, 50)

@@ -99,6 +99,10 @@ For a chunk outside the active narration profile:
 5. rerun pronunciation + prosody + acoustic QC;
 6. escalate after the retry budget instead of looping forever.
 
+## Owner sequencing note
+
+Owner directive 2026-10-05: QC-005 may proceed in parallel while QC-004 correct-host field acceptance remains pending. This does **not** mark QC-004 DONE and does **not** waive its final acceptance gate. Project completion still requires QC-004 field PASS on DESKTOP-H4A16IL.
+
 ## Task queue
 
 ### SAYDI-QC-001 — Core quality contracts and deterministic repair policy
@@ -229,16 +233,33 @@ Field acceptance is **not** complete until the correct host proves:
 
 ### SAYDI-QC-005 — Prosody/style profiles by audiobook type
 
-Status: PENDING
+Status: IMPLEMENTED_IN_PR — CI / merge verification pending
 
 Required:
-- define per-profile pace, pause and intonation envelopes for at least BUSINESS_CLEAR, STORY_NARRATIVE and GENERAL_CLEAR;
-- map Owner's simple genre/style request to the profile;
-- allow provider-supported controls only; never fabricate unsupported controls.
+- define per-profile pace, pause and intonation envelopes for at least BUSINESS_CLEAR, STORY_NARRATIVE and GENERAL_CLEAR; **IMPLEMENTED in `prosody-profile-v1`**
+- map Owner's simple genre/style request to the profile; **IMPLEMENTED with deterministic Vietnamese/English aliases + BookProfile fallback**
+- allow provider-supported controls only; never fabricate unsupported controls. **IMPLEMENTED with provider control whitelist**
 
 Acceptance:
-- profile-specific QC catches deliberately flat/too-fast/too-slow fixtures;
-- changing profile invalidates QC acceptance as required.
+- profile-specific QC catches deliberately flat/too-fast/too-slow fixtures; **IMPLEMENTED + unit-tested**
+- changing profile invalidates QC acceptance as required. **IMPLEMENTED via profile fingerprint binding**
+
+### SAYDI-QC-005 implementation evidence
+
+Implementation prepared on 2026-10-05.
+
+Evidence:
+
+- versioned profile contract: `prosody-profile-v1`;
+- `BUSINESS_CLEAR`, `STORY_NARRATIVE`, and `GENERAL_CLEAR` each define speaking-rate, pause, pitch and energy envelopes;
+- Owner-facing style requests map deterministically to one profile;
+- unknown style requests fall back to analyzed `BookProfile`, then `GENERAL_CLEAR`;
+- local QC writes exact profile key/version/fingerprint into observations and chapter reports;
+- local QC emits `prosody_style_mismatch` with exact out-of-envelope reasons;
+- profile fingerprint changes invalidate previous acceptance;
+- provider-control filter rejects unsupported emotion/mood/prosody knobs rather than fabricating them;
+- Supabase `saydi-tts-worker` Edge Function v8 deployed to persist/replace prosody QC events safely;
+- profile definitions documented in `00_PROJECT/PROSODY_STYLE_PROFILES_V1.md`.
 
 ### SAYDI-QC-006 — Field acceptance on local VieNeu
 
@@ -258,5 +279,5 @@ Acceptance:
 
 ## Current next task
 
-Run `tools/saydi_tts/qc/INSTALL_QC004_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL. If it prints `FIELD GATE QC-004: PASS`, mark `SAYDI-QC-004` DONE and advance to `SAYDI-QC-005`. Do not advance while the correct-host field gate is pending.
+QC-004 remains pending its DESKTOP-H4A16IL field gate. In parallel per Owner directive, complete CI/merge verification for `SAYDI-QC-005`. After QC-005 merges, `SAYDI-QC-006` may be prepared, but final QC project completion still requires QC-004 field PASS.
 
