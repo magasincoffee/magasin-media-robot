@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .analysis import OllamaAnalysisProvider, RuleBasedAnalysisProvider
 from .pronunciation import build_pronunciation_repair_plan, load_pronunciation_lexicon
+from .prosody import get_prosody_envelope, resolve_owner_style_request
 from .voice import WindowsSapiVoiceProvider
 from .workflow import decide_audio, decide_text, prepare_run, synthesize_sample
 
@@ -66,6 +67,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pron.add_argument("--lexicon", type=Path, default=None)
     pron.add_argument("--output", type=Path, default=None, help="Optional JSON output path")
+
+    profile = sub.add_parser(
+        "profile-resolve",
+        help="Resolve a simple Owner genre/style request to a versioned prosody profile.",
+    )
+    profile.add_argument("--style", default="")
+    profile.add_argument(
+        "--input",
+        type=Path,
+        default=None,
+        help="Optional UTF-8 book text used as deterministic fallback when style is unknown.",
+    )
     return p
 
 
@@ -118,5 +131,26 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             print(rendered, end="")
+        return 0
+    if args.command == "profile-resolve":
+        book_profile = None
+        if args.input is not None:
+            source = args.input.read_text(encoding="utf-8")
+            book_profile = RuleBasedAnalysisProvider().analyze_book(source)
+        resolution = resolve_owner_style_request(
+            args.style,
+            book_profile=book_profile,
+        )
+        envelope = get_prosody_envelope(resolution.profile_key)
+        payload = {
+            "requested_style": resolution.requested_style,
+            "profile_key": resolution.profile_key,
+            "resolution_source": resolution.source,
+            "matched_aliases": list(resolution.matched_aliases),
+            "prosody_profile_version": envelope.version,
+            "prosody_profile_fingerprint": envelope.fingerprint,
+            "envelope": asdict(envelope),
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
     return 1
