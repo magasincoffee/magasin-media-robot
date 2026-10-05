@@ -379,6 +379,7 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
             segments = list(segments)
             heard = " ".join(segment.text.strip() for segment in segments if segment.text.strip())
             similarity = sim(render_text, heard)
+            canonical_similarity = sim(canonical_text, heard)
             words = [
                 word
                 for segment in segments
@@ -467,6 +468,7 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
                 "audio_sha256": measurement["audio_sha256"],
                 "attempt": attempt,
                 "asr_similarity": round(similarity, 4),
+                "canonical_asr_similarity": round(canonical_similarity, 4),
                 "min_word_confidence": None
                 if min_conf is None
                 else round(min_conf, 4),
@@ -495,7 +497,7 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
             took = time.time() - chunk_started
             print(
                 f"[QC] Chapter {chapter} | chunk {pos}/{total} DONE | "
-                f"similarity={similarity:.3f} | "
+                f"similarity={similarity:.3f} | canonical_similarity={canonical_similarity:.3f} | "
                 f"word_min={min_conf if min_conf is not None else 'n/a'} | "
                 f"wpm={speaking_rate:.1f} | pause={measurement['pause_ratio']:.3f} | "
                 f"pitch_var={measurement['pitch_variation_semitones'] if measurement['pitch_variation_semitones'] is not None else 'n/a'} | "

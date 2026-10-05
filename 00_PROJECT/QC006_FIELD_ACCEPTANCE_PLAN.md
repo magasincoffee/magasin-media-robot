@@ -36,6 +36,15 @@ The durable machine-readable manifest is:
 
 ## Controlled fault injection
 
+QC-006 records two different ASR similarities for an override-bearing chunk:
+
+- effective TTS similarity: compares ASR against the text actually sent to TTS;
+- canonical ASR similarity: compares ASR against the immutable source text.
+
+The controlled bad override must be detected using **canonical ASR similarity**. A high effective-TTS similarity is expected when the engine faithfully speaks the deliberately wrong override; it is not evidence that canonical content is correct.
+
+
+
 The targeted-repair case deliberately renders chunk 1 from a wrong TTS-only spoken override while preserving the correct canonical text.
 
 This is test data only.
