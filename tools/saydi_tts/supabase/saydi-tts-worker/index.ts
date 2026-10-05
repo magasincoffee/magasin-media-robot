@@ -10,6 +10,21 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function normalizeChunkIndices(value: unknown): number[] {
+  const raw = Array.isArray(value) ? value : (value === null || value === undefined ? [] : [value]);
+  return [...new Set(
+    raw
+      .map((x: unknown) => Number(x))
+      .filter((x: number) => Number.isInteger(x) && x >= 0)
+  )].slice(0, 50);
+}
+
+function normalizeObjectArray(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return [value];
+  return [];
+}
+
 async function sha256Hex(value: string) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -37,7 +52,7 @@ Deno.serve(async (req) => {
   });
 
   if (action === "health") {
-    return json({ ok: true, service: "saydi-tts-worker-api", version: 4 });
+    return json({ ok: true, service: "saydi-tts-worker-api", version: 5 });
   }
 
   if (action === "claim") {
@@ -340,9 +355,7 @@ Deno.serve(async (req) => {
 
   if (action === "repair_eligibility") {
     const jobId = String(body.job_id ?? "");
-    const indices = Array.isArray(body.chunk_indices)
-      ? [...new Set(body.chunk_indices.map((x: any) => Number(x)).filter((x: number) => Number.isInteger(x) && x >= 0))].slice(0, 50)
-      : [];
+    const indices = normalizeChunkIndices(body.chunk_indices);
     if (!indices.length) return json({ error: "no_chunk_indices" }, 400);
 
     const maxAttempts = 2;
@@ -366,14 +379,12 @@ Deno.serve(async (req) => {
 
   if (action === "repair_chunks") {
     const jobId = String(body.job_id ?? "");
-    const indices = Array.isArray(body.chunk_indices)
-      ? [...new Set(body.chunk_indices.map((x: any) => Number(x)).filter((x: number) => Number.isInteger(x) && x >= 0))].slice(0, 50)
-      : [];
+    const indices = normalizeChunkIndices(body.chunk_indices);
     if (!indices.length) return json({ error: "no_chunk_indices" }, 400);
 
     const requestId = String(body.repair_request_id ?? "").trim() || ("legacy-" + crypto.randomUUID());
     const maxAttempts = 2;
-    const overrideRows = Array.isArray(body.spoken_overrides) ? body.spoken_overrides : [];
+    const overrideRows = normalizeObjectArray(body.spoken_overrides);
     const overrides = new Map<number, any>();
     for (const item of overrideRows.slice(0, 50)) {
       const idx = Number(item?.chunk_index);
