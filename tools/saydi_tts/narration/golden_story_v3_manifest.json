@@ -1,0 +1,183 @@
+{
+  "schema_version": "saydi-golden-story-v3",
+  "director_version": "narration-director-v2-pause-first",
+  "title": "Chiếc đèn bên hiên — Golden Sample V3 Natural Speed + Semantic Pauses",
+  "profile_key": "STORY_NARRATIVE",
+  "voice_name": "SAYDI Nam Mien Nam",
+  "target": {
+    "duration_seconds_min": 195,
+    "duration_seconds_max": 280,
+    "effective_wpm_min": 175,
+    "effective_wpm_max": 255,
+    "intent": "natural speaking speed with emotion expressed primarily through semantic pauses, phrasing and punctuation"
+  },
+  "constraints": {
+    "canonical_text_immutable": true,
+    "provider": "vieneu-local",
+    "verified_provider_controls": [
+      "segmentation",
+      "punctuation",
+      "pause_insertion",
+      "voice_reference"
+    ],
+    "discrete_emotion_control_claimed": false,
+    "postprocess_pace_with_ffmpeg_atempo": false,
+    "pause_first_delivery": true,
+    "owner_rejects_global_slowdown_as_emotion": true
+  },
+  "segments": [
+    {
+      "index": 0,
+      "beat": "SCENE_TRANSITION",
+      "tempo_factor": 1,
+      "pause_before_ms": 550,
+      "pause_after_ms": 1350,
+      "canonical_text": "Chiều cuối năm, mưa bụi phủ một lớp mỏng lên con đường nhỏ dẫn vào làng. Minh dừng xe trước căn nhà cũ, nhìn chiếc đèn vàng treo bên hiên vẫn sáng như ngày anh rời đi.",
+      "spoken_text": "Chiều cuối năm… mưa bụi phủ một lớp mỏng lên con đường nhỏ dẫn vào làng. Minh dừng xe trước căn nhà cũ, nhìn chiếc đèn vàng treo bên hiên vẫn sáng như ngày anh rời đi."
+    },
+    {
+      "index": 1,
+      "beat": "REFLECTIVE_SAD",
+      "tempo_factor": 1,
+      "pause_before_ms": 220,
+      "pause_after_ms": 1050,
+      "canonical_text": "Bảy năm rồi anh chưa bước qua cánh cổng này. Trong túi áo, lá thư của mẹ đã mềm đi vì được mở ra gấp lại quá nhiều lần. Chỉ có một câu khiến anh quay về: “Nếu còn giận, cứ giận mẹ. Nhưng Tết này, con về ăn với mẹ một bữa cơm nhé.”",
+      "spoken_text": "Bảy năm rồi anh chưa bước qua cánh cổng này. Trong túi áo, lá thư của mẹ đã mềm đi vì được mở ra gấp lại quá nhiều lần… Chỉ có một câu khiến anh quay về: “Nếu còn giận, cứ giận mẹ. Nhưng Tết này, con về ăn với mẹ một bữa cơm nhé…”"
+    },
+    {
+      "index": 2,
+      "beat": "DIALOGUE_TENDER",
+      "tempo_factor": 1,
+      "pause_before_ms": 220,
+      "pause_after_ms": 950,
+      "canonical_text": "Minh đẩy cổng. Tiếng bản lề kêu khẽ, kéo theo cả một vùng ký ức tưởng đã ngủ yên. Mẹ anh ngồi trong bếp, lưng quay ra cửa, mái tóc bạc nhiều hơn anh nhớ. Bà không quay lại ngay, chỉ nói rất nhỏ: “Con về rồi hả?”",
+      "spoken_text": "Minh đẩy cổng. Tiếng bản lề kêu khẽ, kéo theo cả một vùng ký ức tưởng đã ngủ yên… Mẹ anh ngồi trong bếp, lưng quay ra cửa, mái tóc bạc nhiều hơn anh nhớ. Bà không quay lại ngay, chỉ nói rất nhỏ: “Con về rồi hả…”"
+    },
+    {
+      "index": 3,
+      "beat": "REFLECTIVE_SAD",
+      "tempo_factor": 1,
+      "pause_before_ms": 220,
+      "pause_after_ms": 1050,
+      "canonical_text": "Minh muốn đáp thật bình thường, nhưng cổ họng nghẹn lại. Anh đặt túi xuống ghế. “Con chỉ về mấy hôm thôi.” Câu nói nghe lạnh hơn ý anh muốn. Mẹ gật đầu, đôi tay vẫn chậm rãi nhặt từng cọng rau, như sợ chỉ cần quay lại, mọi thứ sẽ vỡ ra.",
+      "spoken_text": "Minh muốn đáp thật bình thường, nhưng cổ họng nghẹn lại… Anh đặt túi xuống ghế. “Con chỉ về mấy hôm thôi…” Câu nói nghe lạnh hơn ý anh muốn. Mẹ gật đầu, đôi tay vẫn chậm rãi nhặt từng cọng rau, như sợ chỉ cần quay lại, mọi thứ sẽ vỡ ra…"
+    },
+    {
+      "index": 4,
+      "beat": "REFLECTIVE_SAD",
+      "tempo_factor": 1,
+      "pause_before_ms": 220,
+      "pause_after_ms": 1050,
+      "canonical_text": "Bữa cơm tối có canh chua, cá kho và đĩa trứng chiên giống hệt hồi anh còn nhỏ. Nhưng giữa hai mẹ con là một khoảng im lặng dày đặc. Minh nhớ đến ngày cha mất, nhớ cuộc cãi vã khiến anh bỏ nhà đi, nhớ lời mình từng nói rằng sẽ không bao giờ quay lại.",
+      "spoken_text": "Bữa cơm tối có canh chua, cá kho và đĩa trứng chiên giống hệt hồi anh còn nhỏ… Nhưng giữa hai mẹ con là một khoảng im lặng dày đặc. Minh nhớ đến ngày cha mất, nhớ cuộc cãi vã khiến anh bỏ nhà đi, nhớ lời mình từng nói rằng sẽ không bao giờ quay lại…"
+    },
+    {
+      "index": 5,
+      "beat": "TENSION",
+      "tempo_factor": 1,
+      "pause_before_ms": 100,
+      "pause_after_ms": 500,
+      "canonical_text": "Ngoài sân, gió bất ngờ mạnh lên, làm cánh cửa sau bếp đập vào tường một tiếng khô khốc. Mẹ giật mình đánh rơi đôi đũa. Minh nhìn thấy bàn tay bà run. Lần đầu tiên trong nhiều năm, cơn giận trong anh chùng xuống, nhường chỗ cho một nỗi sợ mơ hồ.",
+      "spoken_text": "Ngoài sân, gió bất ngờ mạnh lên, làm cánh cửa sau bếp đập vào tường một tiếng khô khốc! Mẹ giật mình đánh rơi đôi đũa. Minh nhìn thấy bàn tay bà run. Lần đầu tiên trong nhiều năm, cơn giận trong anh chùng xuống, nhường chỗ cho một nỗi sợ mơ hồ."
+    },
+    {
+      "index": 6,
+      "beat": "SCENE_TRANSITION",
+      "tempo_factor": 1,
+      "pause_before_ms": 450,
+      "pause_after_ms": 1350,
+      "canonical_text": "Đêm đó mất điện. Cả căn nhà chìm vào bóng tối, chỉ còn chiếc đèn dầu mẹ thắp trên bàn. Minh nghe tiếng mưa rơi trên mái tôn và tiếng ho của bà từ phòng bên. Anh bước sang, thấy mẹ đang loay hoay tìm lọ thuốc.",
+      "spoken_text": "Đêm đó… mất điện. Cả căn nhà chìm vào bóng tối, chỉ còn chiếc đèn dầu mẹ thắp trên bàn. Minh nghe tiếng mưa rơi trên mái tôn… và tiếng ho của bà từ phòng bên. Anh bước sang, thấy mẹ đang loay hoay tìm lọ thuốc."
+    },
+    {
+      "index": 7,
+      "beat": "DIALOGUE_TENDER",
+      "tempo_factor": 1,
+      "pause_before_ms": 220,
+      "pause_after_ms": 950,
+      "canonical_text": "“Để con.” Anh cầm lấy hộp thuốc, rót nước, rồi ngồi xuống mép giường. Mẹ cười yếu: “Con vẫn nhớ chỗ để thuốc à?” Minh im lặng một lúc lâu rồi nói: “Con nhớ hết. Chỉ là con cố giả vờ quên.” Bà nhìn anh, mắt đỏ lên nhưng không khóc. “Mẹ cũng vậy.”",
+      "spoken_text": "“Để con…” Anh cầm lấy hộp thuốc, rót nước, rồi ngồi xuống mép giường. Mẹ cười yếu: “Con vẫn nhớ chỗ để thuốc à…” Minh im lặng một lúc lâu rồi nói: “Con nhớ hết… Chỉ là con cố giả vờ quên.” Bà nhìn anh, mắt đỏ lên nhưng không khóc. “Mẹ cũng vậy…”"
+    },
+    {
+      "index": 8,
+      "beat": "SCENE_TRANSITION",
+      "tempo_factor": 1,
+      "pause_before_ms": 450,
+      "pause_after_ms": 1350,
+      "canonical_text": "Gần nửa đêm, tiếng gõ cửa vang lên dồn dập. Minh mở cửa, thấy ông Tư hàng xóm đứng ngoài mưa, thở hổn hển. “Mẹ con mấy tháng nay yếu lắm. Bả giấu, không cho ai gọi con.”",
+      "spoken_text": "Gần nửa đêm… tiếng gõ cửa vang lên dồn dập. Minh mở cửa, thấy ông Tư hàng xóm đứng ngoài mưa, thở hổn hển. “Mẹ con mấy tháng nay yếu lắm. Bả giấu, không cho ai gọi con.”"
+    },
+    {
+      "index": 9,
+      "beat": "DIALOGUE_TENSION",
+      "tempo_factor": 1,
+      "pause_before_ms": 140,
+      "pause_after_ms": 650,
+      "canonical_text": "Minh quay lại nhìn mẹ. Bà cúi mặt. Cơn giận cũ bỗng trở nên nhỏ bé đến đáng xấu hổ. Anh hỏi, giọng cao hơn bình thường: “Sao mẹ không nói?” Bà đáp: “Vì mẹ sợ con về chỉ vì thương hại.”",
+      "spoken_text": "Minh quay lại nhìn mẹ. Bà cúi mặt. Cơn giận cũ bỗng trở nên nhỏ bé đến đáng xấu hổ. Anh hỏi, giọng cao hơn bình thường: “Sao mẹ không nói?” Bà đáp: “Vì mẹ sợ con về… chỉ vì thương hại.”"
+    },
+    {
+      "index": 10,
+      "beat": "DIALOGUE_TENDER",
+      "tempo_factor": 1,
+      "pause_before_ms": 220,
+      "pause_after_ms": 950,
+      "canonical_text": "Minh siết chặt tay. Anh muốn trách bà, nhưng cuối cùng chỉ ngồi xuống, ôm lấy đôi vai gầy trước mặt. “Con về vì con nhớ nhà.”",
+      "spoken_text": "Minh siết chặt tay… Anh muốn trách bà, nhưng cuối cùng chỉ ngồi xuống, ôm lấy đôi vai gầy trước mặt. “Con về… vì con nhớ nhà…”"
+    },
+    {
+      "index": 11,
+      "beat": "WARM_RELIEF",
+      "tempo_factor": 1,
+      "pause_before_ms": 160,
+      "pause_after_ms": 850,
+      "canonical_text": "Sáng hôm sau, mưa tạnh. Ánh nắng đầu tiên rơi xuống sân, làm những giọt nước trên lá khế sáng lên. Minh dậy sớm quét sân như hồi còn bé. Mẹ đứng ở cửa nhìn anh, bất chợt bật cười: “Quét kiểu đó thì bụi bay ngược vô nhà hết.” Minh cũng cười.",
+      "spoken_text": "Sáng hôm sau… mưa tạnh. Ánh nắng đầu tiên rơi xuống sân, làm những giọt nước trên lá khế sáng lên. Minh dậy sớm quét sân như hồi còn bé. Mẹ đứng ở cửa nhìn anh, bất chợt bật cười: “Quét kiểu đó thì bụi bay ngược vô nhà hết!” Minh cũng cười."
+    },
+    {
+      "index": 12,
+      "beat": "WARM_RELIEF",
+      "tempo_factor": 1,
+      "pause_before_ms": 160,
+      "pause_after_ms": 850,
+      "canonical_text": "Âm thanh ấy ban đầu lạ lẫm, rồi trở nên tự nhiên như thể bảy năm xa cách chỉ là một giấc ngủ dài. Hai mẹ con cùng đi chợ. Trên đường, bà kể đủ chuyện trong làng, còn Minh nghe, thỉnh thoảng chen vào vài câu, lòng nhẹ dần.",
+      "spoken_text": "Âm thanh ấy ban đầu lạ lẫm… rồi trở nên tự nhiên như thể bảy năm xa cách chỉ là một giấc ngủ dài. Hai mẹ con cùng đi chợ. Trên đường, bà kể đủ chuyện trong làng, còn Minh nghe, thỉnh thoảng chen vào vài câu… lòng nhẹ dần."
+    },
+    {
+      "index": 13,
+      "beat": "REFLECTIVE_SAD",
+      "tempo_factor": 1,
+      "pause_before_ms": 220,
+      "pause_after_ms": 1050,
+      "canonical_text": "Chiều ba mươi, Minh treo lại chiếc đèn bên hiên. Dây điện cũ đã mục, anh thay bằng một đoạn dây mới rồi thử công tắc. Ánh đèn vàng bật sáng. Mẹ đứng dưới sân ngước lên. “Cha con treo cái đèn đó ngày con mới vào lớp một,” bà nói. Minh khựng lại. Lần đầu tiên anh không né tránh khi nghe nhắc đến cha.",
+      "spoken_text": "Chiều ba mươi… Minh treo lại chiếc đèn bên hiên. Dây điện cũ đã mục, anh thay bằng một đoạn dây mới rồi thử công tắc. Ánh đèn vàng bật sáng. Mẹ đứng dưới sân ngước lên. “Cha con treo cái đèn đó ngày con mới vào lớp một…” bà nói. Minh khựng lại… Lần đầu tiên anh không né tránh khi nghe nhắc đến cha."
+    },
+    {
+      "index": 14,
+      "beat": "WARM_RELIEF",
+      "tempo_factor": 1,
+      "pause_before_ms": 160,
+      "pause_after_ms": 850,
+      "canonical_text": "Anh nhìn ngọn đèn, rồi nhìn mẹ. “Năm nay mình để nó sáng suốt đêm nhé.” Bà gật đầu. Trong căn bếp phía sau, nồi thịt kho sôi lục bục, mùi thơm lan ra cùng tiếng nhạc xuân từ chiếc radio cũ.",
+      "spoken_text": "Anh nhìn ngọn đèn… rồi nhìn mẹ. “Năm nay mình để nó sáng suốt đêm nhé…” Bà gật đầu. Trong căn bếp phía sau, nồi thịt kho sôi lục bục, mùi thơm lan ra cùng tiếng nhạc xuân từ chiếc radio cũ."
+    },
+    {
+      "index": 15,
+      "beat": "RESOLUTION",
+      "tempo_factor": 1,
+      "pause_before_ms": 350,
+      "pause_after_ms": 1500,
+      "canonical_text": "Khi đồng hồ gần điểm giao thừa, Minh đặt hai chén trà lên bàn. Mẹ ngồi cạnh anh, không ai còn cần nói nhiều. Ngoài cổng, trẻ con trong xóm chạy qua cười vang. Xa xa, pháo hoa bắt đầu sáng trên nền trời. Minh lấy điện thoại, xóa vé xe về thành phố đã đặt cho sáng mùng một. Mẹ thấy nhưng không hỏi. Anh chỉ nói: “Con ở lại thêm vài ngày.” Bà mỉm cười, đôi mắt long lanh dưới ánh đèn.",
+      "spoken_text": "Khi đồng hồ gần điểm giao thừa… Minh đặt hai chén trà lên bàn. Mẹ ngồi cạnh anh… không ai còn cần nói nhiều. Ngoài cổng, trẻ con trong xóm chạy qua cười vang. Xa xa, pháo hoa bắt đầu sáng trên nền trời. Minh lấy điện thoại, xóa vé xe về thành phố đã đặt cho sáng mùng một. Mẹ thấy nhưng không hỏi. Anh chỉ nói: “Con ở lại thêm vài ngày…” Bà mỉm cười, đôi mắt long lanh dưới ánh đèn."
+    },
+    {
+      "index": 16,
+      "beat": "RESOLUTION",
+      "tempo_factor": 1,
+      "pause_before_ms": 350,
+      "pause_after_ms": 1800,
+      "canonical_text": "Chiếc đèn bên hiên vẫn sáng, không rực rỡ, nhưng đủ để người đi xa biết rằng có một nơi vẫn chờ mình trở về.",
+      "spoken_text": "Chiếc đèn bên hiên vẫn sáng… không rực rỡ… nhưng đủ để người đi xa biết rằng… có một nơi vẫn chờ mình trở về…"
+    }
+  ]
+}

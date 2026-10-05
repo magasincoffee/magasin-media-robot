@@ -9,7 +9,7 @@ from typing import Iterable
 from .contracts import canonical_hash
 
 
-NARRATION_DIRECTOR_VERSION = "narration-director-v1"
+NARRATION_DIRECTOR_VERSION = "narration-director-v2-pause-first"
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,70 +74,69 @@ class DirectedNarrationSegment:
 STORY_POLICIES: dict[str, StoryDeliveryPolicy] = {
     "NARRATIVE": StoryDeliveryPolicy(
         beat="NARRATIVE",
-        tempo_factor=0.70,
-        pause_before_ms=0,
-        pause_after_ms=420,
+        tempo_factor=1.00,
+        pause_before_ms=120,
+        pause_after_ms=650,
         emphasis="natural",
         energy="medium",
     ),
     "REFLECTIVE_SAD": StoryDeliveryPolicy(
         beat="REFLECTIVE_SAD",
-        tempo_factor=0.64,
-        pause_before_ms=120,
-        pause_after_ms=760,
+        tempo_factor=1.00,
+        pause_before_ms=220,
+        pause_after_ms=1050,
         emphasis="soft",
         energy="low",
     ),
     "TENSION": StoryDeliveryPolicy(
         beat="TENSION",
-        tempo_factor=0.75,
-        pause_before_ms=80,
-        pause_after_ms=420,
+        tempo_factor=1.00,
+        pause_before_ms=100,
+        pause_after_ms=500,
         emphasis="focused",
         energy="medium_high",
     ),
     "DIALOGUE_TENDER": StoryDeliveryPolicy(
         beat="DIALOGUE_TENDER",
-        tempo_factor=0.66,
-        pause_before_ms=160,
-        pause_after_ms=700,
+        tempo_factor=1.00,
+        pause_before_ms=220,
+        pause_after_ms=950,
         emphasis="intimate",
         energy="low_medium",
     ),
     "DIALOGUE_TENSION": StoryDeliveryPolicy(
         beat="DIALOGUE_TENSION",
-        tempo_factor=0.70,
-        pause_before_ms=120,
-        pause_after_ms=560,
+        tempo_factor=1.00,
+        pause_before_ms=140,
+        pause_after_ms=650,
         emphasis="firm",
         energy="medium_high",
     ),
     "WARM_RELIEF": StoryDeliveryPolicy(
         beat="WARM_RELIEF",
-        tempo_factor=0.68,
-        pause_before_ms=100,
-        pause_after_ms=650,
+        tempo_factor=1.00,
+        pause_before_ms=160,
+        pause_after_ms=850,
         emphasis="warm",
         energy="medium",
     ),
     "SCENE_TRANSITION": StoryDeliveryPolicy(
         beat="SCENE_TRANSITION",
-        tempo_factor=0.66,
-        pause_before_ms=350,
-        pause_after_ms=920,
+        tempo_factor=1.00,
+        pause_before_ms=450,
+        pause_after_ms=1350,
         emphasis="reset",
         energy="low_medium",
     ),
     "RESOLUTION": StoryDeliveryPolicy(
         beat="RESOLUTION",
-        tempo_factor=0.64,
-        pause_before_ms=220,
-        pause_after_ms=1100,
+        tempo_factor=1.00,
+        pause_before_ms=350,
+        pause_after_ms=1500,
         emphasis="warm_reflective",
         energy="low_medium",
     ),
 }
-
 
 _DIALOGUE_RE = re.compile(r"[“”\"]")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?…])\s+(?=[A-ZÀ-ỸĐ“\"])")
