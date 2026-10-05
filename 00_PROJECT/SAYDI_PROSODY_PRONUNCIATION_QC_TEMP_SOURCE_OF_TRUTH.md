@@ -324,6 +324,8 @@ Fifth field finding: Edge v10 confirmed the failing request reached the correct 
 
 Sixth field finding: the targeted repair itself completed successfully (3/3 chunks), but the immediate post-repair QC failed while loading faster-whisper with `mkl_malloc: failed to allocate memory`. Supabase confirmed the render job was complete and error-free; the local TTS worker remained online after rendering and retained enough RAM to starve the new Whisper process. QC-006 now temporarily stops the idle scheduled TTS worker before post-repair Whisper QC, limits MKL/OMP threads during that check, and restores the worker afterward.
 
+Seventh field finding: the resume script then reported `Canonical text changed during targeted repair`, but direct Supabase verification proved the durable canonical `text_content` still exactly matched the expected source. The false failure came from Windows PowerShell 5.1 UTF-8 handling: JSON/text files without BOM were read with the legacy default encoding. The same path also corrupted the generated TTS spoken form before the first repair. Evidence: durable canonical text matched exactly, while the stored spoken override length/hash did not match the deterministic lexicon-generated UTF-8 spoken form. QC-006 now forces `-Encoding UTF8`, verifies canonical and spoken-form SHA-256 before render, and uses the second/final bounded repair attempt to regenerate only chunk 1 with verified UTF-8 text.
+
 Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
 ## Current next task
