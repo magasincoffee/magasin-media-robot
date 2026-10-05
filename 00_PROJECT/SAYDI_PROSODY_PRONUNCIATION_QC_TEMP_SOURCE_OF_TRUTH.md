@@ -305,8 +305,9 @@ Evidence:
 - synthetic-only field manifest committed at `tools/saydi_tts/qc/fixtures/qc006_field_manifest.json`;
 - one-command H4A16IL harness committed at `tools/saydi_tts/qc/INSTALL_QC006_FIELD_H4A16IL.ps1`;
 - durable acceptance plan committed at `00_PROJECT/QC006_FIELD_ACCEPTANCE_PLAN.md`;
-- five synthetic Supabase test jobs were queued on MAGASIN-NOIBO, including three profile cases and two controlled repair probes;
-- production TTS worker `DESKTOP-H4A16IL-SAYDI-TTS` was online and began rendering the queued fixtures;
+- five synthetic Supabase test jobs were created on MAGASIN-NOIBO, including three profile cases and two controlled repair probes;
+- all five synthetic jobs completed successfully on production TTS worker `DESKTOP-H4A16IL-SAYDI-TTS` with no render error;
+- completed outputs exist locally for BUSINESS_CLEAR, STORY_NARRATIVE, GENERAL_CLEAR, the one-chunk repair probe, and the three-chunk targeted-repair fixture;
 - targeted-repair fixture uses three chunks: chunk 1 contains a synthetic wrong TTS-only override while chunks 0 and 2 are controls;
 - field harness records pre/post SHA-256, profile metrics, localized pronunciation/prosody findings, bounded repair count, canonical-text preservation, and Owner before/after WAV samples;
 - no private book/manuscript content is used or uploaded.
