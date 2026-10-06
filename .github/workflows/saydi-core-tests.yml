@@ -65,7 +65,10 @@ jobs:
       - name: Narration Director PowerShell syntax
         shell: powershell
         run: |
-          $paths = Get-ChildItem "tools\saydi_tts\narration" -Filter "BUILD_GOLDEN_STORY_*_H4A16IL.ps1" -File
+          $paths = @(
+            Get-ChildItem "tools\saydi_tts\narration" -Filter "BUILD_GOLDEN_STORY_*_H4A16IL.ps1" -File
+            Get-Item "tools\saydi_tts\narration\RUN_EDITORIAL_FIELD_H4A16IL.ps1"
+          )
           foreach ($path in $paths) {
             $tokens = $null
             $errors = $null
