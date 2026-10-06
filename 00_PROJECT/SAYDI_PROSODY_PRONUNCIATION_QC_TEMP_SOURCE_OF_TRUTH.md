@@ -371,6 +371,20 @@ Acceptance:
 6. Owner field sample has no audible click/khựng at joins;
 7. Owner confirms previously unclear Vietnamese phrases are materially clearer.
 
+
+Field execution evidence on 2026-10-06:
+
+- private Chapter 4 editorial field book: `66000000-0000-4000-8000-000000000009`;
+- field render job: `66100000-0000-4000-8000-000000000009`;
+- semantic units: 33;
+- units carrying explicit MUST_CHECK pronunciation phrases: 13;
+- production TTS host: `DESKTOP-H4A16IL-SAYDI-TTS`;
+- raw render: COMPLETE 33/33, error: none;
+- raw output: `C:\SAYDI\output\CACH_SONG_CH4_EDITORIAL_QC_FIELD__66100000\CACH_SONG_CH4_EDITORIAL_QC_FIELD.mp3`;
+- post-render QC / targeted rerender / click-safe final assembly: PENDING LOCAL H4 HARNESS;
+- harness: `tools/saydi_tts/narration/RUN_EDITORIAL_FIELD_H4A16IL.ps1`;
+- GitHub remote execution cannot claim this final gate because the connected self-hosted runner is not the H4 TTS host.
+
 ## Current next task
 
-Merge SAYDI-QC-007 after CI GREEN, then field-validate the editorial-first + post-render-QC path on DESKTOP-H4A16IL using the Owner-provided ~4-minute Chapter 4 sample. The manuscript remains local and is not committed. Require pronunciation review of configured MUST_CHECK phrases plus `stitching_gate_pass=true`. Existing QC-004/QC-006 pending field gates remain separately required before declaring the whole QC track complete.
+Run `tools/saydi_tts/narration/RUN_EDITORIAL_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL for field job `66100000-0000-4000-8000-000000000009`. It must execute post-render pronunciation/prosody/acoustic QC, bounded targeted rerender, click-safe final assembly, and require `stitching_gate_pass=true`. Owner listening remains the final acceptance gate.
