@@ -34,8 +34,30 @@ $uv = $uvCmd.Source
 
 function Test-QcRuntime {
     if (-not (Test-Path $QcPython)) { return $false }
-    & $QcPython -c "import sys,numpy,soundfile,av; from faster_whisper import WhisperModel; print(sys.version); print('numpy', numpy.__version__); print('av', av.__version__); print('QC_RUNTIME_OK')" 2>$null
-    return ($LASTEXITCODE -eq 0)
+    $diag = Join-Path $FieldRoot "runtime-diagnostics.txt"
+    Remove-Item $diag -Force -ErrorAction SilentlyContinue
+    $code = @'
+import sys, traceback
+mods = ["numpy", "soundfile", "av", "ctranslate2", "onnxruntime", "faster_whisper"]
+print("python", sys.version)
+for name in mods:
+    try:
+        mod = __import__(name)
+        print(name, getattr(mod, "__version__", "NO_VERSION"), "PASS")
+    except Exception:
+        print(name, "FAIL")
+        traceback.print_exc()
+        raise
+from faster_whisper import WhisperModel
+print("QC_RUNTIME_OK")
+'@
+    $oldEA = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    & $QcPython -c $code *> $diag
+    $exit = $LASTEXITCODE
+    $ErrorActionPreference = $oldEA
+    Get-Content $diag -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+    return ($exit -eq 0)
 }
 
 if (-not (Test-QcRuntime)) {
@@ -49,7 +71,7 @@ if (-not (Test-QcRuntime)) {
     if ($LASTEXITCODE -ne 0) { throw "uv venv --python 3.11 failed" }
 
     Write-Host "[EDITORIAL FIELD] Installing pinned QC runtime..." -ForegroundColor Cyan
-    & $uv pip install --python $QcPython "numpy==1.26.4" "soundfile>=0.12,<1" "faster-whisper==1.2.0" "av>=11,<19"
+    & $uv pip install --python $QcPython "numpy==1.26.4" "soundfile==0.13.1" "faster-whisper==1.1.1" "ctranslate2==4.4.0" "onnxruntime==1.20.1" "av==14.0.1"
     if ($LASTEXITCODE -ne 0) { throw "Pinned editorial QC dependency install failed" }
 
     if (-not (Test-QcRuntime)) {
