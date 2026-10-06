@@ -1,7 +1,7 @@
 # SAYDI Prosody + Pronunciation QC — Temporary Source of Truth
 
 Status: ACTIVE
-Owner directive date: 2026-10-04
+Owner directive date: 2026-10-04; editorial-first hardening directive: 2026-10-06
 Authority scope: local VieNeu audiobook quality control only.
 
 ## Owner objective
@@ -31,11 +31,21 @@ The target is materially more natural long-form listening, not a false promise o
 7. ASR similarity alone is insufficient for final acceptance.
 8. Preserve source text separately from any TTS-only spoken-form/pronunciation rewrite.
 9. If a pronunciation defect remains after the retry budget, escalate the exact word/chunk/timecode instead of hiding it.
+10. Pre-render Editorial QA is mandatory for long-form narration, but it never waives post-render QC.
+11. A chunk that rendered successfully is not automatically accepted: pronunciation, prosody and acoustic/join QC still apply.
+12. Assembly must force click-safe chunk boundaries and report stitching evidence; audible join artifacts are defects even when every source chunk individually passed.
 
 ## Target pipeline
 
 ```text
 SOURCE TEXT
+   |
+   v
+pre-render Editorial QA
+   |-- semantic chunking / breathing points
+   |-- emphasis intent
+   |-- MUST_CHECK pronunciation phrases
+   |-- canonical text remains immutable
    |
    v
 spoken normalization + pronunciation lexicon
@@ -55,6 +65,8 @@ prosody/style QC
    |
    v
 acoustic/join QC
+   |
+   +--> click / hard edge / bad join? --> edge trim + fade/crossfade repair --> rebuild dependent artifact only
    |
    v
 PASS -> chapter assembly/export
@@ -328,7 +340,37 @@ Seventh field finding: the resume script then reported `Canonical text changed d
 
 Final QC-006 acceptance remains blocked on the corrected local technical run and Owner listening. QC-004 correct-host field PASS remains separately required before the QC track can be declared complete.
 
+### SAYDI-QC-007 — Editorial-first pronunciation + stitching hardening
+
+Status: IMPLEMENTED_IN_PR — FIELD VALIDATION PENDING
+
+Owner directive 2026-10-06:
+
+- keep the accepted VieNeu speed, intonation and emphasis behavior from the ~4-minute Chapter 4 sample;
+- improve unclear/slurred Vietnamese pronunciation such as the observed phrase `người phụ nữ`;
+- remove audible chunk-join artifacts;
+- compile the reading script before VieNeu synthesis so chunking, breathing, emphasis and MUST_CHECK pronunciation phrases are explicit;
+- **post-render QC remains mandatory** and must still drive targeted rerender.
+
+Implementation:
+
+- added deterministic pre-render Editorial QA in `saydi_audiobook.editorial`;
+- Editorial QA emits source hashes, render-ready semantic units, pause intent, emphasis metadata and `pronunciation_qc_required` / `must_check_phrases`;
+- added `tools/saydi_tts/narration/prepare_editorial_manifest.py` for local/private manuscript compilation without committing manuscript content;
+- narration assembly now applies 20 ms fade-in + 25 ms fade-out, exact-zero endpoints, and 12 ms crossfade only for intentional zero-gap speech joins;
+- directed-audio report v2 records per-segment edge values and a chapter-level `stitching_gate_pass`;
+- existing ASR/word-confidence/prosody QC and bounded targeted rerender remain authoritative after render.
+
+Acceptance:
+
+1. source/canonical text SHA remains stable through Editorial QA;
+2. a configured MUST_CHECK phrase is traceable to the exact render unit;
+3. post-render pronunciation QC is never skipped because editorial planning passed;
+4. a pronunciation defect rerenders only the affected chunk within the existing retry budget;
+5. assembled segment endpoints are click-safe and `stitching_gate_pass=true`;
+6. Owner field sample has no audible click/khựng at joins;
+7. Owner confirms previously unclear Vietnamese phrases are materially clearer.
+
 ## Current next task
 
-Run `tools/saydi_tts/qc/INSTALL_QC006_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL after the synthetic jobs complete. Require `Technical field gate: PASS`, then Owner listens to the generated BEFORE/AFTER WAV pair. QC-004 correct-host field PASS remains separately mandatory before declaring the QC track complete.
-
+Merge SAYDI-QC-007 after CI GREEN, then field-validate the editorial-first + post-render-QC path on DESKTOP-H4A16IL using the Owner-provided ~4-minute Chapter 4 sample. The manuscript remains local and is not committed. Require pronunciation review of configured MUST_CHECK phrases plus `stitching_gate_pass=true`. Existing QC-004/QC-006 pending field gates remain separately required before declaring the whole QC track complete.

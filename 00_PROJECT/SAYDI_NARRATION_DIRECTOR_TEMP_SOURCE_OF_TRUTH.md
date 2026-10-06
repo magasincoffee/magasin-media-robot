@@ -1,7 +1,7 @@
 # SAYDI Narration Director — Temporary Source of Truth
 
 Status: ACTIVE
-Owner directive date: 2026-10-05
+Owner directive date: 2026-10-05; accepted-pacing/editorial-QC directive: 2026-10-06
 Authority scope: semantic delivery planning for long-form audiobook narration before TTS.
 
 ## Owner acceptance problem
@@ -14,6 +14,15 @@ The first 5-minute STORY_NARRATIVE golden sample was technically valid but liste
 - emotional meaning did not materially change the delivery.
 
 The raw sample was approximately 831 words in about 3.5 minutes (~237 WPM), materially above the desired long-form story range.
+
+Owner field finding on 2026-10-06 from the ~4-minute `Cách Sống` Chapter 4 sample:
+
+- speed: ACCEPTED;
+- overall intonation: ACCEPTED;
+- emphasis/nhấn nhá: ACCEPTED;
+- remaining defects: audible chunk-join artifacts and occasional slurred/unclear Vietnamese diacritics;
+- concrete pronunciation example: `người phụ nữ` was heard with weak/unclear heavy-tone articulation;
+- Owner requires text to be editorially compiled **before** VieNeu render, while preserving the already-built **post-render QC + targeted rerender** path.
 
 ## Objective
 
@@ -47,19 +56,28 @@ VieNeu local does **not** currently have a verified discrete control for:
 - arbitrary emotion labels;
 - direct scene-level speaking-rate parameter.
 
-Owner listening on 2026-10-05 rejected V2 despite technical PASS: the delivery was more expressive than V1, but emotion was being created by slowing the voice. Owner directive: **truyền cảm bằng nghỉ/ngắt nhịp, không phải bằng làm tốc độ giọng chậm**.\n\nTherefore Narration Director v2 uses a pause-first architecture:
+Owner listening on 2026-10-05 rejected V2 despite technical PASS: the delivery was more expressive than V1, but emotion was being created by slowing the voice. Owner directive: **truyền cảm bằng nghỉ/ngắt nhịp, không phải bằng làm tốc độ giọng chậm**.
+
+The accepted architecture is now editorial-first and QC-closed-loop:
 
 ```text
 canonical text
-  -> semantic beat
-  -> sentence/scene segmentation
-  -> punctuation hint
-  -> VieNeu render
-  -> pitch-preserving scene-specific time stretch
-  -> explicit semantic pause insertion
+  -> pre-render Editorial QA
+     -> semantic sentence/clause segmentation
+     -> breathing/pause intent
+     -> emphasis intent
+     -> pronunciation MUST_CHECK phrases
+  -> TTS-only spoken normalization / lexicon
+  -> VieNeu render at natural articulation speed
+  -> post-render pronunciation + prosody + acoustic QC
+     -> targeted rerender only for failed units
+  -> click-safe trim/fade/crossfade assembly
+  -> stitching QC
   -> final loudness normalization
-  -> QC + Owner listening
+  -> Owner listening
 ```
+
+Pre-render editorial approval is **not** a substitute for post-render QC.
 
 This is not presented as equivalent to a native expressive/emotional TTS model.
 
@@ -214,6 +232,24 @@ Acceptance:
 - transitions reset clearly without becoming theatrical or choppy;
 - only after Owner acceptance may production integration proceed.
 
+### SAYDI-ND-002D — Editorial-first long-form field acceptance
+
+Status: IMPLEMENTED_IN_PR — LOCAL RERENDER / OWNER LISTENING PENDING
+
+Owner has accepted the speed, general intonation and emphasis behavior of the ~4-minute Chapter 4 sample. Do not change those accepted dimensions by applying global slowdown.
+
+Required:
+
+- compile the private/local chapter excerpt through Editorial QA before VieNeu;
+- preserve canonical text and source hash;
+- mark difficult phrases for MUST_CHECK pronunciation QC;
+- render natural-speed semantic units;
+- rerun the existing pronunciation/prosody/acoustic QC after synthesis;
+- use bounded targeted rerender for unclear units instead of rerendering the whole sample;
+- assemble with click-safe edge fades and stitching gate;
+- keep private book text/audio local; do not commit the manuscript to GitHub;
+- Owner listening is final acceptance.
+
 ### SAYDI-ND-003 — Production integration
 
 Status: PENDING
@@ -228,4 +264,4 @@ After Owner accepts Golden V4:
 
 ## Current next task
 
-Run the directed V4 master build on DESKTOP-H4A16IL from the completed 73 raw chunks, then require Owner listening acceptance. Do not advance to SAYDI-ND-003 until V4 is accepted.
+Merge the editorial-first + stitching-QC implementation after CI GREEN. Then rerender the Owner's local ~4-minute Chapter 4 sample on DESKTOP-H4A16IL through Editorial QA -> VieNeu -> existing post-render QC -> targeted repair -> click-safe assembly. Require Owner listening acceptance before production-book rollout.

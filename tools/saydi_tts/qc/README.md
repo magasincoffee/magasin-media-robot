@@ -40,3 +40,29 @@ The field gate:
 - keeps manuscript/audio/report data local.
 
 This field gate is intended to prove measurement extraction before pronunciation/prosody repair is enabled.
+
+
+## Editorial-first + post-render QC
+
+Long-form narration now has two mandatory quality stages:
+
+1. **Pre-render Editorial QA** decides semantic chunk boundaries, breathing/pause intent, emphasis intent, and explicit MUST_CHECK pronunciation phrases while preserving canonical source text.
+2. **Post-render QC remains authoritative**. ASR/word confidence, pronunciation, prosody, acoustic validity and repair-budget rules still run after VieNeu synthesis.
+
+A successful render is not an acceptance verdict.
+
+For private/local manuscript preparation use:
+
+```powershell
+python tools\saydi_tts\narration\prepare_editorial_manifest.py --input <local.txt> --output <local-manifest.json> --must-check "người phụ nữ"
+```
+
+Do not commit private manuscript text or generated audio.
+
+Narration assembly also performs click-safe edge preparation:
+
+- 20 ms fade-in;
+- 25 ms fade-out;
+- exact-zero segment endpoints;
+- 12 ms crossfade only when adjacent speech has an intentional zero gap;
+- per-segment edge evidence and chapter-level `stitching_gate_pass`.

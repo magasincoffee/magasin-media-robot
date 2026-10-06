@@ -63,6 +63,28 @@ def sim(a, b):
     return SequenceMatcher(None, a, b).ratio() if a and b else 0.0
 
 
+def phrase_similarity(expected, heard):
+    """Best local similarity for one MUST_CHECK phrase inside ASR text."""
+
+    expected_norm = norm(expected)
+    heard_norm = norm(heard)
+    if not expected_norm or not heard_norm:
+        return 0.0
+
+    expected_words = expected_norm.split()
+    heard_words = heard_norm.split()
+    width = len(expected_words)
+    if not width:
+        return 0.0
+
+    best = 0.0
+    for window in (max(1, width - 1), width, width + 1):
+        for start in range(0, max(1, len(heard_words) - window + 1)):
+            candidate = " ".join(heard_words[start : start + window])
+            best = max(best, SequenceMatcher(None, expected_norm, candidate).ratio())
+    return best
+
+
 def _sha256(path):
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
@@ -247,6 +269,17 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
         render_text = str(chunk.get("text_content") or "")
         canonical_text = str(chunk.get("canonical_text_content") or render_text)
         override_applied = bool(chunk.get("spoken_override_applied"))
+        override_meta = chunk.get("spoken_text_override_meta") or {}
+        if not isinstance(override_meta, dict):
+            override_meta = {}
+        must_check_phrases = override_meta.get("must_check_phrases") or []
+        if isinstance(must_check_phrases, str):
+            must_check_phrases = [must_check_phrases]
+        must_check_phrases = [
+            str(value).strip()
+            for value in must_check_phrases
+            if str(value).strip()
+        ]
         wav = chunk_dir / f"{idx:06d}.wav"
 
         chunk_started = time.time()
@@ -449,6 +482,34 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
                     )
                 )
 
+            must_check_results = [
+                {
+                    "phrase": phrase,
+                    "similarity": round(phrase_similarity(phrase, heard), 4),
+                }
+                for phrase in must_check_phrases
+            ]
+            failed_must_check = [
+                item for item in must_check_results if item["similarity"] < 0.82
+            ]
+            if failed_must_check:
+                events.append(
+                    ev(
+                        "pronunciation_clarity",
+                        "warning",
+                        idx,
+                        start_time,
+                        end_time,
+                        min(item["similarity"] for item in failed_must_check),
+                        reason="editorial_must_check_failed",
+                        must_check_results=must_check_results,
+                        heard=heard[:240],
+                    )
+                )
+                # The existing bounded targeted-rerender loop may retry this
+                # already-small editorial unit. Persistent defects escalate.
+                technical_repair.add(idx)
+
             pronunciation_plan = None
             if not override_applied:
                 pronunciation_plan = build_targeted_pronunciation_repair(
@@ -508,6 +569,9 @@ def check(model, job, attempt, *, prosody_profile_key, only_chunks=None, replace
                 "spoken_override_applied": override_applied,
                 "qc_repair_attempts": int(chunk.get("qc_repair_attempts") or 0),
                 "pronunciation_repair_candidate": pronunciation_plan is not None,
+                "must_check_phrases": must_check_phrases,
+                "must_check_results": must_check_results,
+                "must_check_pass": not failed_must_check,
                 "prosody_profile_key": prosody_evaluation.profile_key,
                 "prosody_profile_fingerprint": prosody_evaluation.profile_fingerprint,
                 "prosody_status": prosody_evaluation.status,
