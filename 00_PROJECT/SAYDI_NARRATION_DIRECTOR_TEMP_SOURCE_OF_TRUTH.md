@@ -262,6 +262,20 @@ After Owner accepts Golden V4:
 - use targeted rerender for individual rejected beats;
 - only then allow full production-book rollout.
 
+
+Field execution evidence on 2026-10-06:
+
+- private Chapter 4 editorial field book: `66000000-0000-4000-8000-000000000009`;
+- field render job: `66100000-0000-4000-8000-000000000009`;
+- semantic units: 33;
+- units carrying explicit MUST_CHECK pronunciation phrases: 13;
+- production TTS host: `DESKTOP-H4A16IL-SAYDI-TTS`;
+- raw render: COMPLETE 33/33, error: none;
+- raw output: `C:\SAYDI\output\CACH_SONG_CH4_EDITORIAL_QC_FIELD__66100000\CACH_SONG_CH4_EDITORIAL_QC_FIELD.mp3`;
+- post-render QC / targeted rerender / click-safe final assembly: PENDING LOCAL H4 HARNESS;
+- harness: `tools/saydi_tts/narration/RUN_EDITORIAL_FIELD_H4A16IL.ps1`;
+- GitHub remote execution cannot claim this final gate because the connected self-hosted runner is not the H4 TTS host.
+
 ## Current next task
 
-Merge the editorial-first + stitching-QC implementation after CI GREEN. Then rerender the Owner's local ~4-minute Chapter 4 sample on DESKTOP-H4A16IL through Editorial QA -> VieNeu -> existing post-render QC -> targeted repair -> click-safe assembly. Require Owner listening acceptance before production-book rollout.
+Run `tools/saydi_tts/narration/RUN_EDITORIAL_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL for field job `66100000-0000-4000-8000-000000000009`. It must execute post-render pronunciation/prosody/acoustic QC, bounded targeted rerender, click-safe final assembly, and require `stitching_gate_pass=true`. Owner listening remains the final acceptance gate.
