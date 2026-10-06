@@ -35,8 +35,8 @@ $uv = $uvCmd.Source
 function Test-QcRuntime {
     if (-not (Test-Path $QcPython)) { return $false }
     $diag = Join-Path $FieldRoot "runtime-diagnostics.txt"
-    Remove-Item $diag -Force -ErrorAction SilentlyContinue
-    $code = @'
+    $diagPy = Join-Path $FieldRoot "diag_runtime.py"
+    $diagSource = @'
 import sys, traceback
 mods = ["numpy", "soundfile", "av", "ctranslate2", "onnxruntime", "faster_whisper"]
 print("python", sys.version)
@@ -51,9 +51,10 @@ for name in mods:
 from faster_whisper import WhisperModel
 print("QC_RUNTIME_OK")
 '@
+    [IO.File]::WriteAllText($diagPy,$diagSource,[Text.UTF8Encoding]::new($false))
     $oldEA = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    & $QcPython -c $code *> $diag
+    & $QcPython $diagPy *> $diag
     $exit = $LASTEXITCODE
     $ErrorActionPreference = $oldEA
     Get-Content $diag -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
@@ -71,7 +72,7 @@ if (-not (Test-QcRuntime)) {
     if ($LASTEXITCODE -ne 0) { throw "uv venv --python 3.11 failed" }
 
     Write-Host "[EDITORIAL FIELD] Installing pinned QC runtime..." -ForegroundColor Cyan
-    & $uv pip install --python $QcPython "numpy==1.26.4" "soundfile==0.13.1" "faster-whisper==1.1.1" "ctranslate2==4.4.0" "onnxruntime==1.20.1" "av==14.0.1"
+    & $uv pip install --python $QcPython "numpy==1.26.4" "soundfile==0.13.1" "faster-whisper==1.1.1" "ctranslate2==4.4.0" "onnxruntime==1.20.1" "av==14.0.1" "setuptools==80.9.0" "requests==2.32.5"
     if ($LASTEXITCODE -ne 0) { throw "Pinned editorial QC dependency install failed" }
 
     if (-not (Test-QcRuntime)) {
