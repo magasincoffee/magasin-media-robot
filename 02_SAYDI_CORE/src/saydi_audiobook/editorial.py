@@ -171,10 +171,30 @@ def editorial_manifest(
         emphasis_phrases=emphasis_phrases,
         max_chars=max_chars,
     )
+    manifest_units = [item.as_manifest_item() for item in units]
+    render_segments = [
+        {
+            "index": idx,
+            "beat": item.beat,
+            "tempo_factor": 1.0,
+            "pause_before_ms": 0,
+            "pause_after_ms": item.pause_after_ms,
+            "canonical_text": item.canonical_text,
+            "spoken_text": item.spoken_text,
+            "emphasis_phrases": list(item.emphasis_phrases),
+            "must_check_phrases": list(item.must_check_phrases),
+            "pronunciation_qc_required": item.pronunciation_qc_required,
+            "editorial_unit_id": item.unit_id,
+            "canonical_sha256": item.canonical_sha256,
+            "spoken_sha256": item.spoken_sha256,
+        }
+        for idx, item in enumerate(units)
+    ]
     return {
         "schema_version": EDITORIAL_QA_VERSION,
         "source_sha256": sha256(normalized.encode("utf-8")).hexdigest(),
         "unit_count": len(units),
         "post_render_qc_required": True,
-        "units": [item.as_manifest_item() for item in units],
+        "units": manifest_units,
+        "segments": render_segments,
     }
