@@ -13,7 +13,8 @@ if ($env:COMPUTERNAME -ne "DESKTOP-H4A16IL") {
 $Root = "C:\SAYDI"
 $QcRoot = Join-Path $Root "qc"
 $ConfigPath = Join-Path $Root "worker\config.json"
-$QcPython = Join-Path $QcRoot ".venv\Scripts\python.exe"
+$FieldVenv = Join-Path $QcRoot "editorial-field-venv"
+$QcPython = Join-Path $FieldVenv "Scripts\python.exe"
 $RunQc = Join-Path $QcRoot "run_qc.py"
 $PkgRoot = Join-Path $QcRoot "saydi_audiobook"
 $PkgData = Join-Path $PkgRoot "data"
@@ -23,9 +24,40 @@ $ManifestPath = Join-Path $FieldRoot "editorial_field_manifest.json"
 $FinalReport = Join-Path $FieldRoot "editorial_field_directed_report.json"
 
 if (-not (Test-Path $ConfigPath)) { throw "Missing worker config: $ConfigPath" }
-if (-not (Test-Path $QcPython)) { throw "Missing QC Python: $QcPython" }
 
 New-Item -ItemType Directory -Force -Path $QcRoot,$PkgRoot,$PkgData,$FieldRoot | Out-Null
+
+$uvCmd = Get-Command uv.exe -ErrorAction SilentlyContinue
+if (-not $uvCmd) { $uvCmd = Get-Command uv -ErrorAction SilentlyContinue }
+if (-not $uvCmd) { throw "uv is required for the isolated editorial QC environment." }
+$uv = $uvCmd.Source
+
+function Test-QcRuntime {
+    if (-not (Test-Path $QcPython)) { return $false }
+    & $QcPython -c "import sys,numpy,soundfile,av; from faster_whisper import WhisperModel; print(sys.version); print('numpy', numpy.__version__); print('av', av.__version__); print('QC_RUNTIME_OK')" 2>$null
+    return ($LASTEXITCODE -eq 0)
+}
+
+if (-not (Test-QcRuntime)) {
+    if (Test-Path $FieldVenv) {
+        Write-Host "[EDITORIAL FIELD] Removing broken isolated QC environment..." -ForegroundColor Yellow
+        Remove-Item $FieldVenv -Recurse -Force -ErrorAction Stop
+    }
+
+    Write-Host "[EDITORIAL FIELD] Creating isolated Python 3.11 QC environment..." -ForegroundColor Cyan
+    & $uv venv $FieldVenv --python 3.11
+    if ($LASTEXITCODE -ne 0) { throw "uv venv --python 3.11 failed" }
+
+    Write-Host "[EDITORIAL FIELD] Installing pinned QC runtime..." -ForegroundColor Cyan
+    & $uv pip install --python $QcPython "numpy==1.26.4" "soundfile>=0.12,<1" "faster-whisper==1.2.0" "av>=11,<19"
+    if ($LASTEXITCODE -ne 0) { throw "Pinned editorial QC dependency install failed" }
+
+    if (-not (Test-QcRuntime)) {
+        throw "Editorial QC runtime verification failed after clean Python 3.11 install."
+    }
+}
+
+Write-Host "[EDITORIAL FIELD] Isolated QC runtime ready: $QcPython" -ForegroundColor Green
 
 $RawBase = "https://raw.githubusercontent.com/magasincoffee/magasin-media-robot/main"
 
