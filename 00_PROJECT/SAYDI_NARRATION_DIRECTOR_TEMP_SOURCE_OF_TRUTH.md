@@ -276,6 +276,16 @@ Field execution evidence on 2026-10-06:
 - harness: `tools/saydi_tts/narration/RUN_EDITORIAL_FIELD_H4A16IL.ps1`;
 - GitHub remote execution cannot claim this final gate because the connected self-hosted runner is not the H4 TTS host.
 
+
+Field finding on 2026-10-06:
+
+- first editorial field QC attempt failed before ASR/QC execution;
+- shared QC venv was Python 3.12 with NumPy 2.5.3;
+- NumPy import failed with `DLL load failed while importing _multiarray_umath: Access is denied`;
+- the completed 33/33 VieNeu chunks were not modified and remain reusable;
+- fix merged in PR #95: H4 editorial harness now creates/verifies an isolated Python 3.11 QC venv with pinned `numpy==1.26.4`, `faster-whisper==1.2.0`, `av>=11,<19`, and `soundfile>=0.12,<1`;
+- next run must resume at QC; do not rerender the 33 chunks.
+
 ## Current next task
 
-Run `tools/saydi_tts/narration/RUN_EDITORIAL_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL for field job `66100000-0000-4000-8000-000000000009`. It must execute post-render pronunciation/prosody/acoustic QC, bounded targeted rerender, click-safe final assembly, and require `stitching_gate_pass=true`. Owner listening remains the final acceptance gate.
+Re-run `tools/saydi_tts/narration/RUN_EDITORIAL_FIELD_H4A16IL.ps1` on DESKTOP-H4A16IL. Reuse the already completed 33/33 chunks from job `66100000-0000-4000-8000-000000000009`; do not rerender the chapter. Require isolated Python 3.11 QC runtime verification, post-render pronunciation/prosody/acoustic QC, bounded targeted rerender only where needed, click-safe final assembly, `stitching_gate_pass=true`, then Owner listening acceptance.
