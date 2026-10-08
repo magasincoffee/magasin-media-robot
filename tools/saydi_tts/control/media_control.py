@@ -107,6 +107,12 @@ def snapshot():
     for label, path in [("R2", R2 / "auto_repair.log"), ("V5", ROOT / "run.log"), ("Watchdog", ROOT / "resume.log")]:
         for line in tail(path, 5):
             entries.append({"group": label, "text": line})
+    basic_review = r2.get("basic_qc_review_remaining")
+    if basic_review is None:
+        basic_review = len(gate.get("legacy_qc_flagged") or [])
+    strict_review = r2.get("strict_asr_review_remaining")
+    if strict_review is None:
+        strict_review = gate.get("strict_asr_review_count")
     return {
         "updated": datetime.now().astimezone().isoformat(timespec="seconds"),
         "last_record": max([t for t in [stamp(R2 / "REVIEW_STATUS.json"),
@@ -121,8 +127,8 @@ def snapshot():
                      "repair": int(r2.get("repaired_candidates") or repair.get("complete") or 0),
                      "repair_total": int(r2.get("repaired_candidates") or repair.get("total") or 0),
                      "improved": int(r2.get("improved_segments") or 0)},
-        "quality": {"review": int(r2.get("basic_qc_review_remaining") or len(gate.get("legacy_qc_flagged") or [])),
-                    "strict_review": r2.get("strict_asr_review_remaining") or gate.get("strict_asr_review_count"),
+        "quality": {"review": int(basic_review),
+                    "strict_review": strict_review,
                     "final": bool(r2.get("final", False)), "duration_sec": r2.get("duration_sec")},
         "system": {"cpu": round(psutil.cpu_percent(interval=0.05), 1),
                    "ram": round(vm.percent, 1), "free_gb": round(vm.available / 1073741824, 2),
@@ -151,7 +157,13 @@ class Handler(BaseHTTPRequestHandler):
         if body:
             self.wfile.write(body)
 
+    def allow_local_host(self):
+        host = self.headers.get("Host", "").strip().lower()
+        return host in (HOST + ":" + str(PORT), "localhost:" + str(PORT))
+
     def do_GET(self):
+        if not self.allow_local_host():
+            return self.send_data(b"Local host only", "text/plain", 403)
         path = urlsplit(self.path).path
         if path == "/":
             try:
@@ -216,6 +228,8 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
     def do_POST(self):
+        if not self.allow_local_host():
+            return self.send_data(b"Local host only", "text/plain", 403)
         self.send_data(b"Read-only: no action endpoint", "text/plain", 405)
 
 def main():

@@ -26,7 +26,8 @@ class MediaControlTests(unittest.TestCase):
             (chapter / "FINAL_GATE.json").write_text(json.dumps({"qc_checked":3}))
             (repaired / "REVIEW_STATUS.json").write_text(
                 json.dumps({"status":"FULL_R2_READY_FOR_OWNER_REVIEW",
-                            "segments":3,"basic_qc_review_remaining":1,
+                            "segments":3,"basic_qc_review_remaining":0,
+                            "strict_asr_review_remaining":0,
                             "improved_segments":1,"repaired_candidates":2,"final":False})
             )
             (repaired / "AUTO_REPAIR_STATUS.json").write_text(json.dumps({"phase":"REVIEW_READY"}))
@@ -37,7 +38,8 @@ class MediaControlTests(unittest.TestCase):
                 self.assertFalse(result["status"]["active"])
                 self.assertFalse(result["quality"]["final"])
                 self.assertEqual(result["progress"]["render"], 3)
-                self.assertEqual(result["quality"]["review"], 1)
+                self.assertEqual(result["quality"]["review"], 0)
+                self.assertEqual(result["quality"]["strict_review"], 0)
                 with patch.object(c, "processes", return_value=([{"pid": 12, "kind": "qc"}], [])):
                     running = c.snapshot()
                     self.assertEqual(running["status"]["kind"], "running")
@@ -56,7 +58,7 @@ class MediaControlTests(unittest.TestCase):
             runner.start()
             base = "http://127.0.0.1:" + str(server.server_port)
             try:
-                with patch.object(c, "WEB", root), patch.dict(c.AUDIOS, {"begin": sample}):
+                with patch.object(c, "WEB", root), patch.object(c, "PORT", server.server_port), patch.dict(c.AUDIOS, {"begin": sample}):
                     with urllib.request.urlopen(base + "/", timeout=5) as response:
                         self.assertEqual(response.status, 200)
                         self.assertIn(b"MEDIA CONTROL", response.read())
@@ -70,6 +72,11 @@ class MediaControlTests(unittest.TestCase):
                             urllib.request.Request(base + "/api/status", data=b"x", method="POST"), timeout=5
                         )
                     self.assertEqual(ctx.exception.code, 405)
+                    with self.assertRaises(urllib.error.HTTPError) as ctx:
+                        urllib.request.urlopen(
+                            urllib.request.Request(base + "/api/status", headers={"Host": "untrusted.example:8776"}), timeout=5
+                        )
+                    self.assertEqual(ctx.exception.code, 403)
                     with self.assertRaises(urllib.error.HTTPError) as ctx:
                         urllib.request.urlopen(base + "/audio/../../secret.mp3", timeout=5)
                     self.assertEqual(ctx.exception.code, 404)
