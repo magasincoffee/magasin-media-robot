@@ -879,3 +879,35 @@ That matrix may grow whenever the Owner discovers a missing or improvable capabi
 
 The Owner's intended end-state is minimal-input operation: supply the legally usable book and optional narrator/style preference; SAYDI handles routine semantic narration planning, generation, QC and safe repair. Owner intervention should normally be limited to initial narration approval and genuine semantic/quality exceptions.
 
+## Owner directive — SAYDI V6 narration quality production upgrade (2026-10-08)
+
+**Decision:** Owner approves **V6 capability upgrade planning**, building on the existing local VieNeu V5 rather than rebuilding the robot. The complete normative implementation and acceptance specification is:
+
+`00_PROJECT/SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md`
+
+This directive is **requirements approval, not implementation completion**. Do not claim V6 shipped, Chapter 1 FINAL, or full-book production passed without runnable code, QC results, field evidence and Owner listening acceptance.
+
+### Newly locked requirements
+
+1. Preserve the Owner's ~4-minute approved narration reference as the canonical *local* narrator/style anchor. The subjective ~90% Owner assessment is directional listening feedback, **not an automated PASS rate**; the remaining unclear words, Vietnamese tone errors, slurring and joins remain real acceptance concerns.
+2. The standard flow is **editorial before render, verification after render, bounded isolated repair**. ChatGPT can supply schema-validated narration directives/biên soạn when Owner enables the cloud boundary; default local Director/robot handles all routine tasks. No manuscript upload or audio/reference file committed to GitHub.
+3. Text correctness, source-vs-spoken equivalence, Vietnamese tone and word clarity, emotional/phrase continuity, acoustic joins and narrator-fingerprint consistency are distinct QC dimensions. Whisper alone cannot settle accent/diacritic listening defects. “Mỗi khi hè về” vs “mỗi khi he về” must be diagnosed using original/TTS text and audio evidence before changing text.
+4. **Never use `atempo`, time stretching or pitch shifting to simulate human pacing.** Native VieNeu articulation is preserved; semantic punctuation, source-faithful phrasing, reference selection and natural inter-phrase pauses are the allowed initial levers. Changing approved voice/fingerprint requires a new sample acceptance gate.
+5. Correct only affected segments with safe retry limit, SHA-matched candidate QC and unchanged-neighbor evidence; no endless renders, no automatic whole-book regeneration, no false `FINAL`.
+6. DESKTOP-H4A16IL has approximately 8 GB RAM / 4 logical CPU threads. The active host requires resource preflight, child-process limits, no simultaneous heavy VieNeu+Whisper models, RAM safeguards, checkpoint/resume and watchdog phase accuracy. CPU 100% alone is not proof of hardware damage; thermal limits require real sensor evidence.
+7. The Owner receives a **complete chapter MP3** and a small set of representative samples/timecoded true exceptions for listening—not an instruction to hunt defects individually.
+
+### Integration into existing authoritative sequence
+
+- `SAYDI-004`: structured source-safe editorial/text layering and segment context.
+- `SAYDI-005`: Narration Director, approved sample fingerprint and pre-render direction.
+- `SAYDI-006`: stable segment-addressed TTS, resource guard, idempotency/restart.
+- `SAYDI-007`: native-speed assembly and acoustic joins.
+- `SAYDI-008`: layered pronunciation/tone/prosody/acoustic QC plus bounded repair.
+- `SAYDI-009/010`: chapter listening package / operator progress and exceptions.
+
+Continue using the existing `SAYDI-ND` and `SAYDI-QC` subtracks; do not create an alternative top-level task queue. **`SAYDI-002` remains the current authoritative NEXT task** until its documented closure gates pass. Work items in the V6 plan are subordinate acceptance work packages only; robots may not skip SOT prerequisites or fabricate DONE.
+
+### Latest local observation (not repo field acceptance)
+
+On 2026-10-08, Chapter 1 V5 was rendered in 347 WAV segments. Initial QC flagged 120 basic REVIEW; a locally generated V5 R2 candidate package reduced basic ASR REVIEW to 115 after selecting 12 improved variants out of 35 targeted attempts. This does **not** establish audible Owner approval; Chapter 1 remains `REVIEW`, and V6 remains unimplemented. Intermediate WAVs, manuscript and listening files stay on the local host.
