@@ -145,3 +145,22 @@ When a missing requirement or better idea is discovered:
 6. if it changes an Owner-locked invariant, update `SOURCE_OF_TRUTH.md` explicitly.
 
 This file is intentionally designed to grow over time.
+
+## Owner-approved SAYDI V6 upgrade work packages (2026-10-08)
+
+**Status: PLANNED / NOT YET IMPLEMENTED.** These are subordinate capability gaps under the authoritative `SAYDI-004..010` sequence and existing SAYDI-ND / SAYDI-QC execution tracks. Requirements + acceptance contract: [SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md](./SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md). Do not mark a work package AVAILABLE merely because the documentation exists.
+
+| Work package | Capability gap to close | Status / gate |
+|---|---|---|
+| V6-P0-01 | Source-faithful Editorial QA with hierarchical semantic context, punctuation, must-check Vietnamese tones and derived-only fixes | 🔒 Owner requirement LOCKED; implementation/field gate PENDING |
+| V6-P0-02 | Fingerprint-based approved WAV reference, consistent native VieNeu articulation across complete chapter, representative 3–5 passage A/B approval | 🔒 Owner requirement LOCKED; listening gate PENDING |
+| V6-P0-03 | Distinguish source/editorial fault vs real TTS tone/slur fault vs ASR false alarm; dual evidence and timecoded cause | ❌ Not integrated into production closed loop |
+| V6-P0-04 | Accept only improved SHA-matched localized repair; bounded retries, unchanged neighbors, recheck changed clips, do not rerender whole chapter | 🟡 Partial field prototype; production integrated acceptance PENDING |
+| V6-P0-05 | Semantic pauses, crossfade/edge-click detection and verified continuous long-form output without atempo/time stretching | 🟡 Partial; long chapter Owner A/B acceptance PENDING |
+| V6-P0-06 | 8-GB host memory/thread limits on TTS and ASR child processes, watchdog pause/resume without duplicate workers | 🟡 Local scripting exists; repo integration and controlled field tests PENDING |
+| V6-P1-07 | Versioned Director→Robot job contract; default local/private production, batch cloud analysis only with Owner enablement | 🟡 Contracts exist; end-to-end orchestration PENDING |
+| V6-P1-08 | Operator receives chapter audio + concise sampled review + precise timecoded exceptions + verifiable FINAL gate | 🟡 Local sample packages exist; production dashboard/release gate PENDING |
+
+Latest local diagnostic, **not formal project completion**: chapter 1 V5 = 347 generated; R2 = 115 basic ASR REVIEW, 279 strict ASR REVIEW, Owner listening gate still pending. These numeric flags **are not audible defect counts** and must not be treated as direct proof of the quality percentage.
+
+The active Source of Truth still selects **SAYDI-002** as NEXT until formally changed; no new competing NEXT task is created here.
