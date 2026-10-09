@@ -75,6 +75,17 @@
     <div><div class="small-label">TRẠNG THÁI HIỆN TẠI · <span id="hostname">DESKTOP-H4A16IL</span></div><div class="status-title" id="statusTitle">ĐANG KIỂM TRA KẾT NỐI</div><p class="status-desc" id="statusDetail">Đang đọc tiến trình và checkpoint từ máy...</p></div>
     <div class="status-right"><span class="pill" id="statePill"><span class="dot"></span><span id="stateText">Đang kiểm tra</span></span><span class="mono muted" id="phase">--</span></div>
   </section>
+  <section class="panel" aria-live="polite">
+    <div class="sectionhead"><h2>Chương 2 · SAYDI V5</h2><span class="tag" id="ch2Status">Đang kiểm tra</span></div>
+    <div class="stats" style="margin-bottom:12px">
+      <div><div class="small-label">RENDER V5</div><div class="number" id="ch2Render" style="font-size:24px;font-weight:750">—</div></div>
+      <div><div class="small-label">QC V5</div><div class="number" id="ch2Qc" style="font-size:24px;font-weight:750">—</div></div>
+      <div><div class="small-label">PASS / REVIEW</div><div class="number" id="ch2Flags" style="font-size:21px;font-weight:750">Chưa QC</div></div>
+      <div><div class="small-label">ĐIỀU KIỆN MÁY</div><div class="number" id="ch2Ram" style="font-size:21px;font-weight:750">—</div></div>
+    </div>
+    <div class="progress-track"><div class="bar" id="ch2Progress"></div></div>
+    <p class="micro" id="ch2Reason" style="margin-top:9px">Kiểm tra trạng thái công việc ở ổ D...</p>
+  </section>
   <section class="stats" aria-label="Số liệu chương 1">
     <div class="panel stat"><div class="small-label">ĐÃ RENDER</div><div class="number" id="renderNum">--/--</div><div class="progress-track"><div class="bar" id="renderBar"></div></div><div class="stat-foot">Đoạn âm thanh · chương 1</div></div>
     <div class="panel stat"><div class="small-label">ĐÃ KIỂM DUYỆT</div><div class="number" id="qcNum">--/--</div><div class="progress-track"><div class="bar" id="qcBar"></div></div><div class="stat-foot">Kiểm tra tự động, chưa thay thế nghe thật</div></div>
@@ -105,7 +116,7 @@
     <section class="panel">
       <div class="sectionhead"><h2>Nghe bản sách mới nhất</h2><span class="tag">Preview / REVIEW</span></div>
       <p class="muted">Mở ngay trong trình duyệt trên máy DESKTOP-H4A16IL. Đây chưa phải audio FINAL.</p>
-      <div class="audio-grid"><button class="audio-choice selected" data-audio="full">▶ &nbsp; Toàn chương R2</button><button class="audio-choice" data-audio="begin">♫ &nbsp; 5 phút đầu</button><button class="audio-choice" data-audio="middle">♫ &nbsp; 5 phút giữa</button></div>
+      <div class="audio-grid"><button class="audio-choice selected" data-audio="full">▶ &nbsp; Chương 1 R2</button><button class="audio-choice" data-audio="begin">♫ &nbsp; 5 phút đầu</button><button class="audio-choice" data-audio="middle">♫ &nbsp; 5 phút giữa</button><button class="audio-choice" data-audio="chapter2">♫ &nbsp; Chương 2 V5 (khi có)</button></div>
       <audio id="player" controls preload="metadata"></audio>
       <p class="audio-path" id="audioName">Đang tìm file MP3...</p>
       <div style="margin-top:13px"><a class="btn" id="download" href="/audio/full" download>↓ Lưu bản đang nghe</a></div>
@@ -122,9 +133,9 @@
 (function() {
   "use strict";
   var $ = function(id){return document.getElementById(id)};
-  var keys = ["full","begin","middle"];
+  var keys = ["full","begin","middle","chapter2"];
   var selected = "full", firstAudio = true, busy = false;
-  var names = {full:"CHUONG_01_V5_R2_SUA_LOI_NANG.REVIEW.mp3",begin:"CHUONG_01_V5_R2_DAU_CHUONG_5PHUT.mp3",middle:"CHUONG_01_V5_R2_GIUA_CHUONG_5PHUT.mp3"};
+  var names = {full:"CHUONG_01_V5_R2_SUA_LOI_NANG.REVIEW.mp3",begin:"CHUONG_01_V5_R2_DAU_CHUONG_5PHUT.mp3",middle:"CHUONG_01_V5_R2_GIUA_CHUONG_5PHUT.mp3",chapter2:"CHUONG_02_OWNER_APPROVED_V5.REVIEW.mp3"};
   function set(id, value){$(id).textContent = value;}
   function num(value){return new Intl.NumberFormat("vi-VN").format(value || 0);}
   function progress(id, part, total){$(id).style.width = (total ? Math.min(100,Math.max(0,(part / total) * 100)) : 0) + "%";}
@@ -151,6 +162,18 @@
   }
   function show(data){
     var p=data.progress,q=data.quality,s=data.status,r=data.system;
+    var c2=data.chapter2||{}, total2=Number(c2.total||0), render2=Number(c2.rendered||0), qc2=Number(c2.qc_checked||0);
+    set("ch2Status",c2.stage||"Chưa tạo");
+    set("ch2Render",num(render2)+"/"+num(total2));
+    set("ch2Qc",num(qc2)+"/"+num(total2));
+    set("ch2Flags",c2.stage==="REVIEW_READY"?num(c2.pass_count)+" / "+num(c2.review_count):"Chưa QC xong");
+    set("ch2Ram",c2.min_start_ram_gb?"≥ "+c2.min_start_ram_gb+" GB":"2,3 GB tối thiểu");
+    set("ch2Reason",c2.stage==="QUEUED_RESOURCE"||c2.stage==="PAUSED_RESOURCE"?
+      "Chờ máy đủ RAM. "+(c2.reason||"")+" · RAM trống đo gần nhất: "+num(c2.free_ram_gb)+" GB. Không chạy TTS/Whisper song song." :
+      c2.stage==="REVIEW_READY"?"Đã có QC và MP3 chương 2, chưa đạt FINAL.":
+      c2.stage?"Giai đoạn chương 2: "+c2.stage+" · đã render "+num(render2)+" đoạn và QC "+num(qc2)+" đoạn.":
+      "Chưa đăng ký công việc chương 2.");
+    progress("ch2Progress",render2,total2);
     set("hostname",data.hostname);
     set("statusTitle",s.title);set("statusDetail",s.detail);
     set("stateText",s.active?"Tiến trình đang chạy":(s.kind==="review"?"Chờ kiểm tra":s.kind==="warning"?"Cần chú ý":"Không có tác vụ"));

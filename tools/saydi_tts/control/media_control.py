@@ -14,17 +14,20 @@ DESKTOP = Path(os.getenv("SAYDI_DESKTOP", r"C:\Users\admin\Desktop"))
 WEB = Path(__file__).resolve().parent
 CH = ROOT / "Chuong_01"
 R2 = ROOT / "Chuong_01_R2"
+CH2_STATE = ROOT / "CH02_V5_STATUS.json"
 HOST, PORT = "127.0.0.1", int(os.getenv("SAYDI_CONTROL_PORT", "8776"))
 AUDIOS = {
     "full": DESKTOP / "CHUONG_01_V5_R2_SUA_LOI_NANG.REVIEW.mp3",
     "begin": DESKTOP / "CHUONG_01_V5_R2_DAU_CHUONG_5PHUT.mp3",
     "middle": DESKTOP / "CHUONG_01_V5_R2_GIUA_CHUONG_5PHUT.mp3",
+    "chapter2": Path(r"D:\SAYDI\OWNER_APPROVED_NATURAL_V5\Chuong_02\CHUONG_02_OWNER_APPROVED_V5.REVIEW.mp3"),
 }
 PROCESS_TYPES = {
     "render_owner_approved_v5.py": "render",
     "qc_local_segments.py": "qc",
     "repair_chapter1_owner_v5_r2.py": "repair",
     "repair_owner_v5_pilot.py": "repair",
+    "chapter2_v5_qc_guarded.py": "chapter2",
 }
 ACTIVE_PHASES = {"RENDERING", "QC_RUNNING", "QC_TARGETED", "RENDERING_CANDIDATES", "ASSEMBLING_MP3", "REPAIRING"}
 
@@ -73,15 +76,26 @@ def snapshot():
     gate = jread(CH / "FINAL_GATE.json")
     repair = jread(R2 / "AUTO_REPAIR_STATUS.json")
     r2 = jread(R2 / "REVIEW_STATUS.json")
+    ch2 = jread(CH2_STATE)
     active, workers = processes()
     types = {p["kind"] for p in active}
     phase = str(repair.get("phase") or state.get("status") or "UNKNOWN")
-    if "qc" in types:
+    if "chapter2" in types:
+        chapter2_stage = ch2.get("stage", "PROCESS_ACTIVE")
+        kind, title, detail = ("running", "ĐANG XỬ LÝ CHƯƠNG 2",
+                               "SAYDI V5 đang thực thi: " + chapter2_stage)
+    elif "qc" in types:
         kind, title, detail = "running", "ĐANG QC ÂM THANH", "Whisper đang kiểm duyệt âm thanh."
     elif "render" in types:
         kind, title, detail = "running", "ĐANG RENDER", "VieNeu đang tạo giọng."
     elif "repair" in types:
         kind, title, detail = "running", "ĐANG SỬA LỖI", "Robot đang kiểm tra/sửa các đoạn bị cảnh báo."
+    elif ch2.get("stage") in ("QUEUED_RESOURCE", "PAUSED_RESOURCE"):
+        kind, title, detail = ("warning", "CHƯƠNG 2 CHỜ ĐỦ TÀI NGUYÊN",
+                               "Đã chuẩn bị V5; chưa khởi chạy mô hình do RAM hoặc ổ đĩa không đủ.")
+    elif ch2.get("stage") == "REVIEW_READY":
+        kind, title, detail = ("review", "CHƯƠNG 2 ĐÃ QC — CHỜ NGHE DUYỆT",
+                               "Chương 2 đã có MP3 và báo cáo QC, không phải FINAL.")
     elif r2.get("final") and r2.get("owner_approved"):
         kind, title, detail = "done", "ĐÃ NGHIỆM THU", "Bản audio đã có trạng thái phát hành."
     elif r2.get("status") == "FULL_R2_READY_FOR_OWNER_REVIEW" or phase == "REVIEW_READY":
@@ -116,7 +130,8 @@ def snapshot():
     return {
         "updated": datetime.now().astimezone().isoformat(timespec="seconds"),
         "last_record": max([t for t in [stamp(R2 / "REVIEW_STATUS.json"),
-                        stamp(R2 / "AUTO_REPAIR_STATUS.json"), stamp(CH / "render_state.json")] if t], default=None),
+                        stamp(R2 / "AUTO_REPAIR_STATUS.json"), stamp(CH / "render_state.json"),
+                        stamp(CH2_STATE)] if t], default=None),
         "hostname": os.getenv("COMPUTERNAME", "DESKTOP-H4A16IL"),
         "version": "V5 / mẫu Owner chốt",
         "phase": phase,
@@ -135,6 +150,7 @@ def snapshot():
                    "total_gb": round(vm.total / 1073741824, 2)},
         "processes": active, "worker": bool(workers), "audio": info,
         "events": entries, "read_only": True,
+        "chapter2": ch2,
     }
 
 class Handler(BaseHTTPRequestHandler):

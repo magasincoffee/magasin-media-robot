@@ -32,7 +32,8 @@ class MediaControlTests(unittest.TestCase):
             )
             (repaired / "AUTO_REPAIR_STATUS.json").write_text(json.dumps({"phase":"REVIEW_READY"}))
             with patch.object(c, "ROOT", root), patch.object(c, "CH", chapter), \
-                 patch.object(c, "R2", repaired), patch.object(c, "processes", return_value=([], [])):
+                 patch.object(c, "R2", repaired), patch.object(c, "CH2_STATE", root / "missing_ch02.json"), \
+                 patch.object(c, "processes", return_value=([], [])):
                 result = c.snapshot()
                 self.assertEqual(result["status"]["kind"], "review")
                 self.assertFalse(result["status"]["active"])

@@ -52,3 +52,23 @@ Current data reader is tailored to Chapter 1 V5/R2 filenames. Future pipelines (
 
 Only source, installer, tests and this guide belong in Git. Owner manuscript, reference WAV, generated MP3, raw ASR transcript, secrets and runtime logs remain on H4A16IL. The app is a bridge to the V6 Owner-approved requirements in `00_PROJECT/SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md`.
 
+## Chapter 2 V5 QC (resource-gated field workflow, 2026-10-09)
+
+Owner ordered Chapter 2 QC with the same approved V5 narrator reference. **Do not use the V4 chapter-2 wavs/QC as V5 results.**
+
+On DESKTOP-H4A16IL Chapter 2 has a verified UTF-8 canonical source, an older **640-segment V4** manifest and audio, but initially **no V5-rendered audio**. The existing host has approximately 8 GB RAM and 4 logical CPU threads. Field preflight on 2026-10-09 15:22 local time showed 0.61 GB RAM free (92.3% used), CPU 84%, and 2.08 GB left on C:. Heavy synthesis/QC was intentionally not started under that load.
+
+Files:
+- `tools/saydi_tts/narration/chapter2_v5_qc_guarded.py`: checkpointed, source-and-reference-fingerprint-safe V5 chapter-02 render -> assemble -> batched QC (40 clips). Exit safely when RAM/disk is inadequate; do not run simultaneous TTS and Whisper.
+- `tools/saydi_tts/narration/test_chapter2_v5_qc_guarded.py`: three local synthetic tests (resource probe, atomic QUEUED_RESOURCE checkpoint, named mutex duplicate guard).
+- `tools/saydi_tts/control/RUN_CH02_V5_QC_SAFE.ps1`: Task Scheduler entrypoint. Windows task **SAYDI V5 CH02 QC Guardian** runs it every 15 minutes with `IgnoreNew`, subject to session/account scheduling. The runner is idempotent and can resume after restart without rerendering accepted chunks.
+- The Control dashboard shows a separate Chapter 2 status card. It **must** say `QUEUED_RESOURCE` with 0/640 rendered when blocked by RAM; it must not say `QC running` until that process really exists.
+
+Local output: `D:\SAYDI\OWNER_APPROVED_NATURAL_V5\Chuong_02` (models/source remain on C, no book content in Git). A lightweight status mirror exists at `C:\SAYDI\output\OWNER_APPROVED_NATURAL_V5\CH02_V5_STATUS.json` for Media Control.
+
+Safety gates: >= **2.3 GB** free RAM before loading a model, pause on < **0.70 GB** during VieNeu output, at least 3 GB free on D for render; Whisper is a separate <=2-thread subprocess run **after** TTS unload, in <=40-clip batches, and stops before prolonged critical memory exhaustion. CPU affinity 2 of 4 logical processors with below-normal priority. An unconfirmed QC/ASR estimate is not Owner listening acceptance. `REVIEW_READY` is not `FINAL`.
+
+Observed field evidence: manifest for 640 V5 segments generated and token/source integrity checked; two wrapper invocations exited 0 with `QUEUED_RESOURCE`, RAM below 2.3 GB; Windows task created and explicitly tested (last result 0, next scheduled run confirmed). Three Chapter 2 test cases and two Control test cases PASS. **No V5 chapter-2 segments had been synthesized and no V5 QC had run at the time of initial installation.** Schedule will only advance when resource preflight passes. If the machine does not naturally regain 2.3 GB RAM, Owner should close unused memory-heavy apps/tabs rather than killing unknown work.
+
+Do not mark any V6 milestone DONE due solely to installing the V5 guard; the authoritative SAYDI SOT task sequence remains unchanged.
+
