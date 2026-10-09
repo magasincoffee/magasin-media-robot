@@ -70,9 +70,9 @@ class MediaControlTests(unittest.TestCase):
                         self.assertTrue(response.headers.get("Content-Range", "").startswith("bytes 0-3/"))
                     with self.assertRaises(urllib.error.HTTPError) as ctx:
                         urllib.request.urlopen(
-                            urllib.request.Request(base + "/api/status", data=b"x", method="POST"), timeout=5
+                            urllib.request.Request(base + "/api/command", data=b"x", method="POST"), timeout=5
                         )
-                    self.assertEqual(ctx.exception.code, 405)
+                    self.assertEqual(ctx.exception.code, 403)
                     with self.assertRaises(urllib.error.HTTPError) as ctx:
                         urllib.request.urlopen(
                             urllib.request.Request(base + "/api/status", headers={"Host": "untrusted.example:8776"}), timeout=5

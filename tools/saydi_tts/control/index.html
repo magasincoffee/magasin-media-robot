@@ -55,6 +55,17 @@
     .tag{font-size:11px;border:1px solid var(--line);border-radius:7px;padding:4px 9px;color:var(--muted)}
     footer{color:var(--muted);font-size:12px;padding:0 3px}
     .warning-text{color:var(--amber)}.good-text{color:var(--teal)}.cpu-note{margin-top:8px}
+    .operator-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .operator-bar select{min-width:245px;flex:0 1 330px;background:#203248;color:#eef6ff;
+      padding:11px 13px;border:1px solid #38566d;border-radius:10px;font:600 14px "Segoe UI",Arial,sans-serif}
+    .operator-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}
+    .operator-actions button{min-height:51px}
+    .operator-actions button:disabled{opacity:.43;cursor:not-allowed;border-color:var(--line)}
+    .operator-audio{margin-top:16px;display:grid;gap:8px}
+    .operator-audio audio{max-width:700px}
+    #jobMessage{min-height:52px}
+    @media (max-width:850px){.operator-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:550px){.operator-actions{grid-template-columns:1fr}.operator-bar select{width:100%}}
     @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.columns{grid-template-columns:1fr}}
     @media (max-width:680px){.shell{display:block}aside{padding:14px 18px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;border-right:0;border-bottom:1px solid var(--line)}aside .nav,aside .side-foot{display:none}.brand{font-size:16px}main{padding:20px 14px}.top,.hero{display:block}.right{margin-top:14px;justify-content:space-between}.status-right{display:flex;justify-content:space-between;margin-top:16px;align-items:center}.status-title{font-size:22px}.stats{gap:8px}.stat{padding:14px}.stat .number{font-size:22px}.audio-grid{grid-template-columns:1fr}.step{grid-template-columns:28px 1fr}.step-value{grid-column:2;text-align:left}}
   </style>
@@ -64,13 +75,35 @@
 <aside>
   <div class="brand"><div class="brand-icon">♫</div> <span>SAYDI <span style="color:#82ead8">MEDIA</span></span></div>
   <div class="nav"><div class="nav-label">ĐIỀU KHIỂN</div><div class="nav-active">◉ &nbsp; Tổng quan robot</div><div class="nav-secondary">♫ &nbsp; Sách nói V5</div><div class="nav-secondary">⚙ &nbsp; Theo dõi hệ thống</div></div>
-  <div class="side-foot"><strong>Chế độ an toàn</strong><p>Giao diện chỉ đọc. Không tự kích hoạt render hoặc sửa lỗi ngoài quy trình đang được duyệt.</p></div>
+  <div class="side-foot"><strong>Chế độ an toàn</strong><p>Chọn chương và xác nhận trước khi giao việc. Robot kiểm tra tài nguyên, chống chạy trùng, giữ checkpoint.</p></div>
 </aside>
 <main>
   <header class="top">
     <div><div class="small-label">MAGASIN / MEDIA OPERATIONS</div><h1>Trung tâm điều khiển Media Robot</h1><p class="subtitle">Quan sát tiến trình và chất lượng sách nói ngay trên máy local.</p></div>
     <div class="right"><span class="updated" id="updated">Đang tải...</span><button id="refresh" type="button">↻ Làm mới ngay</button></div>
   </header>
+  <section class="panel" id="productionControl">
+    <div class="sectionhead"><div><h2>Điều hành sản xuất theo chương</h2><p class="subtitle">Chọn chương rồi giao việc. Robot giữ checkpoint và chỉ chạy khi đủ tài nguyên.</p></div><span class="tag" id="selectedPhase">Đang nạp chương</span></div>
+    <div class="operator-bar">
+      <label for="chapterSelect" class="small-label">CHƯƠNG SÁCH</label>
+      <select id="chapterSelect" aria-label="Chọn chương sách"></select>
+      <button id="chooseChapter" type="button">Chọn chương</button>
+      <span class="micro" id="selectedMetrics">Đang lấy tiến độ...</span>
+    </div>
+    <div class="operator-actions">
+      <button type="button" data-command="resume">▶ Tiếp tục / bắt đầu chương</button>
+      <button type="button" data-command="recheck">↻ Kiểm tra lại QC cảnh báo</button>
+      <button type="button" data-command="improve">✦ Tự sửa lỗi phát âm (giới hạn)</button>
+      <button type="button" data-command="next">→ Chương tiếp theo</button>
+    </div>
+    <div class="monitor-message" id="jobMessage">Chưa có yêu cầu điều khiển mới.</div>
+    <div class="operator-audio">
+      <span class="small-label">NGHE CHƯƠNG ĐANG CHỌN</span>
+      <audio id="selectedChapterAudio" controls preload="none"></audio>
+      <p class="micro" id="chapterAudioHelp">Chỉ phát bản REVIEW hoặc bản nghe gần nhất đã có file.</p>
+    </div>
+    <p class="micro" style="margin-top:12px">Lưu ý: “Kiểm tra lại QC” không tự sửa giọng; “Tự sửa” chỉ thay đoạn có bằng chứng cải thiện, không bao giờ tự đánh dấu FINAL. Có thể có yêu cầu đang chờ RAM.</p>
+  </section>
   <section class="panel hero" aria-live="polite">
     <div><div class="small-label">TRẠNG THÁI HIỆN TẠI · <span id="hostname">DESKTOP-H4A16IL</span></div><div class="status-title" id="statusTitle">ĐANG KIỂM TRA KẾT NỐI</div><p class="status-desc" id="statusDetail">Đang đọc tiến trình và checkpoint từ máy...</p></div>
     <div class="status-right"><span class="pill" id="statePill"><span class="dot"></span><span id="stateText">Đang kiểm tra</span></span><span class="mono muted" id="phase">--</span></div>
@@ -126,7 +159,7 @@
       <div class="list" id="logs"><p class="muted">Đang đọc log...</p></div>
     </section>
   </div>
-  <footer>Media Control v0.1 · Kết nối tại 127.0.0.1 · Chỉ đọc, không truy cập Internet · Trạng thái lấy từ tiến trình và file thực tế, không suy đoán.</footer>
+  <footer>Media Control v0.2 · Localhost 127.0.0.1 · Điều khiển có xác nhận · Không đưa bản thảo/âm thanh lên Internet · Không đánh dấu FINAL tự động.</footer>
 </main>
 </div>
 <script>
@@ -230,6 +263,132 @@
   $("refresh").addEventListener("click",fetchStatus);
   fetchStatus();
   setInterval(fetchStatus,5000);
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  let csrf="", loaded=false, executing=false, currentChapter=1, chapters=[], latestAudio="";
+  const names={select:"Chọn chương",resume:"Tiếp tục / bắt đầu chương",
+    next:"Chuyển sang chương tiếp theo",recheck:"Kiểm tra lại các cảnh báo QC",
+    improve:"Tự sửa một nhóm đoạn lỗi có giới hạn"};
+  function number(n){return new Intl.NumberFormat("vi-VN").format(n||0)}
+  function phaseName(s){
+    const map={REVIEW_READY:"Chờ nghe duyệt",QUEUED_RESOURCE:"Chờ tài nguyên",
+      PAUSED_RESOURCE:"Tạm dừng vì RAM",QC_RUNNING:"Đang QC",RENDERING:"Đang render",
+      NOT_PREPARED:"Chưa bắt đầu",PREPARED_WAIT_OWNER:"Đã chuẩn bị — chờ giao việc",FAILED:"Có lỗi",RENDER_COMPLETE:"Đã render",
+      QC_FAILED:"QC lỗi"};
+    return map[s]||s||"Chưa có dữ liệu";
+  }
+  function hasJob(s){
+    return s && s.state && !["DONE","FAILED","CANCELLED"].includes(s.state);
+  }
+  function selected(){return chapters.find(x=>x.chapter===currentChapter)||null}
+  function syncAudio(c){
+    const a=$("selectedChapterAudio");
+    if(!c||!c.audio_available){
+      if(latestAudio){a.pause();a.removeAttribute("src");a.load();latestAudio="";}
+      a.hidden=true;
+      $("chapterAudioHelp").textContent="Chưa có file MP3 V5 của chương này.";
+      return;
+    }
+    a.hidden=false;
+    const url="/audio/chapter/"+c.chapter;
+    if(latestAudio!==url){a.pause();a.src=url;a.load();latestAudio=url;}
+    $("chapterAudioHelp").textContent="Bản nghe V5 chương "+c.chapter+" (REVIEW, không phải FINAL).";
+  }
+  function renderView(status){
+    const ctrl=status.control;if(!ctrl)return;
+    csrf=ctrl.csrf;chapters=ctrl.chapters||[];
+    const select=$("chapterSelect");
+    if(!loaded){
+      chapters.forEach(c=>{
+        const opt=document.createElement("option");
+        opt.value=String(c.chapter);
+        select.appendChild(opt);
+      });
+      currentChapter=ctrl.selected_chapter||1;
+      select.value=String(currentChapter);
+      loaded=true;
+    }
+    const snapshot=selected();
+    if(snapshot){
+      $("selectedPhase").textContent=phaseName(snapshot.phase);
+      $("selectedMetrics").textContent="Render "+number(snapshot.rendered)+"/"+number(snapshot.total)+
+        " · QC "+number(snapshot.qc_checked)+"/"+number(snapshot.total)+
+        " · Cảnh báo "+(snapshot.review===null?"chưa biết":number(snapshot.review));
+      syncAudio(snapshot);
+    }
+    chapters.forEach((c,i)=>{
+      const opt=select.options[i];
+      if(opt)opt.textContent="Chương "+c.chapter+" — "+phaseName(c.phase);
+    });
+    const job=ctrl.job||{}, working=hasJob(job);
+    const jobs={resume:snapshot&&snapshot.can_resume,recheck:snapshot&&snapshot.can_recheck,
+      improve:snapshot&&snapshot.can_improve,next:currentChapter<11};
+    document.querySelectorAll("[data-command]").forEach(b=>{
+      const action=b.getAttribute("data-command");
+      b.disabled=!!working||!!executing||!jobs[action];
+      b.title=working?"Đang có công việc chờ hoặc chạy; không tạo trùng.":
+        !jobs[action]?"Chưa có dữ liệu phù hợp cho thao tác này.":"";
+    });
+    $("chooseChapter").disabled=executing;
+    if(job.state){
+      let result="Lệnh "+(names[job.action]||job.action)+" · chương "+job.chapter+
+       " · "+job.state;
+      if(job.detail)result+=". "+job.detail;
+      if(job.state==="QUEUED_RESOURCE")result+=" Robot sẽ thử lại khi RAM trống ≥2,3 GB.";
+      $("jobMessage").textContent=result;
+    }else{
+      $("jobMessage").textContent="Chưa có việc mới. Chọn chương rồi bấm tác vụ để giao cho robot.";
+    }
+  }
+  async function refresh(){
+    try{
+      const r=await fetch("/api/status",{cache:"no-store"});
+      if(!r.ok)throw new Error("Không lấy được trạng thái: "+r.status);
+      renderView(await r.json());
+    }catch(err){$("jobMessage").textContent="Không thể kiểm tra Control: "+err.message;}
+  }
+  async function command(action){
+    if(executing||!csrf)return;
+    const ch=currentChapter;
+    if(action!=="select"){
+      const target=(action==="next"?ch+1:ch);
+      const message=names[action]+" cho chương "+target+"?\n\n"+
+        (action==="resume"||action==="next"?
+          "SAYDI sẽ sử dụng checkpoint V5, chỉ chạy VieNeu/Whisper khi đủ tài nguyên.":
+          action==="improve"?
+          "Robot sẽ tạo tối đa 8 phương án sửa, giữ WAV gốc và xuất bản REVIEW mới. Không tự chứng nhận FINAL.":
+          "Robot chỉ QC lại các WAV nghi vấn. Lượt QC này không tự chữa lỗi phát âm.");
+      if(!confirm(message))return;
+    }
+    executing=true;
+    const text=$("jobMessage");text.textContent="Đang gửi yêu cầu...";
+    try{
+      const response=await fetch("/api/command",{method:"POST",headers:{
+        "Content-Type":"application/json","X-Saydi-Csrf":csrf},body:JSON.stringify({action,chapter:ch})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||("HTTP "+response.status));
+      text.textContent=action==="select"?"Đã chọn chương "+ch+".": 
+        "Đã giao việc "+names[action]+". Trạng thái: "+data.state+
+        ". Bạn có thể theo dõi tiến trình phía dưới.";
+      if(action==="next"){currentChapter=data.chapter;$("chapterSelect").value=String(currentChapter);}
+    }catch(err){text.textContent="Chưa thực hiện được: "+err.message;}
+    finally{executing=false;await refresh();}
+  }
+  $("chapterSelect").addEventListener("change",e=>{
+    currentChapter=Number(e.target.value);
+    const snapshot=selected();
+    if(snapshot){$("selectedPhase").textContent=phaseName(snapshot.phase);syncAudio(snapshot);}
+    command("select");
+  });
+  $("chooseChapter").addEventListener("click",()=>command("select"));
+  document.querySelectorAll("[data-command]").forEach(b=>
+    b.addEventListener("click",()=>command(b.getAttribute("data-command"))));
+  refresh();
+  setInterval(refresh,5000);
 })();
 </script>
 </body>

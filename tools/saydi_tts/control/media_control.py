@@ -3,6 +3,8 @@
 import json
 import os
 import re
+import secrets
+import control_commands as jobs
 from datetime import datetime
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,6 +18,7 @@ CH = ROOT / "Chuong_01"
 R2 = ROOT / "Chuong_01_R2"
 CH2_STATE = ROOT / "CH02_V5_STATUS.json"
 HOST, PORT = "127.0.0.1", int(os.getenv("SAYDI_CONTROL_PORT", "8776"))
+CSRF_TOKEN = secrets.token_urlsafe(32)
 AUDIOS = {
     "full": DESKTOP / "CHUONG_01_V5_R2_SUA_LOI_NANG.REVIEW.mp3",
     "begin": DESKTOP / "CHUONG_01_V5_R2_DAU_CHUONG_5PHUT.mp3",
@@ -149,8 +152,11 @@ def snapshot():
                    "ram": round(vm.percent, 1), "free_gb": round(vm.available / 1073741824, 2),
                    "total_gb": round(vm.total / 1073741824, 2)},
         "processes": active, "worker": bool(workers), "audio": info,
-        "events": entries, "read_only": True,
+        "events": entries, "read_only": False,
         "chapter2": ch2,
+        "control": {"selected_chapter":jobs.selected_chapter(),
+                    "chapters":jobs.catalog(),"job":jobs.job_status(),
+                    "csrf":CSRF_TOKEN,"actions_enabled":True},
     }
 
 class Handler(BaseHTTPRequestHandler):
@@ -195,6 +201,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_data(json.dumps({"error": type(exc).__name__}).encode(), "application/json", 503)
         if path == "/healthz":
             return self.send_data(b"ok", "text/plain")
+        if path.startswith("/audio/chapter/"):
+            chapter_text = path.rsplit("/", 1)[-1]
+            if not chapter_text.isascii() or not chapter_text.isdecimal():
+                return self.send_data(b"Invalid chapter", "text/plain", 404)
+            chapter = int(chapter_text)
+            if chapter not in range(1,12):
+                return self.send_data(b"Invalid chapter", "text/plain", 404)
+            base = jobs.base(chapter)
+            quality = sorted([p for p in (base/"quality_v5").glob("round_*")
+                              if (p/"REVIEW_STATUS.json").exists()])
+            if quality:
+                result = jobs.read(quality[-1]/"REVIEW_STATUS.json")
+                file = Path(result.get("audio_path", ""))
+                if file.parent != quality[-1] or file.suffix.lower()!=".mp3":
+                    return self.send_data(b"Unsafe audio path", "text/plain", 404)
+                return self.audio(file)
+            if chapter==1:
+                return self.audio(AUDIOS["full"])
+            return self.audio(base/f"CHUONG_{chapter:02d}_OWNER_APPROVED_V5.REVIEW.mp3")
         if path.startswith("/audio/"):
             key = path.split("/")[-1]
             if key not in AUDIOS:
@@ -246,7 +271,34 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.allow_local_host():
             return self.send_data(b"Local host only", "text/plain", 403)
-        self.send_data(b"Read-only: no action endpoint", "text/plain", 405)
+        if urlsplit(self.path).path != "/api/command":
+            return self.send_data(b"Unknown command endpoint", "text/plain", 404)
+        origin = self.headers.get("Origin", "")
+        if origin not in ("http://127.0.0.1:"+str(PORT), "http://localhost:"+str(PORT)):
+            return self.send_data(b"Origin not allowed", "text/plain", 403)
+        if self.headers.get("X-Saydi-Csrf") != CSRF_TOKEN:
+            return self.send_data(b"CSRF token missing", "text/plain", 403)
+        if self.headers.get("Content-Type", "").split(";")[0].strip()!="application/json":
+            return self.send_data(b"JSON required", "text/plain", 415)
+        try:
+            length=int(self.headers.get("Content-Length","0"))
+        except ValueError:
+            length=0
+        if length<2 or length>1024:
+            return self.send_data(b"Invalid request size", "text/plain", 413)
+        try:
+            payload=json.loads(self.rfile.read(length).decode("utf-8"))
+            if not isinstance(payload,dict) or set(payload)!={"action","chapter"}:
+                raise ValueError("Invalid action payload")
+            result=jobs.submit(payload["action"],payload["chapter"])
+            body=json.dumps(result,ensure_ascii=False).encode("utf-8")
+            return self.send_data(body,"application/json; charset=utf-8",202)
+        except (ValueError,TypeError) as exc:
+            return self.send_data(json.dumps({"error":str(exc)}).encode("utf-8"),
+                                  "application/json",400)
+        except RuntimeError as exc:
+            return self.send_data(json.dumps({"error":str(exc)}).encode("utf-8"),
+                                  "application/json",409)
 
 def main():
     server = ThreadingHTTPServer((HOST, PORT), Handler)
