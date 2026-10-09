@@ -24,7 +24,7 @@ Requirements: Windows, `C:\MAGASIN_MCP\.venv\Scripts\python.exe` with `psutil`, 
 2. Run `INSTALL_MEDIA_CONTROL.ps1` in that directory. It verifies dependencies, sets an **HKCU-at-logon** start entry, creates the desktop shortcut and health-checks the localhost server. Use `-Open` to also open the dashboard.
 3. Alternatively run `START_MEDIA_CONTROL.ps1` manually, or add `-StartOnly` to avoid opening a browser.
 
-Actual field installation of the dashboard and shortcut on H4A16IL was confirmed, and the local service returned HTTP 200. This portable `INSTALL_MEDIA_CONTROL.ps1` is included for repeatability but **was not fully rerun after packaging** because a remote execution safety gate blocked that installer invocation; validate it before generalizing to other machines.
+Actual field installation of the dashboard and shortcut on H4A16IL was confirmed, and the local service returned HTTP 200. The **updated v0.2 installer was rerun locally on DESKTOP-H4A16IL** on 2026-10-09 and returned `SAYDI_MEDIA_CONTROL_INSTALL=PASS`, with localhost health check, Desktop shortcut and current-user autostart confirmed. Clean-machine provisioning beyond this host is still unverified.
 
 ## Local tests
 
