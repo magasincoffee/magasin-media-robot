@@ -72,3 +72,29 @@ Observed field evidence: manifest for 640 V5 segments generated and token/source
 
 Do not mark any V6 milestone DONE due solely to installing the V5 guard; the authoritative SAYDI SOT task sequence remains unchanged.
 
+
+## Local operator commands (Media Control v0.2, 2026-10-09)
+
+The Control Center now includes a **chapter selector (1–11)**, **Resume / start chapter**, **Review flagged QC again**, **Improve voice quality (bounded)**, **Next chapter**, and a review MP3 player for the selected chapter.
+
+The page uses only a loopback HTTP API (`127.0.0.1:8776`), with origin / Host / CSRF enforcement. POST accepts only an exact allowlisted `{action,chapter}` object, without shell commands, file paths or user-supplied scripts. Each costly operation needs an explicit operator confirmation in the UI.
+
+Implementation:
+- `control_commands.py`: a single durable job with ID, state and selected chapter; rejects concurrent requests, checks 2.3 GB free RAM, and launches a separate process (never blocking the web server).
+- `RUN_CONTROL_JOBS.ps1`: 3-minute Windows Task Scheduler checkpoint/resume guardian, `IgnoreNew` instance settings and Windows mutex to prevent duplicate jobs.
+- `chapter_v5_job.py`: chapter 2–11 wrapper for the existing V5 source+reference verified renderer and 40-segment QC checkpoints. It is not a new voice model. The existing Chapter 2 handler is preserved.
+- `saydi_review_qc.py`: batch rechecks only ASR-flagged WAVs, validating hashes and retaining the original audio. This does **not** fix sound by itself.
+- `saydi_quality_improve.py`: bounded batch of up to 8 repair candidates for a selected chapter, <=2 attempts per flagged segment, CPU affinity 2/4, never TTS and Whisper simultaneously. Retains baseline WAVs/QC; writes a new REVIEW MP3 and remaining ASR exceptions; never automatically marks FINAL.
+- `test_control_commands.py`: synthetic chapter queue + concurrent request and localhost/CSRF checks.
+
+Field verification:
+- Live Control/JSON HTTP 200, 11 chapters recognized; Chapter 2 640/640 QC with 201 ASR REVIEW; Chapter 3 manuscript/preparation smoke produced a **285-segment V5 manifest** without loading heavy models, **0 audio rendered**.
+- Real API selected Chapter 2 then restored Chapter 1 with no render/QC job created. Selected Chapter 2 MP3 returned HTTP 206 Range; missing Chapter 3 audio returned 404.
+- 4/4 synthetic tests passed for the original Control and new command handling.
+- Installed `SAYDI Control Job Guardian` with task scheduler `IgnoreNew`, 3-minute retry, initial no-job tick returned 0.
+- The executable action worker code has passed Python syntax compilation. **Do not infer voice-quality integration tests passed:** no expensive rerender, full QC recheck or automatic repair run was launched merely to test these buttons. Those require live field QA and Owner sample listening.
+- An explicit click on `Tiếp tục / bắt đầu chương` is required before beginning Chapter 3 or any not-yet-started chapter. Merely preparing a manifest does not enqueue or begin work.
+- This is a subordinate practical Control upgrade; authoritative `SAYDI-002` task precedence, private local audio/manuscript and Owner FINAL gate remain unchanged.
+
+Local shortcut: `C:\Users\admin\Desktop\SAYDI MEDIA CONTROL.lnk`; dashboard: `http://127.0.0.1:8776/` on H4A16IL. Do not expose the raw control port to the Internet.
+
