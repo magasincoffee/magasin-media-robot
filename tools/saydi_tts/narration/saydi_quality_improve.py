@@ -87,11 +87,21 @@ def main():
     selected=job/"candidates"
     selected.mkdir(exist_ok=True)
     status("RENDERING_CANDIDATES",selected=choices,completed=0,total=len(choices))
-    from vieneu import Vieneu
     import soundfile as sf
-    tts=Vieneu(backend="onnx",precision="fp32")
-    tts.add_voice(v5.VOICE,str(v5.REF),denoise=False,save=False,
-                  description="Owner-approved V5 native audio; no atempo",gender="male")
+    def valid_cached(idx):
+        item=item_map[idx]
+        key=hashlib.sha256((item["tts_text_sha256"]+"|V5_AUTOREPAIR_067").encode()).hexdigest()
+        wav=selected/f"{idx:06d}.wav"
+        marker=selected/f"{idx:06d}.key"
+        return (wav.exists() and wav.stat().st_size>1024 and marker.exists()
+                and marker.read_text().strip()==key)
+    missing=[idx for idx in choices if not valid_cached(idx)]
+    tts=None
+    if missing:
+        from vieneu import Vieneu
+        tts=Vieneu(backend="onnx",precision="fp32")
+        tts.add_voice(v5.VOICE,str(v5.REF),denoise=False,save=False,
+                      description="Owner-approved V5 native audio; no atempo",gender="male")
     try:
         for j,idx in enumerate(choices):
             item=item_map[idx]
@@ -112,9 +122,10 @@ def main():
                 token.write_text(key+"\n",encoding="utf-8")
             status("RENDERING_CANDIDATES",selected=choices,completed=j+1,total=len(choices))
     finally:
-        try:tts.close()
-        except Exception:pass
-        del tts
+        if tts is not None:
+            try:tts.close()
+            except Exception:pass
+            del tts
         gc.collect()
     if ram()<2.3:
         status("PAUSED_RESOURCE",reason="RAM_BEFORE_ASR",selected=choices,completed=len(choices),
@@ -122,12 +133,35 @@ def main():
         return 0
     report=job/"candidate_qc.json"
     status("QC_TARGETED",selected=choices,completed=len(choices),total=len(choices))
-    with (job/"qc_console.log").open("w",encoding="utf-8") as out:
-        rc=subprocess.run([str(QC_PY),str(QC),"--manifest",str(manifestfile),
-             "--chunk-dir",str(selected),"--report",str(report),
-             "--indices",",".join(str(i) for i in choices)],stdout=out,stderr=subprocess.STDOUT)
-    if rc.returncode:raise RuntimeError(f"QC_FAILED_{rc.returncode}")
-    checked=read(report)["rows"]
+    cached=None
+    if report.exists():
+        try:
+            previous=read(report)["rows"]
+            if ({int(x["index"]) for x in previous}==set(choices)
+                and all(sha(selected/f'{int(x["index"]):06d}.wav')==x["audio_sha256"] for x in previous)):
+                cached=previous
+        except (KeyError,ValueError,OSError):
+            cached=None
+    if cached is None:
+        with (job/"qc_console.log").open("w",encoding="utf-8") as out:
+            process=subprocess.Popen([str(QC_PY),str(QC),"--manifest",str(manifestfile),
+                 "--chunk-dir",str(selected),"--report",str(report),
+                 "--indices",",".join(str(i) for i in choices)],stdout=out,stderr=subprocess.STDOUT)
+            low_ram_ticks=0
+            while process.poll() is None:
+                time.sleep(3)
+                low_ram_ticks=(low_ram_ticks+1) if ram()<.30 else 0
+                if low_ram_ticks>=3:
+                    process.terminate()
+                    try:process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:process.kill();process.wait()
+                    status("PAUSED_RESOURCE",reason="ASR_RAM_CRITICAL",selected=choices)
+                    return 0
+        if process.returncode:
+            raise RuntimeError(f"QC_FAILED_{process.returncode}")
+        checked=read(report)["rows"]
+    else:
+        checked=cached
     for row in checked:
         if sha(selected/f'{int(row["index"]):06d}.wav')!=row["audio_sha256"]:
             raise RuntimeError("CANDIDATE_QC_HASH_MISMATCH")
