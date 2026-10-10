@@ -20,8 +20,15 @@ def free_gb():
 if free_gb()<1.5:raise RuntimeError("RAM_ADMISSION_BELOW_1P5_GB")
 k=ctypes.windll.kernel32
 k.GetCurrentProcess.restype=ctypes.c_void_p
-k.SetProcessAffinityMask(k.GetCurrentProcess(),1)
-k.SetPriorityClass(k.GetCurrentProcess(),0x4000)
+k.SetProcessAffinityMask.argtypes=(ctypes.c_void_p,ctypes.c_size_t)
+k.SetProcessAffinityMask.restype=ctypes.c_int
+k.SetPriorityClass.argtypes=(ctypes.c_void_p,ctypes.c_uint)
+k.SetPriorityClass.restype=ctypes.c_int
+h=k.GetCurrentProcess()
+if not k.SetProcessAffinityMask(h,1):
+    raise RuntimeError("ONE_CORE_AFFINITY_FAILED")
+if not k.SetPriorityClass(h,0x4000):
+    raise RuntimeError("REDUCED_PRIORITY_FAILED")
 m=json.loads((root/"manifest.json").read_text(encoding="utf8"))
 item=m["segments"][146]
 s=importlib.util.spec_from_file_location("owner_v5",r"C:\SAYDI\narration_director_v1\render_owner_approved_v5.py")
