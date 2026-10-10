@@ -36,9 +36,9 @@ class V5EditorialMultiroundTests(unittest.TestCase):
             unit(2, "Tôi nghe thấy tiếng mưa.", original="Tôi nghe thấy tiếng mưa."),
         ]}
 
-    def run_check(self, manifest=None, reviewers=None):
+    def run_check(self, manifest=None, reviewers=None, legacy=None):
         return inspect(self.manifest if manifest is None else manifest,
-                       MANIFEST_SHA, reviewers)
+                       MANIFEST_SHA, reviewers, legacy)
 
     def test_clean_source_still_requires_independent_review(self):
         r = self.run_check()
@@ -124,6 +124,38 @@ class V5EditorialMultiroundTests(unittest.TestCase):
         self.assertNotIn("INDEPENDENT_REVIEW_PENDING", codes(r))
         self.assertEqual(r["status"], "REVIEW")
         self.assertFalse(r["owner_final"])
+
+    def test_legacy_editorial_audit_reports_unresolved_paraphrase_risk(self):
+        m = copy.deepcopy(self.manifest)
+        m["source_sha256"] = "1" * 64
+        m["reference_sha256"] = "2" * 64
+        legacy = {"source_sha256": "1" * 64, "reference_sha256": "2" * 64,
+                  "segments": 3, "word_integrity": "PASS",
+                  "legacy_paraphrase_suspects": 60, "v5_spoken_text_diff": False,
+                  "canonical_source_utf8": True}
+        report = self.run_check(m, legacy=legacy)
+        self.assertIn("LEGACY_PARAPHRASE_REVIEW", codes(report))
+        self.assertEqual(report["legacy_editorial_audit"]["legacy_paraphrase_suspects"], 60)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertFalse(report["owner_final"])
+
+    def test_legacy_editorial_audit_must_match_source_and_voice(self):
+        m = copy.deepcopy(self.manifest)
+        m["source_sha256"] = "1" * 64
+        m["reference_sha256"] = "2" * 64
+        legacy = {"source_sha256": "3" * 64, "reference_sha256": "2" * 64,
+                  "segments": 3, "word_integrity": "PASS",
+                  "legacy_paraphrase_suspects": 0, "v5_spoken_text_diff": False,
+                  "canonical_source_utf8": True}
+        report = self.run_check(m, legacy=legacy)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn("LEGACY_AUDIT_BINDING_MISMATCH", codes(report))
+
+    def test_editing_suggestion_cannot_silently_replace_spoken_tokens(self):
+        m = copy.deepcopy(self.manifest)
+        m["segments"][1]["editorial_text"] = "Người phu nữ bước tới."
+        report = self.run_check(m)
+        self.assertIn("EDITORIAL_SPOKEN_TOKEN_DIFF", codes(report))
 
     def test_duplicate_reviewers_rejected(self):
         reviewers = {"manifest_sha256": MANIFEST_SHA, "validators": [
