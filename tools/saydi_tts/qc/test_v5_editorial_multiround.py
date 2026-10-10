@@ -113,6 +113,8 @@ class V5EditorialMultiroundTests(unittest.TestCase):
         r = self.run_check(m)
         self.assertEqual(r["source_text_verified_segments"], 0)
         self.assertIn("SOURCE_PROVENANCE_UNVERIFIED", codes(r))
+        self.assertEqual(r["missing_source_provenance_count"], 1)
+        self.assertEqual(len([f for f in r["findings"] if f["code"] == "SOURCE_PROVENANCE_UNVERIFIED"]), 1)
 
     def test_distinct_external_review_receipts_do_not_certify_final(self):
         reviewers = {"manifest_sha256": MANIFEST_SHA, "validators": [
