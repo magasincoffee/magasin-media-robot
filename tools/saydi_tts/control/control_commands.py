@@ -132,8 +132,10 @@ def known_heavy():
             try:
                 if (p.info.get("name") or "").lower() not in ("python.exe","pythonw.exe"):
                     continue
-                name=" ".join(p.info.get("cmdline") or []).lower()
-                if any(k in name for k in kinds):
+                argv=p.info.get("cmdline") or []
+                script=next((Path(arg.strip('"')).name.lower() for arg in argv[1:]
+                             if arg.strip('"').lower().endswith(".py")), "")
+                if script in kinds:
                     found.append(int(p.pid))
             except (psutil.AccessDenied,psutil.NoSuchProcess):continue
         return found
