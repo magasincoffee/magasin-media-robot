@@ -80,6 +80,18 @@ class GateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"REVIEW_DIFF_NOT_EQUAL_TO_RECEIPT"):
             self.call(repair_gate=gate)
 
+    def test_stale_approved_sample_cannot_be_reused(self):
+        approval=self.dir/"approved.mp3"
+        approval.write_bytes(b"APPROVED_SAMPLE")
+        gate=self.dir/"gate_sample.json"
+        save(gate,{"source_mp3_sha256":sha(self.source),
+                   "output_sha256":sha(self.review),
+                   "changed_spoken_segments":[],"changed_silence_after_segments":[],
+                   "approved_sample_mp3":str(approval),
+                   "approved_sample_sha256":"f"*64})
+        with self.assertRaisesRegex(ValueError,"STALE_APPROVED_SAMPLE_HASH"):
+            self.call(repair_gate=gate)
+
     def test_owner_approval_must_be_tied_to_exact_review_mp3(self):
         approval=self.dir/"owner.json"
         save(approval,{"chapter_final_approved":True,"source_mp3_sha256":"0"*64})
