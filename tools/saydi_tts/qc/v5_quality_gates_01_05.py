@@ -129,6 +129,9 @@ def audit(manifest, baseline_qc, original_concat, review_concat,
     if gate:
         if gate["source_mp3_sha256"] != source_hash or gate["output_sha256"] != new_hash:
             raise ValueError("REVIEW_RECEIPT_SHA_MISMATCH")
+        if gate.get("approved_sample_mp3"):
+            if sha(gate["approved_sample_mp3"]) != gate.get("approved_sample_sha256"):
+                raise ValueError("STALE_APPROVED_SAMPLE_HASH")
     modified_speech = [i for i in range(count) if original[2*i].resolve() != changed[2*i].resolve()]
     modified_gaps = [i for i in range(count) if original[2*i+1].resolve() != changed[2*i+1].resolve()]
     if gate:
