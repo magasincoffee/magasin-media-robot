@@ -20,7 +20,7 @@ class SingleCorePolicyTests(unittest.TestCase):
     def test_controller_python_path_valid(self):
         self.assertTrue(control_commands.CONTROL_PY.is_file())
         self.assertEqual(control_commands.OWNER_CPU_THREADS,1)
-        self.assertEqual(control_commands.OWNER_MIN_GB,2.3)
+        self.assertEqual(control_commands.OWNER_MIN_GB,1.5)
 
     def test_all_heavy_scripts_one_cpu(self):
         specs=[
