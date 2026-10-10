@@ -44,7 +44,7 @@ def append(entries, group, message, instant, kind, seq):
                     "kind":kind,"seq":seq})
 
 def summarize(job, job_path, guardian_log, controller_log, work_log,
-              chapter, available_gb, active_processes, now=None):
+              chapter, available_gb, active_processes, now=None, min_start_ram_gb=1.5):
     now=now or datetime.now().astimezone()
     events=[]
     serial=0
@@ -90,7 +90,7 @@ def summarize(job, job_path, guardian_log, controller_log, work_log,
                   last_job_end,"work")
         if current_check:
             reason = {
-                "QUEUED_RESOURCE":f"RAM còn {job.get('last_check_free_ram_gb', job.get('free_ram_gb',available_gb))} GB, chưa đủ 2,3 GB để tải mô hình. Giữ nguyên job.",
+                "QUEUED_RESOURCE":f"RAM còn {job.get('last_check_free_ram_gb', job.get('free_ram_gb',available_gb))} GB, chưa đủ {min_start_ram_gb:.1f} GB để tải mô hình. Giữ nguyên job.",
                 "WAIT_OTHER_WORKER":"Có tác vụ SAYDI nặng khác; đang chờ, không chạy chồng.",
                 "QUEUED":"Đã xếp hàng, chưa bắt đầu xử lý.",
                 "RUNNING":"Bộ điều phối đang giám sát tiến trình đã giao.",
@@ -144,7 +144,7 @@ def summarize(job, job_path, guardian_log, controller_log, work_log,
         category="waiting"
         headline=f"CHỜ RAM — {label} chương {chapter_id}"
         explanation=(f"Lệnh chưa được thực thi. RAM hiện {available_gb:.2f} GB, "
-                     f"ngưỡng tối thiểu 2,3 GB; robot tự kiểm tra lại theo lịch.")
+                     f"ngưỡng tối thiểu {min_start_ram_gb:.1f} GB; robot tự kiểm tra lại theo lịch.")
     elif job_state=="WAIT_OTHER_WORKER":
         category="waiting"
         headline="CHỜ TÁC VỤ KHÁC KẾT THÚC"
