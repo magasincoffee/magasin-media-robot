@@ -928,3 +928,22 @@ Continue using the existing `SAYDI-ND` and `SAYDI-QC` subtracks; do not create a
 ### Latest local observation (not repo field acceptance)
 
 On 2026-10-08, Chapter 1 V5 was rendered in 347 WAV segments. Initial QC flagged 120 basic REVIEW; a locally generated V5 R2 candidate package reduced basic ASR REVIEW to 115 after selecting 12 improved variants out of 35 targeted attempts. This does **not** establish audible Owner approval; Chapter 1 remains `REVIEW`, and V6 remains unimplemented. Intermediate WAVs, manuscript and listening files stay on the local host.
+
+
+## Scoped Owner QC pilot — Chapter 2 V5 QC-01 / QC-02 (2026-10-10, proposal only)
+
+**Authority / priority:** This is a read-only and opt-in *quality experiment* on the already produced Chapter 2 REVIEW MP3. It does **not** change the main authoritative NEXT task (**SAYDI-002**), the 2026-10-09 unified Control Center migration and Owner STOP/START policy, the deployed VieNeu engine, voice reference, task protocols, Windows scheduler, checkpoint source, local data models or active Chapter 3 production.
+
+Owner QC priorities: first validate natural contextual pauses (QC-01), then suspected join click/pop events (QC-02) before attempting emotional direction, pronunciation rerender or a fix-verification loop (QC-03–05). Keep existing normal behavior default; no broad fades, atempo, silent text rewriting, or automatic FINAL.
+
+**Baseline evidence** on the host:
+- Chapter 2 original REVIEW MP3 duration 3991.700s, SHA-256 `ed17de91ad34570ca2f79695c139fb79f5f0ac33af7faf7604e50095c8a6b831`, 640 source segments, 439 baseline ASR PASS and 201 baseline REVIEW (not accepted as real human listening).
+- Existing `pause_after()` already distinguishes comma/sentence/question/paragraph/heading, and `clean_clip()` already uses 12ms edge fades. Direct join reconstruction shows 489 of 640 inserted gaps are 610ms; other gaps are 180/215/670/700/900/1020ms. Don't assume all audible 0.7–0.8s pauses are abnormal.
+- Measurements at suspected 00:16:33 / 00:23:34 / 00:36:19 / 00:56:29 / 01:01:12 were gathered from unchanged audio, but do not coincide exactly with reconstructed join points. These are still listening **REVIEW**, not confirmed faults.
+
+**Isolated implementation:** Branch `feat/saydi-v5-ch02-qc01-qc02-audit` provides a *read-only baseline analyzer*, and an opt-in FFmpeg A/B sample generator that varies silence by at most ±80ms on a candidate full-stop boundary, preserving actual spoken WAVs, native voice speed and existing loudnorm. It also produces five unchanged 8s listen excerpts. Original MP3 hash was reverified unchanged; two sample pairs differed by exactly +80ms in total duration. Three scoped offline unit tests passed. No TTS or ASR model was loaded for these tests; current Chapter 3 renderer was not interrupted.
+
+**Owner gate:** Before any production change to `pause_after`, `clean_clip`, `assemble` or QC acceptance, Owner must hear paired clips and adjudicate the five suspected join sounds. Only confirmed issues may receive *segment-level* targeted repair, protected by technical comparison, text-fidelity verification, reversibility, bounded attempts and post-fix listening. QC-03/04/05 remain pending. Full end-to-end regression and Owner FINAL have not passed.
+
+**Report and local-only preview paths:** `tools/saydi_tts/qc/V5_CH02_QC01_QC02_EVIDENCE_20261010.md` and `D:\SAYDI\QC_STAGING\CH02_V5_QC01_QC02_20261010\listening_previews`. Private manuscript, MP3 and WAV remain on the trusted local host; never commit them.
+
