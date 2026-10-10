@@ -134,9 +134,13 @@ The Owner has requested **one logical CPU worker with automatic continuation** s
 
 ### Tested
 
-On H4A16IL, 10/10 local tests PASS (three single-core policy including three real Windows `GetProcessAffinityMask == 0x1` checks; three activity, two command/auth and two dashboard). Python syntax tests passed; the locally relaunched Control returned HTTP 200 for health and status and confirmed `1` logical CPU thread, one active heavy job maximum, and automatic resume enabled. The Windows scheduler reports `PT1M` and `IgnoreNew`, and the v0.2 local installer returned PASS.
+On H4A16IL, 11/11 local tests PASS (three single-core policy including three real Windows `GetProcessAffinityMask == 0x1` checks; three activity, two command/auth and two dashboard). Python syntax tests passed; the locally relaunched Control returned HTTP 200 for health and status and confirmed `1` logical CPU thread, one active heavy job maximum, and automatic resume enabled. The Windows scheduler reports `PT1M` and `IgnoreNew`, and the v0.2 local installer returned PASS.
 
 Chapter 3's V5 job has been queued but encountered resource and conflicting legacy watcher gates during initial field checks; after retiring the old watcher it must still pass live render/QC and sample-listening QA. Chapter 2 has a rendered REVIEW MP3 and completed 640/640 baseline QC with unresolved flags; no chapter is made FINAL by this change.
 
 **Limitations:** This policy lowers peak CPU utilization, often at the expense of longer wall-clock render time. One CPU thread cannot reduce the fixed resident size of VieNeu/Whisper models enough to promise uninterrupted processing when Windows, Chrome, Zalo and other apps leave insufficient RAM. Retain the RAM safety gates, checkpoint/retry and explicit Owner listening approval. The current Windows guardian is configured as an **interactive-user task**, not a verified service that operates across user logoff or power outages. Do not label SAYDI-002 / V6 DONE on the basis of operational tuning alone.
 
+
+
+### Runtime observation correction (2026-10-10)
+The Control worker detector previously looked for an audio script name anywhere in a `powershell.exe`/Python command line. A diagnostic shell that **mentioned** `qc_local_segments.py` could therefore falsely light up `ACTIVE`. Both the dashboard and Control command coordinator now check the actual invoked Python `.py` script basename only. A new regression test starts a lightweight `python -c` probe mentioning worker names and verifies this is **not** treated as an active heavy job. The live Control endpoint subsequently reported `active=false` and the queued Chapter 3 job accurately remained `QUEUED_RESOURCE`; no production process was running at that check. Current physical RAM remained below 2.3 GiB preflight. Never infer continuous compute from a responsive watchdog alone.
