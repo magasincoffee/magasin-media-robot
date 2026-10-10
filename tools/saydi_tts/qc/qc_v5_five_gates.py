@@ -37,7 +37,7 @@ def pcm_edge(p):
             "end":b[-1]/32768,"head_rms":rms(a),"tail_rms":rms(b)}
 def norm(t):
     return re.sub(r"\s+"," ",unicodedata.normalize("NFC",str(t)).casefold()).strip()
-def audit(manifest,qc,concat,review=None):
+def audit(manifest,qc,concat,review=None,owner=None,candidate_qc=None,candidate_wav=None,review_concat=None):
     segments=manifest.get("segments");rows=qc.get("rows")
     if not isinstance(segments,list) or not segments or not isinstance(rows,list):
         raise ValueError("MISSING_ROWS")
@@ -46,6 +46,19 @@ def audit(manifest,qc,concat,review=None):
     mapping={int(x["index"]):x for x in rows}
     if len(mapping)!=len(rows) or set(mapping)!=set(ids):
         raise ValueError("WHISPER_QC_INCOMPLETE")
+    # Replace ASR evidence only when exactly one candidate is SHA-pinned.
+    candidate_info={}
+    if candidate_qc is not None:
+        extra=candidate_qc.get("rows",[])
+        if not candidate_wav or len(extra)!=1:raise ValueError("CANDIDATE_SCOPE_INVALID")
+        c=extra[0];index=int(c["index"])
+        if index not in mapping or sha(candidate_wav)!=c.get("audio_sha256"):
+            raise ValueError("CANDIDATE_ASR_HASH_MISMATCH")
+        if norm(c.get("expected",""))!=norm(segments[index].get("spoken_text","")):
+            raise ValueError("CANDIDATE_EXPECTED_TEXT_MISMATCH")
+        mapping[index]=c
+        candidate_info={"index":index,"asr_status":c.get("status"),
+                        "candidate_sha256":sha(candidate_wav)}
     files=parse_list(concat)
     if len(files)!=2*len(ids):raise ValueError("AUDIO_SEGMENT_COVERAGE_MISMATCH")
     flags=[];counts=Counter();total=0.;last=None
@@ -85,6 +98,17 @@ def audit(manifest,qc,concat,review=None):
     if major>.70:
         issue("QC01_PAUSE","PAUSE_DISTRIBUTION_DOMINATED",None,
               {"dominant_gap_ms":max(counts,key=counts.get),"share":round(major,4)})
+    # Owner listening evidence is never inferred from acoustic endpoint metrics.
+    if owner is not None:
+        if int(owner.get("chapter",-1))!=int(manifest.get("chapter_number",-1)):
+            raise ValueError("OWNER_FEEDBACK_WRONG_CHAPTER")
+        if owner.get("qc02_issue")=="AUDIBLE_TWO_VOICE_TONES_OWNER_CONFIRMED":
+            idx=int(owner.get("qc02_join_before_segment",-1))
+            if idx not in ids or int(owner.get("qc02_join_after_segment",-2))!=idx-1:
+                raise ValueError("OWNER_JOIN_INDEX_INVALID")
+            issue("QC02_JOIN","OWNER_CONFIRMED_TONE_DISCONTINUITY_IN_ORIGINAL",idx,
+                  {"source_time_s":owner.get("qc02_source_timestamp_seconds"),
+                   "replacement_status":"OWNER_APPROVED_5MIN_SAMPLE_ONLY" if review and review.get("qc02_owner_sample_accepted") else "PENDING_REPAIR"})
     receipt={}
     if review:
         if int(review.get("chapter",-1))!=int(manifest.get("chapter_number",-1)):
@@ -98,7 +122,20 @@ def audit(manifest,qc,concat,review=None):
         changed=review.get("changed_spoken_segments",[])
         if len(changed)!=len(set(changed)) or any(i not in ids for i in changed):
             raise ValueError("REPAIR_INDEX_INVALID")
+        if review_concat:
+            revised=parse_list(review_concat)
+            if len(revised)!=len(files):
+                raise ValueError("REVIEW_AUDIO_COUNT_MISMATCH")
+            canonical=lambda p:str(p.resolve()).casefold()
+            speech=[i for i in ids if canonical(files[2*i])!=canonical(revised[2*i])]
+            silence=[i for i in ids if canonical(files[2*i+1])!=canonical(revised[2*i+1])]
+            if speech!=changed or silence!=review.get("changed_silence_after_segments",[]):
+                raise ValueError("REVIEW_DIFF_RECEIPT_MISMATCH")
+            allowed=review.get("B_rhythm_applied_only_to_window_segments",[])
+            if len(allowed)==2 and not all(allowed[0]<=i<=allowed[1] for i in silence):
+                raise ValueError("REVIEW_SILENCE_OUTSIDE_APPROVED_WINDOW")
         receipt={"source_hash_ok":True,"output_hash_ok":True,
+                 "review_concat_diff_verified":bool(review_concat),
                  "changed_spoken_segments":changed,
                  "owner_sample_approved":bool(review.get("qc02_owner_sample_accepted",False)),
                  "whole_chapter_approved":bool(review.get("whole_chapter_owner_final",False)),
@@ -115,18 +152,27 @@ def audit(manifest,qc,concat,review=None):
             "segments_checked":len(ids),"approx_duration_s":round(total,3),
             "gap_distribution_ms":dict(sorted(counts.items())),
             "qc":stages,"findings_count":len(flags),"findings":flags,
-            "repair_receipt":receipt,"status":"REVIEW",
+            "repair_receipt":receipt,"candidate_asr_replacement":candidate_info,
+            "owner_evidence_supplied":owner is not None,"status":"REVIEW",
             "final_eligible":False,"production_changed":False,
             "note":"ASR PASS cannot certify tone/emotion; require Owner listening, verified source and final regression."}
 def main():
     p=argparse.ArgumentParser()
     for n in ("manifest","qc","concat","report"):p.add_argument("--"+n,type=Path,required=True)
     p.add_argument("--review",type=Path)
+    p.add_argument("--owner-feedback",type=Path)
+    p.add_argument("--candidate-qc",type=Path)
+    p.add_argument("--candidate-wav",type=Path)
+    p.add_argument("--review-concat",type=Path)
     p.add_argument("--enable-experimental-qc",action="store_true")
     a=p.parse_args()
     if not a.enable_experimental_qc:
         print("QC01_TO_QC05_DISABLED_DEFAULT");return 0
-    result=audit(read(a.manifest),read(a.qc),a.concat,read(a.review) if a.review else None)
+    result=audit(read(a.manifest),read(a.qc),a.concat,
+                 read(a.review) if a.review else None,
+                 read(a.owner_feedback) if a.owner_feedback else None,
+                 read(a.candidate_qc) if a.candidate_qc else None,
+                 a.candidate_wav,a.review_concat)
     a.report.parent.mkdir(parents=True,exist_ok=True)
     tmp=a.report.with_suffix(".pending")
     tmp.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf8")
