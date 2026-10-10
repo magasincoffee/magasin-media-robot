@@ -144,3 +144,17 @@ Chapter 3's V5 job has been queued but encountered resource and conflicting lega
 
 ### Runtime observation correction (2026-10-10)
 The Control worker detector previously looked for an audio script name anywhere in a `powershell.exe`/Python command line. A diagnostic shell that **mentioned** `qc_local_segments.py` could therefore falsely light up `ACTIVE`. Both the dashboard and Control command coordinator now check the actual invoked Python `.py` script basename only. A new regression test starts a lightweight `python -c` probe mentioning worker names and verifies this is **not** treated as an active heavy job. The live Control endpoint subsequently reported `active=false` and the queued Chapter 3 job accurately remained `QUEUED_RESOURCE`; no production process was running at that check. Current physical RAM remained below 2.3 GiB preflight. Never infer continuous compute from a responsive watchdog alone.
+
+
+### Chapter 3 actual recovery and source/telemetry corrections (2026-10-10, 15:26 local)
+
+Further field investigation discovered a second collision: the V5 chapter wrapper's heavy-process scanner could count its own Windows venv `python.exe` **parent launcher** as a competing SAYDI job. `chapter_v5_job.py` now inventories process PID, parent PID and command line via read-only CIM, excludes its own ancestors, excludes `python -c` probes, but still blocks genuinely unrelated active VieNeu/Whisper workers. The scanner fails closed if inventory fails. It is covered by synthetic tests including an actual external QC PID.
+
+The obsolete `SAYDI NATURAL V4 Watchdog` was actually invoking the old completed **V5 Chapter 1 R2** resume script every 5 minutes; after verifying R2 phase `REVIEW_READY`, this repeated no-op watchdog was disabled (not removed) to make the **single V5 Control Job Guardian** the only active SAYDI production scheduler. Rollback: `D:\SAYDI\backups\SAYDI_V4_watchdog_before_retirement_20261010.xml`. Both old CH2 and V4 watchers are safely disabled; the original `SAYDI Full Book V4 Resume` was already Disabled and remained so.
+
+Fix for Chapter 3+ naming: the shared V5 pipeline previously hardcoded **Chapter 2** filenames and log labels. The file now uses the dynamically selected chapter number in review MP3s, QC reports and operator logs. Stale `blocking_jobs`/old `reason` fields are cleared when a new checkpoint phase is written. Synthetic assembly only writes a fake test file in a temporary directory; it is **not** a real Chapter 3 MP3 or listening acceptance.
+
+**Verified genuine production:** Chapter 3 V5 created **2/285 new WAV segments** (log records 2026-10-10 15:24–15:25). The worker paused at the configured free-RAM floor and saved those clips; this is actual progress, not simply a scheduler pulse. The 8GB host remains memory-constrained, so Chapter 3 is NOT completed or QC-accepted.
+
+Local complete regression: **14/14 PASS** (three chapter/process/naming, four single-core policy, three activity, two HTTP/control and two auth/commands); Python compilation PASS. The main task remains scheduled each minute with `IgnoreNew` and one logical CPU affinity; do not weaken RAM gates to present a false continuous green state.
+
