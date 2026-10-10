@@ -58,7 +58,7 @@ def sha256(path: Path) -> str:
 
 def log(message: str):
     WORK.mkdir(parents=True, exist_ok=True)
-    s = f"[{now()}] [V5-CH02] {message}"
+    s = f"[{now()}] [V5-CH{CHAPTER:02d}] {message}"
     print(s, flush=True)
     with RUN_LOG.open("a", encoding="utf-8") as out:
         out.write(s + "\n")
@@ -86,6 +86,9 @@ def status(phase: str, **fields):
         old = json.loads(STATUS_PATH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         pass
+    # Do not carry obsolete blocking PID or RAM error into a newer phase.
+    for transient in ("reason", "blocking_jobs", "error", "current_batch", "free_ram_gb"):
+        old.pop(transient, None)
     data = {
         **old,
         "schema": "saydi-v5-chapter-job-1",
@@ -156,7 +159,7 @@ def prepare(v5):
     old = v5.load_legacy_segmenter()
     manifest, audit = v5.owner_manifest(old, CHAPTER, 0, reference_hash)
     if not manifest["segments"]:
-        raise RuntimeError("CHAPTER_02_SOURCE_EMPTY")
+        raise RuntimeError(f"CHAPTER_{CHAPTER:02d}_SOURCE_EMPTY")
     src = Path(manifest["source_path"])
     source = src.read_text(encoding="utf-8")
     if "\ufffd" in source:
@@ -170,7 +173,7 @@ def prepare(v5):
                 or len(previous["segments"]) != len(manifest["segments"])
                 or [s["tts_text_sha256"] for s in previous["segments"]] !=
                    [s["tts_text_sha256"] for s in manifest["segments"]]):
-            raise RuntimeError("V5_CHAPTER_02_INPUT_CHANGED_REFUSE_UNSAFE_RESUME")
+            raise RuntimeError(f"V5_CHAPTER_{CHAPTER:02d}_INPUT_CHANGED_REFUSE_UNSAFE_RESUME")
     else:
         atomic_json(mf_path, manifest)
         atomic_json(WORK / "editorial_audit.json", {
@@ -222,14 +225,14 @@ def render(manifest, v5, ref_hash):
             wave = CHUNKS / f"{idx:06d}.wav"
             tts.save(audio, str(temp))
             if sf.info(str(temp)).duration < .25:
-                raise RuntimeError(f"BAD_RENDER_CH02_SEGMENT_{idx}")
+                raise RuntimeError(f"BAD_RENDER_CH{CHAPTER:02d}_SEGMENT_{idx}")
             os.replace(temp, wave)
             (CHUNKS / f"{idx:06d}.sha256").write_text(item["tts_text_sha256"] + "\n", encoding="utf-8")
             done += 1
             if done == 1 or done % 5 == 0 or done == len(items):
                 status("RENDERING", rendered=done, total=len(items),
                        free_ram_gb=round(free_ram_gb(), 2))
-                log(f"Rendered {done}/{len(items)} V5 chapter 2 segments")
+                log(f"Rendered {done}/{len(items)} V5 chapter {CHAPTER} segments")
     finally:
         try:
             tts.close()
@@ -240,7 +243,7 @@ def render(manifest, v5, ref_hash):
     status("RENDER_COMPLETE", rendered=done, total=len(items), qc_checked=0)
 
 def assemble(manifest, v5, old):
-    expected = WORK / "CHUONG_02_OWNER_APPROVED_V5.REVIEW.mp3"
+    expected = WORK / f"CHUONG_{CHAPTER:02d}_OWNER_APPROVED_V5.REVIEW.mp3"
     if expected.exists() and expected.stat().st_size > 10240:
         return expected
     if free_ram_gb() < 0.9:
@@ -250,11 +253,11 @@ def assemble(manifest, v5, old):
     tmp = expected.with_name(expected.stem + ".pending.mp3")
     seconds = v5.assemble(manifest["segments"], CHUNKS, tmp, old)
     if seconds < 120:
-        raise RuntimeError("UNEXPECTED_SHORT_CHAPTER_02_AUDIO")
+        raise RuntimeError(f"UNEXPECTED_SHORT_CHAPTER_{CHAPTER:02d}_AUDIO")
     os.replace(tmp, expected)
     status("RENDER_COMPLETE", duration_sec=round(seconds, 2), chapter_audio=str(expected),
            chapter_audio_sha256=sha256(expected), rendered=len(manifest["segments"]))
-    log(f"Built V5 Chapter 2 review MP3; duration={seconds:.2f}s")
+    log(f"Built V5 Chapter {CHAPTER} review MP3; duration={seconds:.2f}s")
     return expected
 
 def qc(manifest):
@@ -330,16 +333,16 @@ def qc(manifest):
         all_rows.extend(checked_rows)
         status("QC_RUNNING", rendered=count, total=count, qc_checked=complete,
                total_qc=count, current_batch=f"{first}-{last}")
-        log(f"QC chapter 2 V5: {complete}/{count} checked")
+        log(f"QC chapter {CHAPTER} V5: {complete}/{count} checked")
     all_rows.sort(key=lambda x: x["index"])
     flagged = [int(x["index"]) for x in all_rows if x["status"] != "PASS"]
     strict = [int(x["index"]) for x in all_rows if x["status"] != "PASS" or x.get("asr_similarity", 0) < .985]
     atomic_json(WORK / "QC_AFTER_RENDER.json", {
-        "schema_version": "saydi-v5-ch02-qc-checkpointed",
+        "schema_version": f"saydi-v5-ch{CHAPTER:02d}-qc-checkpointed",
         "checked": len(all_rows), "flagged_indices": flagged, "strict_review_indices": strict,
         "pass": not flagged, "rows": all_rows, "human_listening_approved": False
     })
-    audio = WORK / "CHUONG_02_OWNER_APPROVED_V5.REVIEW.mp3"
+    audio = WORK / f"CHUONG_{CHAPTER:02d}_OWNER_APPROVED_V5.REVIEW.mp3"
     if audio.exists() and shutil.disk_usage("C:\\").free > 1024**3 + audio.stat().st_size:
         destination = Path(r"C:\Users\admin\Desktop") / audio.name
         shutil.copy2(audio, destination)
@@ -351,7 +354,7 @@ def qc(manifest):
     status("REVIEW_READY", rendered=count, total=count, qc_checked=count, total_qc=count,
            pass_count=count - len(flagged), review_count=len(flagged), strict_review_count=len(strict),
            chapter_audio=url, human_listening_approved=False, final=False)
-    log(f"CH02 V5 QC completed {count}/{count}; PASS={count-len(flagged)} REVIEW={len(flagged)}; not FINAL")
+    log(f"CH{CHAPTER:02d} V5 QC completed {count}/{count}; PASS={count-len(flagged)} REVIEW={len(flagged)}; not FINAL")
 
 def run(prepare_only: bool) -> int:
     WORK.mkdir(parents=True, exist_ok=True)
@@ -379,7 +382,7 @@ def run(prepare_only: bool) -> int:
         if prepare_only:
             status("QUEUED_RESOURCE", total=len(items), rendered=done, total_qc=len(items),
                    reason="PREPARED_ONLY", min_start_ram_gb=MIN_START_RAM_GB)
-            log(f"Prepared chapter 2 V5 (segments={len(items)}), no heavy models loaded.")
+            log(f"Prepared chapter {CHAPTER} V5 (segments={len(items)}), no heavy models loaded.")
             return 0
         if free_disk_gb() < MIN_DISK_GB:
             status("PAUSED_RESOURCE", reason="LOW_D_DRIVE_SPACE", free_disk_gb=round(free_disk_gb(), 2))
