@@ -142,7 +142,8 @@ def snapshot():
     job_log = WEB / ("job_" + str(job_now.get("id")) + ".log") if job_now.get("id") else None
     activity = activity_monitor.summarize(
         job_now, jobs.JOB, WEB / "job_guardian.log", jobs.LOG, job_log,
-        chapter_for_activity, round(vm.available / 1073741824, 2), active)
+        chapter_for_activity, round(vm.available / 1073741824, 2), active,
+        min_start_ram_gb=jobs.OWNER_MIN_GB)
     entries = activity["events"]
     basic_review = r2.get("basic_qc_review_remaining")
     if basic_review is None:
