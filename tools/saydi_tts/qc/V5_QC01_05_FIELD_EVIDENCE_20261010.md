@@ -69,3 +69,18 @@ These implementation components are **not yet a fully autonomous QC robot**. Pen
 5. Finish Owner hearing of the entire chapter and pass the authoritative SOT acceptance checks before considering production promotion / `FINAL`.
 
 **No interpretation of tests, ASR numbers, or a five-minute sample may turn this complete chapter into FINAL.**
+
+
+## Additional QC-03 acoustic continuity screen (2026-10-10, ~23:25 ICT)
+
+The opt-in QC03 module was extended to read **only a 0.5s middle PCM window** per V5 speech WAV (no Whisper, VieNeu, pitch-shifting or audio postprocessing). It computes RMS dBFS differences between neighboring sentences. A **>8 dB** differential is classified as a *potential energy continuity review*, not a verified speaker/timbre/emotion fault. Field run on the Chapter 3 B+R2 REVIEW found **2 candidate positions**:
+- join after index **29**, chapter ~**03:00.160**, measured ~**19.97 dB** difference;
+- join after index **149**, chapter ~**13:27.480**, measured ~**9.20 dB** difference.
+
+Two **unchanged audio stream excerpts**, not fixes, were created solely on the Windows host:
+`D:\SAYDI\QC_STAGING\CH03_V5_R2_B_WINDOW_REVIEW_20261010\qc01_05\QC03_ENERGY_REVIEW_03M00.mp3` (40.008s), and `QC03_ENERGY_REVIEW_13M27.mp3` (40.032s). `QC03_ENERGY_EXCEPTION_LISTENING.json` contains their source hash, exact clocks, clip SHA and pending-listening status, without manuscript text.
+
+The current final-on-host QC reports are `CH03_QC01_05_VERIFIED_V4.json` and `CH03_QC_WORKLIST_V4.json`. Both are `REVIEW`, not FINAL. **14/14 focused synthetic local cases PASS** (9 evidence, 5 bounded-worklist), and the V4 field report/worklist completes successfully. Original and staged Chapter 3 SHA remain unchanged. No acoustic measurement alone was classified as successful emotional performance or audible joining.
+
+`saydi-core-tests.yml` was minimally extended to run `python -m unittest discover -s tools/saydi_tts/qc -p "test_v5_*" -v`. **The CI result for the exact latest commit remains unverified until a new GitHub Actions check actually completes**; local 14/14 is distinct from hosted CI.
+
