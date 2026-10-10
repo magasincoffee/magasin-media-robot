@@ -18,17 +18,17 @@ Source: Draft PR #101, tested after commit `020892bfe8af35af96cfc4ca2f76eb677f83
 
 **42 test cases executed successfully; 2 additional field-asset-dependent cases SKIPPED**. Exit code 0. This is local focused regression, **not hosted CI GREEN**, not full start/stop/boot testing, and not listening acceptance.
 
-Field: `D:\SAYDI\OWNER_APPROVED_NATURAL_V5\Chuong_03\manifest.json` and `editorial_audit.json`; output only in `D:\SAYDI\QC_STAGING\CH03_V5_EDITORIAL_GATE_20261010\EDITORIAL_MULTIPASS_REVIEW_V3.json`.
+Field: `D:\SAYDI\OWNER_APPROVED_NATURAL_V5\Chuong_03\manifest.json` and `editorial_audit.json`; output only in `D:\SAYDI\QC_STAGING\CH03_V5_EDITORIAL_GATE_20261010\EDITORIAL_MULTIPASS_REVIEW_V4.json`.
 
 - 285 segments; status `REVIEW`; **0 blocking findings**.
-- **291 finding records**, of which 285 are `SOURCE_PROVENANCE_UNVERIFIED` because per-segment original manuscript text/span cannot be independently authenticated from this V5 manifest; **not 285 known textual errors**.
+- **7 compact finding records**, including **one aggregated `SOURCE_PROVENANCE_UNVERIFIED` alert with count=285** because per-segment original manuscript text/span cannot be independently authenticated from this V5 manifest; **not 285 known textual errors**. This aggregation avoids 285 redundant Owner-facing alerts.
 - 3 possible boundary word repeats and 1 possible clause cut within a parent group; all are **REVIEW candidates**, not automatic edits.
 - 1 pending independent spelling/semantic-review receipt.
 - 1 legacy-audit paraphrase-review category; it references **60 historical paraphrase suspects**, not 60 proven active narration errors or 60 new render requests.
 - Legacy editorial audit: `word_integrity=PASS`, `v5_spoken_text_diff=false`, `canonical_source_utf8=true`. The audit is verified to the same source SHA, voice/reference SHA and 285 segments; it is **not independent semantic/spelling acceptance**.
 - All 285 V5 TTS text fingerprints are intentionally tracked as opaque, rather than falsely blocking on an undocumented hash scheme.
 
-The earlier V1 field audit falsely returned `BLOCKED` with 285 hash mismatches; **superseded by the corrected V3 report**. Keep earlier report as diagnostic regression evidence only, never release status.
+The earlier V1 field audit falsely returned `BLOCKED` with 285 hash mismatches; **superseded by the corrected V4 report**. Keep earlier report as diagnostic regression evidence only, never release status.
 
 ## Safe next gates (NOT DONE)
 
