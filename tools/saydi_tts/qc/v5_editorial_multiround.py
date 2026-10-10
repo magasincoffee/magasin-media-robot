@@ -46,6 +46,7 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None) -
     sequence: list[tuple[int, str, str, int]] = []
     seen: set[int] = set()
     source_verified = 0
+    legacy_opaque_hashes = 0
     for pos, obj in enumerate(items):
         if not isinstance(obj, dict):
             raise ValueError("SEGMENT_NOT_OBJECT")
@@ -101,8 +102,15 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None) -
             findings.append(issue("FIDELITY", "CANONICAL_SPOKEN_TOKEN_DIFF", idx))
         declared = obj.get("tts_text_sha256")
         if isinstance(declared, str) and re.fullmatch(r"[a-fA-F0-9]{64}", declared):
-            if digest(spoken) != declared.lower():
-                findings.append(issue("FIDELITY", "TTS_TEXT_HASH_DRIFT", idx, "BLOCK"))
+            # Legacy V5's tts_text_sha256 is a producer-specific fingerprint.
+            # Field observation: it is NOT sha256(spoken_text.encode("utf8")).
+            # Verify actual bytes only when a producer explicitly declares
+            # that encoding contract; never block all legacy chunks falsely.
+            if obj.get("tts_text_hash_scheme") == "sha256_utf8_spoken_v1":
+                if digest(spoken) != declared.lower():
+                    findings.append(issue("FIDELITY", "TTS_TEXT_HASH_DRIFT", idx, "BLOCK"))
+            else:
+                legacy_opaque_hashes += 1
         else:
             findings.append(issue("FIDELITY", "TTS_TEXT_HASH_UNAVAILABLE", idx))
 
@@ -159,6 +167,7 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None) -
         "chapter": manifest.get("chapter_number"),
         "segment_count": len(items),
         "source_text_verified_segments": source_verified,
+        "legacy_opaque_tts_hash_count": legacy_opaque_hashes,
         "passes": ["STRUCTURE", "ORTHOGRAPHY", "CONTINUITY", "FIDELITY",
                    "INDEPENDENT"],
         "finding_count": len(findings),
