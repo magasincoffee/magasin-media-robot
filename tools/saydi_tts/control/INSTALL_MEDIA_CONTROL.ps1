@@ -10,7 +10,7 @@ if (-not (Test-Path -LiteralPath $Python)) { throw "Local Python venv is missing
 & $Python -c "import psutil;print('psutil='+psutil.__version__)"
 if ($LASTEXITCODE -ne 0) { throw "Local psutil is required; do not install a heavy TTS environment here" }
 New-Item -ItemType Directory -Force -Path $RuntimeDir | Out-Null
-foreach ($filename in @("media_control.py","index.html","START_MEDIA_CONTROL.ps1","test_media_control.py","control_commands.py","RUN_CONTROL_JOBS.ps1","test_control_commands.py","activity_monitor.py","test_activity_monitor.py","test_single_core_policy.py")) {
+foreach ($filename in @("media_control.py","index.html","START_MEDIA_CONTROL.ps1","test_media_control.py","control_commands.py","RUN_CONTROL_JOBS.ps1","test_control_commands.py","activity_monitor.py","test_activity_monitor.py","test_single_core_policy.py","test_chapter_process_guard.py")) {
   $src = Join-Path $SourceDir $filename
   $dst = Join-Path $RuntimeDir $filename
   if (-not (Test-Path -LiteralPath $src)) { throw "Missing source file: $src" }
