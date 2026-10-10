@@ -93,8 +93,8 @@ def main():
                     previous=None
             except (ValueError,KeyError,OSError):previous=None
         if previous is None:
-            if free_ram()<2.3:
-                record("PAUSED_RESOURCE",completed=len(checked),reason="RAM_BELOW_2_3_GB",
+            if free_ram()<1.5:
+                record("PAUSED_RESOURCE",completed=len(checked),reason="RAM_BELOW_1_5_GB",
                        free_gb=round(free_ram(),2))
                 return 0
             record("QC_RUNNING",completed=len(checked),batch=f"{first}-{last}")
