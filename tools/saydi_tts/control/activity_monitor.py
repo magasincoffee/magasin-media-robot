@@ -57,6 +57,16 @@ def summarize(job, job_path, guardian_log, controller_log, work_log,
     watchdog_age=int((now-heartbeat).total_seconds()) if heartbeat else None
     watchdog_ok=watchdog_age is not None and 0<=watchdog_age<8*60
     job_state=str(job.get("state") or "NONE")
+    heartbeat_source="scheduler"
+    worker_pid=job.get("pid")
+    worker_confirmed=(job_state=="RUNNING" and type(worker_pid) is int and
+                      any(proc.get("pid")==worker_pid for proc in active_processes))
+    worker_heartbeat=parsed_time(job.get("last_check_at")) if worker_confirmed else None
+    if worker_heartbeat and (heartbeat is None or worker_heartbeat>heartbeat):
+        heartbeat=worker_heartbeat
+        watchdog_age=int((now-heartbeat).total_seconds())
+        watchdog_ok=0<=watchdog_age<8*60
+        heartbeat_source="worker"
     action=str(job.get("action") or "")
     chapter_id=job.get("chapter")
     label={"improve":"Tự sửa phát âm","recheck":"Kiểm tra lại QC",
@@ -89,9 +99,13 @@ def summarize(job, job_path, guardian_log, controller_log, work_log,
             }.get(job_state,f"Trạng thái {job_state}.")
             event("Kiểm tra lệnh",reason,current_check,"check")
     if heartbeat:
-        word=("Đang kiểm tra định kỳ" if watchdog_ok else "MẤT nhịp kiểm tra định kỳ")
-        event("Bộ điều phối",f"{word}. Đây KHÔNG phải bằng chứng đang render/QC.",
-              heartbeat,"heartbeat")
+        if heartbeat_source=="worker":
+            event("Tiến trình xử lý","Tiến trình thực tế còn hoạt động và bộ điều phối cập nhật checkpoint.",
+                  heartbeat,"heartbeat")
+        else:
+            word=("Đang kiểm tra định kỳ" if watchdog_ok else "MẤT nhịp kiểm tra định kỳ")
+            event("Bộ điều phối",f"{word}. Đây KHÔNG phải bằng chứng đang render/QC.",
+                  heartbeat,"heartbeat")
 
     # The current job's dedicated log and relevant selected chapter log have
     # priority over old Chapter 1 R2 logs. Exclude no-op/watchdog repetitions.
@@ -163,6 +177,7 @@ def summarize(job, job_path, guardian_log, controller_log, work_log,
 
     return {"category":category,"headline":headline,"explanation":explanation,
             "scheduler_healthy":watchdog_ok,
+            "heartbeat_source":heartbeat_source if heartbeat else None,
             "last_heartbeat":heartbeat.isoformat(timespec="seconds") if heartbeat else None,
             "seconds_since_heartbeat":watchdog_age,
             "last_check":current_check.isoformat(timespec="seconds") if current_check else None,
