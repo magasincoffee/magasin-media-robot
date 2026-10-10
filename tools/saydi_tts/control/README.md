@@ -118,3 +118,25 @@ Fix:
 
 This PR is **not** a full closed-loop V5 quality/FINAL acceptance. Keep source-of-truth task authority unchanged and do not claim Chapter 1 or Chapter 2 has passed Owner listening.
 
+
+## Single-core continuous V5 operation (Owner update, 2026-10-10)
+
+The Owner has requested **one logical CPU worker with automatic continuation** so SAYDI remains responsive on DESKTOP-H4A16IL (4 logical CPUs, ~8GB physical RAM). This means a single CPU core for each heavy phase and **sequential** VieNeu → unload → Whisper QC, **NOT** modifying speaking tempo or running through critical RAM pressure.
+
+### Applied field changes
+
+- One logical CPU affinity mask `0x1` and below-normal Windows process priority for V5 chapter render, QC recheck and bounded pronunciation repair. Internal OpenMP/OpenBLAS/MKL/NumExpr numerical threads all set to `1`; faster-whisper CPU threads set to `1` as well. The Controller passes a matching single-thread environment to spawned work.
+- The durable job controller now records a processing heartbeat every 25 seconds during long-running subprocesses, so operator Control can distinguish a live production worker from an idle Task Scheduler tick.
+- Fixed a malformed local Controller Python path (`CONTROL_PY`) that could prevent immediate click-to-start execution. It now points at `C:/MAGASIN_MCP/.venv/Scripts/python.exe` and checks that the executable exists.
+- Main `SAYDI Control Job Guardian` recurrence changed from every 3 minutes to **every 1 minute**, preserving Task Scheduler `IgnoreNew` and Windows job mutexes. If free RAM is below **2.3 GB** when starting a heavy worker, the task remains `QUEUED_RESOURCE`; render pauses at ~**0.70 GB** free. This deliberate safety pause is not a robot crash. A separate controller/worker is never started just to simulate activity.
+- Redundant `SAYDI V5 CH02 QC Guardian` was disabled **after verifying Chapter 2 was REVIEW_READY**. The old 3-minute watcher launched needless no-op Python jobs and could collide with Chapter 3's heavy-process inventory. This task was disabled, not deleted; rollback XML: `D:\SAYDI\backups\SAYDI_CH02_legacy_guardian_before_retirement_20261010.xml`. Main task rollback: `D:\SAYDI\backups\SAYDI_Control_Guardian_before_1min_20261010.xml`.
+- Media Control reports `logical_cpu_threads=1`, `max_concurrent_heavy_jobs=1`, `automatic_resume=true` and explicitly shows the single-core mode.
+
+### Tested
+
+On H4A16IL, 10/10 local tests PASS (three single-core policy including three real Windows `GetProcessAffinityMask == 0x1` checks; three activity, two command/auth and two dashboard). Python syntax tests passed; the locally relaunched Control returned HTTP 200 for health and status and confirmed `1` logical CPU thread, one active heavy job maximum, and automatic resume enabled. The Windows scheduler reports `PT1M` and `IgnoreNew`, and the v0.2 local installer returned PASS.
+
+Chapter 3's V5 job has been queued but encountered resource and conflicting legacy watcher gates during initial field checks; after retiring the old watcher it must still pass live render/QC and sample-listening QA. Chapter 2 has a rendered REVIEW MP3 and completed 640/640 baseline QC with unresolved flags; no chapter is made FINAL by this change.
+
+**Limitations:** This policy lowers peak CPU utilization, often at the expense of longer wall-clock render time. One CPU thread cannot reduce the fixed resident size of VieNeu/Whisper models enough to promise uninterrupted processing when Windows, Chrome, Zalo and other apps leave insufficient RAM. Retain the RAM safety gates, checkpoint/retry and explicit Owner listening approval. The current Windows guardian is configured as an **interactive-user task**, not a verified service that operates across user logoff or power outages. Do not label SAYDI-002 / V6 DONE on the basis of operational tuning alone.
+
