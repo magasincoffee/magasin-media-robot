@@ -77,4 +77,19 @@ class FiveGateTests(unittest.TestCase):
         self.assertEqual(p.returncode,0,p.stderr)
         self.assertIn("DISABLED_DEFAULT",p.stdout)
         self.assertFalse(out.exists())
+    def test_exact_review_concat_diff_receipt(self):
+        alternative=self.root/"alt"
+        alternative.mkdir()
+        import shutil
+        candidate=alternative/"000001.wav"
+        shutil.copyfile(self.files[2],candidate)
+        updated=self.root/"review_concat.txt"
+        changed=[self.files[0],self.files[1],candidate,self.files[3]]
+        updated.write_text("\n".join("file '"+str(f).replace("\\","/")+"'" for f in changed)+"\n",encoding="utf8")
+        self.receipt["changed_silence_after_segments"]=[]
+        r=audit(self.manifest,self.qc,self.concat,self.receipt,review_concat=updated)
+        self.assertTrue(r["repair_receipt"]["review_concat_diff_verified"])
+        self.receipt["changed_spoken_segments"]=[]
+        with self.assertRaisesRegex(ValueError,"REVIEW_DIFF_RECEIPT_MISMATCH"):
+            audit(self.manifest,self.qc,self.concat,self.receipt,review_concat=updated)
 if __name__=="__main__":unittest.main(verbosity=2)
