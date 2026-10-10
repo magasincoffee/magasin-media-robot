@@ -17,9 +17,11 @@ SELECTED=HERE/"selected_chapter.json"
 JOB=HERE/"control_job.json"
 LOG=HERE/"job_controller.log"
 PYTHON=ROOT/"VieNeu-TTS"/".venv"/"Scripts"/"python.exe"
-CONTROL_PY=Path(r"C:MAGASIN_MCP.venvScriptspython.exe")
+CONTROL_PY=Path("C:/MAGASIN_MCP/.venv/Scripts/python.exe")
 RECHECK_PYTHON=ROOT/"qc2"/".venv"/"Scripts"/"python.exe"
 OWNER_MIN_GB=2.3
+OWNER_CPU_THREADS=1
+RUNTIME_ENV=("OMP_NUM_THREADS","OPENBLAS_NUM_THREADS","MKL_NUM_THREADS","NUMEXPR_NUM_THREADS","RAYON_NUM_THREADS")
 LOCK=threading.RLock()
 ALLOWED={"select","resume","next","recheck","improve"}
 COMPLETED={"DONE","FAILED","CANCELLED"}
@@ -145,6 +147,7 @@ def job_status():
 def launch_tick():
     script=HERE/"control_commands.py"
     if not script.exists():raise RuntimeError("CONTROLLER_FILE_MISSING")
+    if not CONTROL_PY.exists():raise RuntimeError("CONTROLLER_PYTHON_MISSING")
     out=HERE/"last_tick.log"
     out.parent.mkdir(parents=True,exist_ok=True)
     flags=getattr(subprocess,"CREATE_NO_WINDOW",0)
@@ -229,16 +232,30 @@ def execute_tick():
                   "--chapter",str(chapter),"--max-segments","8"]
         else:raise RuntimeError("INTERNAL_INVALID_ACTION")
         job.update(state="RUNNING",started_at=time.strftime("%Y-%m-%d %H:%M:%S"),
-                   attempts=int(job.get("attempts",0))+1,free_ram_gb=free)
+                   attempts=int(job.get("attempts",0))+1,free_ram_gb=free,
+                   cpu_threads=OWNER_CPU_THREADS,execution_mode="SEQUENTIAL_NATIVE_V5")
         persist(JOB,job)
         output=HERE/f"job_{job['id']}.log"
         flags=getattr(subprocess,"CREATE_NO_WINDOW",0)|getattr(subprocess,"BELOW_NORMAL_PRIORITY_CLASS",0)
+        env=os.environ.copy()
+        for key in RUNTIME_ENV:
+            env[key]=str(OWNER_CPU_THREADS)
+        env["TOKENIZERS_PARALLELISM"]="false"
         with output.open("ab") as f:
             p=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,
-                               creationflags=flags)
+                               creationflags=flags,env=env)
             job["pid"]=p.pid
             persist(JOB,job)
-            rc=p.wait()
+            while True:
+                try:
+                    rc=p.wait(timeout=25)
+                    break
+                except subprocess.TimeoutExpired:
+                    # Durable worker heartbeat while Task Scheduler owns the long-running tick.
+                    job["last_check_at"]=time.strftime("%Y-%m-%d %H:%M:%S")
+                    job["last_check_free_ram_gb"]=free_ram()
+                    job["check_count"]=int(job.get("check_count") or 0)+1
+                    persist(JOB,job)
         job["exit_code"]=rc
         job["finished_at"]=time.strftime("%Y-%m-%d %H:%M:%S")
         if rc:
