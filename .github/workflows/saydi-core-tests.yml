@@ -100,6 +100,11 @@ jobs:
           $env:PYTHONPATH = "$PWD\02_SAYDI_CORE\src"
           python -m unittest discover -s 02_SAYDI_CORE\tests -v
 
+      - name: V5 isolated QC regression (offline, no media models)
+        shell: powershell
+        run: |
+          python -m unittest discover -s tools/saydi_tts/qc -p "test_v5_*" -v
+
       - name: Offline runner smoke
         shell: powershell
         run: |
