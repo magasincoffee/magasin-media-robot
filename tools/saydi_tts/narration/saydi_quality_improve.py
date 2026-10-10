@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse, ctypes, gc, hashlib, importlib.util, json, os, shutil, subprocess, sys, time
 from pathlib import Path
 for name in ("OMP_NUM_THREADS","OPENBLAS_NUM_THREADS","MKL_NUM_THREADS","NUMEXPR_NUM_THREADS"):
-    os.environ[name]="2"
+    os.environ[name]="1"
 ROOT=Path(r"C:\SAYDI")
 C_BASE=ROOT/"output"/"OWNER_APPROVED_NATURAL_V5"
 D_BASE=Path(r"D:\SAYDI\OWNER_APPROVED_NATURAL_V5")
@@ -35,7 +35,7 @@ def cpu_cap():
     k.SetProcessAffinityMask.argtypes=(ctypes.c_void_p,ctypes.c_size_t)
     k.SetPriorityClass.argtypes=(ctypes.c_void_p,ctypes.c_uint)
     h=k.GetCurrentProcess()
-    if not k.SetProcessAffinityMask(h,5):raise RuntimeError("TTS_CPU_CAP_FAILURE")
+    if not k.SetProcessAffinityMask(h,1):raise RuntimeError("TTS_CPU_CAP_FAILURE")
     k.SetPriorityClass(h,0x4000)
 
 def locate(chapter):
