@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SAYDI Media Control — MAGASIN</title>
+  <style>
+    :root {--bg:#0a111d;--surface:#121d2b;--surface2:#172536;--line:#273549;--text:#edf4ff;--muted:#a3b3c7;--teal:#5ee0c1;--amber:#ffcc79;--danger:#ff8996;--blue:#78afff}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI",Arial,sans-serif}
+    body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 65% -15%,#1d3c4e80,transparent 48%);pointer-events:none}
+    .shell{display:grid;grid-template-columns:218px 1fr;min-height:100vh;position:relative}
+    aside{background:#0d1825;border-right:1px solid var(--line);padding:27px 18px;display:flex;flex-direction:column;gap:25px}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:19px;letter-spacing:.08em;padding-left:8px}
+    .brand-icon{width:37px;height:37px;background:linear-gradient(135deg,#35bda4,#276c83);border-radius:12px;display:grid;place-items:center;font-size:22px}
+    .nav-label{text-transform:uppercase;font-size:11px;letter-spacing:1.7px;color:#8197ae;padding:0 12px 7px}
+    .nav-active{border:1px solid #2f7169;background:#173c42;color:#93f3df;font-weight:650;border-radius:11px;padding:12px}
+    .nav-secondary{color:var(--muted);padding:10px 12px}
+    .side-foot{margin-top:auto;padding:12px;border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:12px}
+    main{max-width:1450px;width:100%;margin:auto;padding:30px 35px 55px;display:flex;flex-direction:column;gap:20px}
+    h1{font-size:28px;font-weight:780;letter-spacing:-.5px;margin:0}h2{font-size:16px;margin:0;font-weight:720}p{margin:0}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:18px}.subtitle{color:var(--muted);margin-top:5px}
+    .right{display:flex;align-items:center;gap:12px}.updated{color:var(--muted);font-size:12px}
+    button,.btn{cursor:pointer;color:var(--text);background:#23354a;border:1px solid #375269;padding:10px 15px;border-radius:10px;font-weight:650;font-family:inherit}
+    button:hover,.btn:hover{border-color:var(--teal)}button:focus-visible,.btn:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+    .panel{background:linear-gradient(145deg,#152436,#111c2b);border:1px solid var(--line);border-radius:17px;padding:23px}
+    .hero{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;background:linear-gradient(120deg,#15283b,#172d35)}
+    .small-label{font-size:11px;text-transform:uppercase;letter-spacing:1.7px;color:var(--muted);font-weight:700}
+    .status-title{font-size:27px;font-weight:780;letter-spacing:-.3px;margin:8px 0 4px}
+    .status-desc{color:#b8cbd9}.status-right{display:grid;justify-items:end;gap:11px}
+    .pill{display:inline-flex;gap:7px;align-items:center;background:#493b24;color:var(--amber);padding:7px 13px;border-radius:100px;font-size:12px;font-weight:750}
+    .pill.running{background:#174b3f;color:var(--teal)}.pill.review{background:#443923;color:var(--amber)}
+    .pill.warning{background:#512a31;color:var(--danger)}.pill.done{background:#174b3f;color:var(--teal)}
+    .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+    .mono{font-family:"Cascadia Code",Consolas,monospace;font-size:12px}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .stat{padding:19px 20px}.stat .number{font-size:27px;font-weight:800;line-height:1.4;margin:7px 0}.muted{color:var(--muted)}.stat-foot{font-size:12px;color:var(--muted)}
+    .progress-track{height:7px;background:#2b3a4c;border-radius:20px;overflow:hidden;margin:12px 0 4px}
+    .bar{background:linear-gradient(90deg,#36b9a3,#72efd0);height:100%;width:0%;border-radius:20px;transition:width .6s ease}
+    .columns{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(290px,1fr);gap:17px}
+    .sectionhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .steps{display:grid;gap:0}.step{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid #2b394a}
+    .step:last-child{border:0}.step-num{border-radius:50%;background:#29403f;color:var(--teal);height:27px;width:27px;display:grid;place-items:center;font-size:13px;font-weight:750}
+    .step-title{font-weight:650}.step-sub{color:var(--muted);font-size:12px}.step-value{font-size:12px;color:var(--muted);text-align:right}
+    .load-row{margin:18px 0 21px}.load-title{display:flex;justify-content:space-between;align-items:center}.load-title strong{font-size:20px}
+    .load-bar{height:10px;background:#29394b;border-radius:30px;margin-top:9px;overflow:hidden}.load-fill{height:100%;width:0%;background:var(--teal);border-radius:30px;transition:width .5s}
+    .load-fill.mid{background:var(--amber)}.load-fill.high{background:var(--danger)}
+    .micro{font-size:12px;color:var(--muted)}
+    .audio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}
+    .audio-choice{background:#192b3a;text-align:left;padding:12px 10px;font-size:12px}.audio-choice.selected{border-color:var(--teal);color:#a5ffea;background:#1d3c43}
+    audio{width:100%;margin:5px 0 8px}.audio-path{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+    .monitor-message{background:#1a2b3d;border:1px solid #30485d;border-radius:11px;padding:14px;color:#c3d2e2;font-size:13px}
+    .list{display:flex;flex-direction:column;gap:9px;margin-top:14px}.logitem{padding:10px 11px;border-radius:9px;background:#101e2b;border:1px solid #27394a}
+    .logitem .source{font-size:11px;color:#83d5c8;margin-bottom:4px}.logitem .msg{color:#bbcbdc;font:12px/1.6 Consolas,monospace;overflow-wrap:anywhere}
+    .tag{font-size:11px;border:1px solid var(--line);border-radius:7px;padding:4px 9px;color:var(--muted)}
+    footer{color:var(--muted);font-size:12px;padding:0 3px}
+    .warning-text{color:var(--amber)}.good-text{color:var(--teal)}.cpu-note{margin-top:8px}
+    .operator-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    [hidden]{display:none!important}
+    .book-import{margin-top:16px;border-top:1px solid var(--line);padding-top:15px}
+    .book-import summary{cursor:pointer;color:var(--teal);font-weight:650}
+    .book-import-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:15px 0}
+    .book-import-grid label{display:grid;gap:6px;color:var(--muted);font-size:12px;font-weight:650}
+    .book-import-grid input{background:#203248;color:var(--text);border:1px solid #38566d;padding:10px;border-radius:9px;max-width:100%}
+    .book-rights{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-bottom:13px}
+    #bookImportMessage{margin-top:9px}
+    @media(max-width:700px){.book-import-grid{grid-template-columns:1fr}}
+    .operator-bar select{min-width:245px;flex:0 1 330px;background:#203248;color:#eef6ff;
+      padding:11px 13px;border:1px solid #38566d;border-radius:10px;font:600 14px "Segoe UI",Arial,sans-serif}
+    .operator-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}
+    .operator-actions button{min-height:51px}
+    .operator-actions button:disabled{opacity:.43;cursor:not-allowed;border-color:var(--line)}
+    .operator-audio{margin-top:16px;display:grid;gap:8px}
+    .operator-audio audio{max-width:700px}
+    #jobMessage{min-height:52px}
+    @media (max-width:850px){.operator-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:550px){.operator-actions{grid-template-columns:1fr}.operator-bar select{width:100%}}
+    @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.columns{grid-template-columns:1fr}}
+    @media (max-width:680px){.shell{display:block}aside{padding:14px 18px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;border-right:0;border-bottom:1px solid var(--line)}aside .nav,aside .side-foot{display:none}.brand{font-size:16px}main{padding:20px 14px}.top,.hero{display:block}.right{margin-top:14px;justify-content:space-between}.status-right{display:flex;justify-content:space-between;margin-top:16px;align-items:center}.status-title{font-size:22px}.stats{gap:8px}.stat{padding:14px}.stat .number{font-size:22px}.audio-grid{grid-template-columns:1fr}.step{grid-template-columns:28px 1fr}.step-value{grid-column:2;text-align:left}}
+  </style>
+</head>
+<body>
+<div class="shell">
+<aside>
+  <div class="brand"><div class="brand-icon">♫</div> <span>SAYDI <span style="color:#82ead8">MEDIA</span></span></div>
+  <div class="nav"><div class="nav-label">ĐIỀU KHIỂN</div><div class="nav-active">◉ &nbsp; Tổng quan robot</div><div class="nav-secondary">♫ &nbsp; Sách nói V5</div><div class="nav-secondary">⚙ &nbsp; Theo dõi hệ thống</div></div>
+  <div class="side-foot"><strong>Chế độ an toàn</strong><p>Chọn chương và xác nhận trước khi giao việc. Robot kiểm tra tài nguyên, chống chạy trùng, giữ checkpoint.</p></div>
+</aside>
+<main>
+  <header class="top">
+    <div><div class="small-label">MAGASIN / MEDIA OPERATIONS</div><h1>Trung tâm điều khiển Media Robot</h1><p class="subtitle">Quan sát tiến trình và chất lượng sách nói ngay trên máy local.</p></div>
+    <div class="right"><span class="updated" id="updated">Đang tải...</span><button id="refresh" type="button">↻ Làm mới ngay</button></div>
+  </header>
+  <section class="panel" id="bookLibrary">
+    <div class="sectionhead"><div><h2>Thư viện sách · chọn cuốn để làm việc</h2><p class="subtitle">Mỗi cuốn dùng nguồn và checkpoint riêng. Không lấy dữ liệu sách cũ cho sách mới.</p></div><span class="tag" id="bookStatus">Đang đọc thư viện</span></div>
+    <div class="operator-bar">
+      <label class="small-label" for="bookSelect">CUỐN SÁCH</label>
+      <select id="bookSelect" aria-label="Chọn cuốn sách"></select>
+      <button type="button" id="chooseBook">Mở sách</button>
+      <span class="micro" id="bookCounter">Đang tải...</span>
+    </div>
+    <div class="monitor-message" id="bookDetails" aria-live="polite">Đang xác định nguồn và trạng thái sách...</div>
+    <details class="book-import" id="importPanel">
+      <summary>+ Thêm cuốn sách mới (PDF / TXT / DOCX / EPUB)</summary>
+      <div class="book-import-grid">
+        <label for="bookTitle">Tên sách
+          <input type="text" id="bookTitle" maxlength="120" placeholder="Ví dụ: Tên cuốn sách mới">
+        </label>
+        <label for="bookFile">Tệp sách gốc (tối đa 60 MB)
+          <input type="file" id="bookFile" accept=".pdf,.txt,.docx,.epub">
+        </label>
+      </div>
+      <label class="book-rights"><input type="checkbox" id="bookRights">
+        Tôi có quyền sử dụng nội dung này để sản xuất sách nói</label>
+      <button type="button" id="uploadBook">Lưu thành sách mới — chưa render</button>
+      <p class="micro" id="bookImportMessage">Sách mới sẽ được lưu riêng trên ổ D, chờ kiểm tra nội dung, chia chương và duyệt giọng trước khi render.</p>
+    </details>
+  </section>
+  <section class="panel legacy-only" id="productionControl">
+    <div class="sectionhead"><div><h2>Điều hành sản xuất theo chương</h2><p class="subtitle">Chọn chương rồi giao việc. Robot giữ checkpoint và chỉ chạy khi đủ tài nguyên.</p></div><span class="tag" id="selectedPhase">Đang nạp chương</span></div>
+    <div class="operator-bar">
+      <label for="chapterSelect" class="small-label">CHƯƠNG SÁCH</label>
+      <select id="chapterSelect" aria-label="Chọn chương sách"></select>
+      <button id="chooseChapter" type="button">Chọn chương</button>
+      <span class="micro" id="selectedMetrics">Đang lấy tiến độ...</span>
+    </div>
+    <div class="operator-actions">
+      <button type="button" data-command="resume">▶ Tiếp tục / bắt đầu chương</button>
+      <button type="button" data-command="recheck">↻ Kiểm tra lại QC cảnh báo</button>
+      <button type="button" data-command="improve">✦ Tự sửa lỗi phát âm (giới hạn)</button>
+      <button type="button" data-command="next">→ Chương tiếp theo</button>
+    </div>
+    <div class="monitor-message" id="jobMessage">Chưa có yêu cầu điều khiển mới.</div>
+    <div class="operator-audio">
+      <span class="small-label">NGHE CHƯƠNG ĐANG CHỌN</span>
+      <audio id="selectedChapterAudio" controls preload="none"></audio>
+      <p class="micro" id="chapterAudioHelp">Chỉ phát bản REVIEW hoặc bản nghe gần nhất đã có file.</p>
+    </div>
+    <p class="micro" style="margin-top:12px">Chế độ vận hành tiết kiệm: tối đa 1 luồng CPU logic, VieNeu và Whisper chạy tuần tự, tự kiểm tra để tiếp tục khi đủ RAM. “Kiểm tra lại QC” không tự sửa giọng; “Tự sửa” chỉ chấp nhận đoạn có bằng chứng cải thiện và không đánh dấu FINAL.</p>
+  </section>
+  <section class="panel hero" aria-live="polite">
+    <div><div class="small-label">TRẠNG THÁI ROBOT ĐANG SẢN XUẤT · <span id="hostname">DESKTOP-H4A16IL</span></div><div class="status-title" id="statusTitle">ĐANG KIỂM TRA KẾT NỐI</div><p class="status-desc" id="statusDetail">Đang đọc tiến trình và checkpoint từ máy...</p></div>
+    <div class="status-right"><span class="pill" id="statePill"><span class="dot"></span><span id="stateText">Đang kiểm tra</span></span><span class="mono muted" id="phase">--</span></div>
+  </section>
+  <section class="panel legacy-only" id="selectedChapterPanel" aria-live="polite">
+    <div class="sectionhead"><h2 id="selectedChapterHeading">Tiến độ chương đang chọn · SAYDI V5</h2><span class="tag" id="ch2Status">Đang kiểm tra</span></div>
+    <div class="stats" style="margin-bottom:12px">
+      <div><div class="small-label">RENDER V5</div><div class="number" id="ch2Render" style="font-size:24px;font-weight:750">—</div></div>
+      <div><div class="small-label">QC V5</div><div class="number" id="ch2Qc" style="font-size:24px;font-weight:750">—</div></div>
+      <div><div class="small-label">PASS / REVIEW</div><div class="number" id="ch2Flags" style="font-size:21px;font-weight:750">Chưa QC</div></div>
+      <div><div class="small-label">ĐIỀU KIỆN MÁY</div><div class="number" id="ch2Ram" style="font-size:21px;font-weight:750">—</div></div>
+    </div>
+    <div class="progress-track"><div class="bar" id="ch2Progress"></div></div>
+    <p class="micro" id="ch2Reason" style="margin-top:9px">Kiểm tra trạng thái công việc ở ổ D...</p>
+  </section>
+  <section class="stats chapter1-only" aria-label="Số liệu chương 1">
+    <div class="panel stat"><div class="small-label">ĐÃ RENDER</div><div class="number" id="renderNum">--/--</div><div class="progress-track"><div class="bar" id="renderBar"></div></div><div class="stat-foot">Đoạn âm thanh · chương 1</div></div>
+    <div class="panel stat"><div class="small-label">ĐÃ KIỂM DUYỆT</div><div class="number" id="qcNum">--/--</div><div class="progress-track"><div class="bar" id="qcBar"></div></div><div class="stat-foot">Kiểm tra tự động, chưa thay thế nghe thật</div></div>
+    <div class="panel stat"><div class="small-label">SỬA LỖI R2</div><div class="number" id="repairNum">--/--</div><div class="stat-foot" id="repairNote">Phương án đã được xử lý</div></div>
+    <div class="panel stat"><div class="small-label">CÒN CẢNH BÁO QC</div><div class="number warning-text" id="reviewNum">--</div><div class="stat-foot" id="reviewNote">Không đồng nghĩa số lỗi nghe thật</div></div>
+  </section>
+  <div class="columns">
+    <section class="panel chapter1-only">
+      <div class="sectionhead"><h2>Quy trình chương 1</h2><span class="tag" id="version">V5</span></div>
+      <div class="steps">
+        <div class="step"><div class="step-num">✓</div><div><div class="step-title">1. Biên soạn & chuẩn bị giọng</div><div class="step-sub">Theo mẫu giọng Owner đã chốt</div></div><div class="step-value">Đã có bản mẫu</div></div>
+        <div class="step"><div class="step-num">✓</div><div><div class="step-title">2. Render các đoạn</div><div class="step-sub">VieNeu tạo WAV theo checkpoint</div></div><div class="step-value" id="stepRender">--</div></div>
+        <div class="step"><div class="step-num">✓</div><div><div class="step-title">3. Kiểm duyệt giọng đọc</div><div class="step-sub">Nhận dạng từ, thanh điệu nghi vấn và độ rõ chữ</div></div><div class="step-value" id="stepQc">--</div></div>
+        <div class="step"><div class="step-num">✓</div><div><div class="step-title">4. Sửa và ghép chương</div><div class="step-sub">Chỉ thay WAV có bằng chứng tốt hơn</div></div><div class="step-value" id="stepRepair">--</div></div>
+        <div class="step"><div class="step-num" id="lastStep">!</div><div><div class="step-title">5. Owner nghe & duyệt</div><div class="step-sub">Không gắn FINAL khi chưa đạt kiểm tra thực tế</div></div><div class="step-value" id="stepFinal">Chưa nghiệm thu</div></div>
+      </div>
+      <div class="monitor-message" id="meaning" style="margin-top:20px">Đang lấy thông tin tình trạng từ nguồn local...</div>
+    </section>
+    <section class="panel">
+      <div class="sectionhead"><h2>Tài nguyên máy</h2><span class="tag">Cập nhật tự động</span></div>
+      <div class="load-row"><div class="load-title"><span>CPU</span><strong id="cpuValue">--%</strong></div><div class="load-bar"><div class="load-fill" id="cpuBar"></div></div></div>
+      <div class="load-row"><div class="load-title"><span>RAM</span><strong id="ramValue">--%</strong></div><div class="load-bar"><div class="load-fill" id="ramBar"></div></div><p class="micro" id="ramText" style="margin-top:7px">Đang đo dung lượng RAM</p></div>
+      <div class="monitor-message" id="processNote">Đang kiểm tra tiến trình thực tế...</div>
+      <p class="micro cpu-note">Không có dữ liệu cảm biến nhiệt độ CPU. Không suy đoán nhiệt độ chỉ từ mức sử dụng CPU.</p>
+    </section>
+  </div>
+  <div class="columns" id="audioAndActivity">
+    <section class="panel chapter1-only">
+      <div class="sectionhead"><h2>Nghe bản sách mới nhất</h2><span class="tag">Preview / REVIEW</span></div>
+      <p class="muted">Mở ngay trong trình duyệt trên máy DESKTOP-H4A16IL. Đây chưa phải audio FINAL.</p>
+      <div class="audio-grid"><button class="audio-choice selected" data-audio="full">▶ &nbsp; Chương 1 R2</button><button class="audio-choice" data-audio="begin">♫ &nbsp; 5 phút đầu</button><button class="audio-choice" data-audio="middle">♫ &nbsp; 5 phút giữa</button><button class="audio-choice" data-audio="chapter2">♫ &nbsp; Chương 2 V5 (khi có)</button></div>
+      <audio id="player" controls preload="metadata"></audio>
+      <p class="audio-path" id="audioName">Đang tìm file MP3...</p>
+      <div style="margin-top:13px"><a class="btn" id="download" href="/audio/full" download>↓ Lưu bản đang nghe</a></div>
+    </section>
+    <section class="panel">
+      <div class="sectionhead"><h2>Nhật ký hoạt động</h2><span class="tag" id="lastLog">Nguồn local</span></div>
+      <div class="monitor-message" id="activityState" aria-live="polite" style="white-space:pre-line">Đang xác minh tiến trình và nhịp kiểm tra của robot...</div>
+      <p class="micro" id="heartbeatState" style="margin-top:11px">Nhịp giám sát: đang kiểm tra</p>
+      <div class="list" id="logs"><p class="muted">Đang đọc log...</p></div>
+    </section>
+  </div>
+  <footer>Media Control v0.2 · Localhost 127.0.0.1 · Điều khiển có xác nhận · Không đưa bản thảo/âm thanh lên Internet · Không đánh dấu FINAL tự động.</footer>
+</main>
+</div>
+<script>
+(function() {
+  "use strict";
+  var $ = function(id){return document.getElementById(id)};
+  var keys = ["full","begin","middle","chapter2"];
+  var selected = "full", firstAudio = true, busy = false;
+  var names = {full:"CHUONG_01_V5_R2_SUA_LOI_NANG.REVIEW.mp3",begin:"CHUONG_01_V5_R2_DAU_CHUONG_5PHUT.mp3",middle:"CHUONG_01_V5_R2_GIUA_CHUONG_5PHUT.mp3",chapter2:"CHUONG_02_OWNER_APPROVED_V5.REVIEW.mp3"};
+  function set(id, value){$(id).textContent = value;}
+  function num(value){return new Intl.NumberFormat("vi-VN").format(value || 0);}
+  function progress(id, part, total){$(id).style.width = (total ? Math.min(100,Math.max(0,(part / total) * 100)) : 0) + "%";}
+  function usage(bar, value){
+    var safe = Math.min(100,Math.max(0,value || 0));$(bar).style.width=safe+"%";
+    $(bar).className="load-fill"+(safe>90?" high":safe>75?" mid":"");
+  }
+  function renderAudio(data) {
+    var file = data.audio[selected];
+    if(!file || !file.exists){set("audioName","Chưa có MP3 ở lựa chọn này");return;}
+    set("audioName",names[selected]+" · "+(file.bytes/1048576).toFixed(1)+" MB");
+    if(firstAudio){
+      $("player").src=file.url;$("download").href=file.url;$("download").download=names[selected];firstAudio=false;
+    }
+  }
+  function selectAudio(key){
+    if(keys.indexOf(key)===-1){return;}
+    selected=key;firstAudio=true;
+    document.querySelectorAll(".audio-choice").forEach(function(b){
+      b.classList.toggle("selected",b.getAttribute("data-audio")===key);
+    });
+    $("player").pause();$("player").removeAttribute("src");$("player").load();
+    fetchStatus();
+  }
+  function show(data){
+    var p=data.progress,q=data.quality,s=data.status,r=data.system;
+    // Selected chapter metrics are rendered by the book-aware operator panel.
+    // Do not overwrite them with the Chapter 2 historical checkpoint.
+    set("hostname",data.hostname);
+    set("statusTitle",s.title);set("statusDetail",s.detail);
+    set("stateText",s.active?"Tiến trình đang chạy":(s.kind==="review"?"Chờ kiểm tra":s.kind==="warning"?"Cần chú ý":"Không có tác vụ"));
+    $("statePill").className="pill "+s.kind;set("phase",data.phase);
+    set("renderNum",num(p.render)+"/"+num(p.total));set("qcNum",num(p.qc)+"/"+num(p.total));
+    set("repairNum",num(p.repair)+"/"+num(p.repair_total));set("repairNote",num(p.improved)+" phương án cải thiện đã chọn");
+    set("reviewNum",num(q.review));set("reviewNote","ASR nghiêm ngặt: "+num(q.strict_review)+" nghi vấn");
+    progress("renderBar",p.render,p.total);progress("qcBar",p.qc,p.total);
+    set("stepRender",num(p.render)+"/"+num(p.total));set("stepQc",num(p.qc)+"/"+num(p.total));
+    set("stepRepair",num(p.repair)+"/"+num(p.repair_total)+" · "+num(p.improved)+" được chọn");
+    set("stepFinal",q.final?"Đã nghiệm thu":"Chờ Owner");
+    set("lastStep",q.final?"✓":"!");
+    set("version",data.version);
+    set("cpuValue",num(r.cpu)+"%");set("ramValue",num(r.ram)+"%");
+    usage("cpuBar",r.cpu);usage("ramBar",r.ram);
+    set("ramText","Còn "+r.free_gb+" GB / "+r.total_gb+" GB");
+    if(s.active){
+      set("processNote","ĐÃ XÁC NHẬN tiến trình thực tế: "+data.processes.map(function(x){return x.kind+" (PID "+x.pid+")";}).join(", ")+".");
+    }else{
+      var j=data.control&&data.control.job||{};
+      set("processNote",j.state==="QUEUED_RESOURCE"?
+        "KHÔNG render/QC: lệnh "+j.action+" chương "+j.chapter+
+        " đang chờ RAM đủ "+((data.control&&data.control.resource_policy&&data.control.resource_policy.min_start_free_ram_gb)||1.5)+" GB. RAM trống hiện tại "+r.free_gb+" GB.":
+        "Không tìm thấy tiến trình tạo giọng, QC hay sửa âm thanh đang chạy. Việc Control cập nhật không đồng nghĩa robot đang sản xuất.");
+    }
+    set("meaning",s.kind==="review" ?
+      "Bản R2 đã sẵn sàng để nghe. "+num(q.review)+" cảnh báo ASR còn phải xác minh; chưa được phép gọi là FINAL." :
+      s.kind==="running"?"Robot đang hoạt động. Số liệu hiển thị được lấy từ tiến trình thật, không suy ra từ log cũ." :
+      "Theo dõi log và tiến trình ở dưới. Không tự khởi chạy khi chưa xác nhận công việc tiếp theo.");
+    set("updated","Làm mới: "+new Date(data.updated).toLocaleTimeString("vi-VN"));
+    var activity=data.activity||{};
+    set("lastLog",activity.last_event?"Sự kiện mới: "+new Date(activity.last_event).toLocaleString("vi-VN"):"Chưa có sự kiện");
+    set("activityState",(activity.headline||"Không có dữ liệu hoạt động")+
+       "\n"+(activity.explanation||"Trạng thái không xác định"));
+    set("heartbeatState",activity.last_heartbeat?
+       "Kiểm tra định kỳ cuối: "+new Date(activity.last_heartbeat).toLocaleString("vi-VN")+
+       " · "+(activity.scheduler_healthy?"Bộ điều phối phản hồi":"QUÁ HẠN/NGỪNG PHẢN HỒI")+
+       " · "+(activity.job_state||"NONE"):
+       "Chưa tìm thấy nhịp kiểm tra định kỳ: kiểm tra Task Scheduler");
+    renderAudio(data);
+    var container=$("logs");container.replaceChildren();
+    var recent = data.events.slice(0,18);
+    if(!recent.length){var t=document.createElement("p");t.className="muted";t.textContent="Chưa có nhật ký.";container.appendChild(t);}
+    recent.forEach(function(item){
+      var outer=document.createElement("div");outer.className="logitem";
+      var label=document.createElement("div");label.className="source";
+      var formattedTime=item.time?new Date(item.time).toLocaleString("vi-VN"):"Không có thời gian";
+      label.textContent=formattedTime+" · "+item.group+
+        (item.kind==="heartbeat"?" · chỉ là kiểm tra định kỳ":"");
+      var body=document.createElement("div");body.className="msg";body.textContent=item.text;
+      outer.appendChild(label);outer.appendChild(body);container.appendChild(outer);
+    });
+  }
+  async function fetchStatus(){
+    if(busy)return;busy=true;
+    try{
+      var response=await fetch("/api/status",{cache:"no-store"});
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      show(await response.json());
+    }catch(err){
+      set("updated","Không kết nối được");
+      set("statusTitle","MẤT KẾT NỐI CONTROL");
+      set("statusDetail","Không đọc được trạng thái từ server local. "+err.message);
+      $("statePill").className="pill warning";set("stateText","Offline");
+    }finally{busy=false;}
+  }
+  document.querySelectorAll(".audio-choice").forEach(function(b){b.addEventListener("click",function(){selectAudio(b.getAttribute("data-audio"));});});
+  $("refresh").addEventListener("click",fetchStatus);
+  fetchStatus();
+  setInterval(fetchStatus,5000);
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  let csrf="", loaded=false, executing=false, currentChapter=1, chapters=[], latestAudio="";
+  let books=[], bookId="legacy-v5", bookLoaded=false, productionBook="legacy-v5";
+  const names={select:"Chọn chương",resume:"Tiếp tục / bắt đầu chương",
+    next:"Chuyển sang chương tiếp theo",recheck:"Kiểm tra lại các cảnh báo QC",
+    improve:"Tự sửa một nhóm đoạn lỗi có giới hạn"};
+  function number(n){return new Intl.NumberFormat("vi-VN").format(n||0)}
+  function phaseName(s){
+    const map={REVIEW_READY:"Chờ nghe duyệt",QUEUED_RESOURCE:"Chờ tài nguyên",
+      PAUSED_RESOURCE:"Tạm dừng vì RAM",QC_RUNNING:"Đang QC",RENDERING:"Đang render",
+      NOT_PREPARED:"Chưa bắt đầu",PREPARED_WAIT_OWNER:"Đã chuẩn bị — chờ giao việc",FAILED:"Có lỗi",RENDER_COMPLETE:"Đã render",
+      QC_FAILED:"QC lỗi"};
+    return map[s]||s||"Chưa có dữ liệu";
+  }
+  function hasJob(s){
+    return s && s.state && !["DONE","FAILED","CANCELLED"].includes(s.state);
+  }
+  function selected(){return chapters.find(x=>x.chapter===currentChapter)||null}
+  function book(){return books.find(x=>x.id===bookId)||null}
+  function viewBook(bookData){
+    if(!bookData)return;
+    books=bookData.catalog||[];
+    productionBook=bookData.production_book_id||"legacy-v5";
+    const picker=$("bookSelect");
+    if(!bookLoaded){
+      books.forEach(item=>{
+        const option=document.createElement("option");
+        option.value=item.id;
+        option.textContent=item.title;
+        picker.appendChild(option);
+      });
+      bookId=bookData.selected_book_id||productionBook;
+      bookLoaded=true;
+    }else if(picker.options.length!==books.length){
+      picker.replaceChildren();
+      books.forEach(item=>{
+        const option=document.createElement("option");
+        option.value=item.id;
+        option.textContent=item.title;
+        picker.appendChild(option);
+      });
+      bookId=bookData.selected_book_id||productionBook;
+    }else if(bookId!==bookData.selected_book_id){
+      bookId=bookData.selected_book_id||productionBook;
+    }
+    picker.value=bookId;
+    const current=book();
+    const isLegacy=bookId===productionBook;
+    $("bookStatus").textContent=isLegacy?"Sách đang sản xuất":"Sách mới · chưa duyệt nguồn";
+    $("bookCounter").textContent=books.length+" cuốn trong thư viện";
+    const existingJob=window.__saydiLastJob||{};
+    $("bookDetails").textContent=isLegacy?
+      "Sách đang xử lý V5 · 11 chương. Chỉ cuốn này hiện có pipeline VieNeu và checkpoint được xác minh. "+
+      (existingJob.action?"Công việc đã giao: chương "+existingJob.chapter+" · "+existingJob.state+".":""):
+      (current?current.title+" · "+current.source_format+" · "+current.original_filename+
+        ". Nguồn được lưu độc lập. Chưa phân chương, chưa duyệt mẫu giọng và KHÔNG thể render.":
+        "Không tìm thấy thông tin của cuốn sách đã chọn.")+
+      " Công việc của sách V5 cũ vẫn giữ nguyên và không bị chuyển sang sách mới.";
+    document.querySelectorAll(".legacy-only").forEach(n=>{n.hidden=!isLegacy;});
+    document.querySelectorAll(".chapter1-only").forEach(n=>{
+      n.hidden=!isLegacy||currentChapter!==1;
+    });
+    const grid=$("audioAndActivity");
+    if(grid)grid.style.gridTemplateColumns=(!isLegacy||currentChapter!==1)?"1fr":"";
+  }
+  function selectedProgress(c,ctrl){
+    if(!c)return;
+    const format=n=>new Intl.NumberFormat("vi-VN").format(Number(n)||0);
+    const review=c.review==null?null:Number(c.review);
+    $("selectedChapterHeading").textContent="Tiến độ chương "+c.chapter+" · SAYDI V5";
+    $("ch2Status").textContent=phaseName(c.phase);
+    $("ch2Render").textContent=format(c.rendered)+"/"+format(c.total);
+    $("ch2Qc").textContent=format(c.qc_checked)+"/"+format(c.total);
+    $("ch2Flags").textContent=review===null?"Chưa có QC":format(Math.max(0,c.qc_checked-review))+" / "+format(review);
+    $("ch2Ram").textContent="≥ "+((ctrl.resource_policy||{}).min_start_free_ram_gb||1.5)+" GB";
+    $("ch2Progress").style.width=(c.total?Math.max(0,Math.min(100,c.rendered*100/c.total)):0)+"%";
+    const job=ctrl.job||{};
+    const actualCheckpoint=c.last_checkpoint_at?
+      "Checkpoint cuối: "+c.last_checkpoint_at+". ":"Chưa có checkpoint chương. ";
+    $("ch2Reason").textContent="Chương "+c.chapter+": "+phaseName(c.phase)+". "+
+      actualCheckpoint+
+      (job.chapter===c.chapter&&job.state==="QUEUED_RESOURCE"?
+        "Lệnh đang chờ RAM; chưa có render mới. ":
+        "")+
+      "Số liệu chỉ thay đổi khi có kết quả xử lý thật; REVIEW không phải FINAL.";
+  }
+  function syncAudio(c){
+    const a=$("selectedChapterAudio");
+    if(bookId!==productionBook||!c||!c.audio_available){
+      if(latestAudio){a.pause();a.removeAttribute("src");a.load();latestAudio="";}
+      a.hidden=true;
+      $("chapterAudioHelp").textContent="Chưa có file MP3 V5 của chương này.";
+      return;
+    }
+    a.hidden=false;
+    const url="/audio/chapter/"+c.chapter;
+    if(latestAudio!==url){a.pause();a.src=url;a.load();latestAudio=url;}
+    $("chapterAudioHelp").textContent="Bản nghe V5 chương "+c.chapter+" (REVIEW, không phải FINAL).";
+  }
+  function renderView(status){
+    const ctrl=status.control;if(!ctrl)return;
+    csrf=ctrl.csrf;chapters=ctrl.chapters||[];
+    const select=$("chapterSelect");
+    if(!loaded){
+      chapters.forEach(c=>{
+        const opt=document.createElement("option");
+        opt.value=String(c.chapter);
+        select.appendChild(opt);
+      });
+      currentChapter=ctrl.selected_chapter||1;
+      select.value=String(currentChapter);
+      loaded=true;
+    }
+    window.__saydiLastJob=ctrl.job||{};
+    viewBook(status.books);
+    const snapshot=selected();
+    if(snapshot&&bookId===productionBook){
+      selectedProgress(snapshot,ctrl);
+      $("selectedPhase").textContent=phaseName(snapshot.phase);
+      $("selectedMetrics").textContent="Render "+number(snapshot.rendered)+"/"+number(snapshot.total)+
+        " · QC "+number(snapshot.qc_checked)+"/"+number(snapshot.total)+
+        " · Cảnh báo "+(snapshot.review===null?"chưa biết":number(snapshot.review));
+      syncAudio(snapshot);
+    }
+    chapters.forEach((c,i)=>{
+      const opt=select.options[i];
+      if(opt)opt.textContent="Chương "+c.chapter+" — "+phaseName(c.phase);
+    });
+    const job=ctrl.job||{}, working=hasJob(job);
+    const isProduction=bookId===productionBook;
+    const jobs={resume:isProduction&&snapshot&&snapshot.can_resume,
+      recheck:isProduction&&snapshot&&snapshot.can_recheck,
+      improve:isProduction&&snapshot&&snapshot.can_improve,
+      next:isProduction&&currentChapter<11};
+    document.querySelectorAll("[data-command]").forEach(b=>{
+      const action=b.getAttribute("data-command");
+      b.disabled=!!working||!!executing||!jobs[action];
+      b.title=working?"Đang có công việc chờ hoặc chạy; không tạo trùng.":
+        !jobs[action]?"Chưa có dữ liệu phù hợp cho thao tác này.":"";
+    });
+    $("chooseChapter").disabled=executing;
+    if(!isProduction){
+      $("jobMessage").textContent="Sách mới chưa kiểm tra nội dung và chưa duyệt giọng; không thể render/QC.";
+    }else if(job.state){
+      let result="Lệnh "+(names[job.action]||job.action)+" · chương "+job.chapter+
+       " · "+job.state;
+      if(job.detail)result+=". "+job.detail;
+      if(job.state==="QUEUED_RESOURCE")result+=" Robot sẽ thử lại khi RAM trống ≥"+((ctrl.resource_policy&&ctrl.resource_policy.min_start_free_ram_gb)||1.5)+" GB.";
+      $("jobMessage").textContent=result;
+    }else{
+      $("jobMessage").textContent="Chưa có việc mới. Chọn chương rồi bấm tác vụ để giao cho robot.";
+    }
+  }
+  async function refresh(){
+    try{
+      const r=await fetch("/api/status",{cache:"no-store"});
+      if(!r.ok)throw new Error("Không lấy được trạng thái: "+r.status);
+      renderView(await r.json());
+    }catch(err){$("jobMessage").textContent="Không thể kiểm tra Control: "+err.message;}
+  }
+  async function command(action){
+    if(executing||!csrf)return;
+    const ch=currentChapter;
+    if(action!=="select"){
+      const target=(action==="next"?ch+1:ch);
+      const message=names[action]+" cho chương "+target+"?\n\n"+
+        (action==="resume"||action==="next"?
+          "SAYDI sẽ sử dụng checkpoint V5, chỉ chạy VieNeu/Whisper khi đủ tài nguyên.":
+          action==="improve"?
+          "Robot sẽ tạo tối đa 8 phương án sửa, giữ WAV gốc và xuất bản REVIEW mới. Không tự chứng nhận FINAL.":
+          "Robot chỉ QC lại các WAV nghi vấn. Lượt QC này không tự chữa lỗi phát âm.");
+      if(!confirm(message))return;
+    }
+    executing=true;
+    const text=$("jobMessage");text.textContent="Đang gửi yêu cầu...";
+    try{
+      const response=await fetch("/api/command",{method:"POST",headers:{
+        "Content-Type":"application/json","X-Saydi-Csrf":csrf},body:JSON.stringify({action,chapter:ch})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||("HTTP "+response.status));
+      text.textContent=action==="select"?"Đã chọn chương "+ch+".": 
+        "Đã giao việc "+names[action]+". Trạng thái: "+data.state+
+        ". Bạn có thể theo dõi tiến trình phía dưới.";
+      if(action==="next"){currentChapter=data.chapter;$("chapterSelect").value=String(currentChapter);}
+    }catch(err){text.textContent="Chưa thực hiện được: "+err.message;}
+    finally{executing=false;await refresh();}
+  }
+  $("chapterSelect").addEventListener("change",e=>{
+    if(bookId!==productionBook)return;
+    currentChapter=Number(e.target.value);
+    const snapshot=selected();
+    if(snapshot){$("selectedPhase").textContent=phaseName(snapshot.phase);syncAudio(snapshot);}
+    command("select");
+  });
+  $("chooseChapter").addEventListener("click",()=>command("select"));
+  document.querySelectorAll("[data-command]").forEach(b=>
+    b.addEventListener("click",()=>command(b.getAttribute("data-command"))));
+  async function selectBook(newId){
+    if(executing||!csrf)return;
+    executing=true;
+    $("bookDetails").textContent="Đang chuyển chế độ xem sách...";
+    try{
+      const response=await fetch("/api/books/select",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-Saydi-Csrf":csrf},
+        body:JSON.stringify({book_id:newId})
+      });
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||("HTTP "+response.status));
+      bookId=result.selected_book_id;
+      if(bookId!==productionBook){
+        $("selectedChapterAudio").pause();
+        $("selectedChapterAudio").removeAttribute("src");
+        $("selectedChapterAudio").load();
+        latestAudio="";
+      }
+    }catch(error){
+      $("bookDetails").textContent="Không thể mở sách: "+error.message;
+      $("bookSelect").value=bookId;
+    }finally{executing=false;await refresh();}
+  }
+  async function importBook(){
+    if(executing||!csrf)return;
+    const title=$("bookTitle").value.trim(),f=$("bookFile").files[0];
+    const note=$("bookImportMessage");
+    if(!title||!f){note.textContent="Cần nhập tên sách và chọn tệp PDF/TXT/DOCX/EPUB.";return;}
+    if(!$("bookRights").checked){note.textContent="Bạn phải xác nhận quyền sử dụng nội dung.";return;}
+    if(f.size<1||f.size>60*1024*1024){note.textContent="Kích thước tệp phải từ 1 byte đến tối đa 60 MB.";return;}
+    if(!confirm("Lưu nguồn sách '"+title+"' thành dự án riêng?\n\nChưa render, chưa thay đổi công việc của sách đang xử lý."))return;
+    executing=true;
+    $("uploadBook").disabled=true;
+    note.textContent="Đang lưu và xác minh SHA-256 nguồn sách trên ổ D...";
+    try{
+      const r=await fetch("/api/books/import",{method:"POST",
+        headers:{
+          "Content-Type":"application/octet-stream",
+          "X-Saydi-Csrf":csrf,
+          "X-Saydi-Title":encodeURIComponent(title),
+          "X-Saydi-Filename":encodeURIComponent(f.name),
+          "X-Saydi-Rights":"confirmed"
+        },body:f});
+      const data=await r.json();
+      if(!r.ok)throw new Error(data.error||("HTTP "+r.status));
+      note.textContent="Đã nhập "+data.imported.title+". Đang mở dự án mới ở chế độ chờ duyệt.";
+      $("bookTitle").value="";
+      $("bookFile").value="";
+      $("bookRights").checked=false;
+      executing=false;
+      await selectBook(data.imported.id);
+      return;
+    }catch(error){note.textContent="Chưa nhập được sách: "+error.message;}
+    finally{executing=false;$("uploadBook").disabled=false;await refresh();}
+  }
+  $("bookSelect").addEventListener("change",e=>selectBook(e.target.value));
+  $("chooseBook").addEventListener("click",()=>selectBook($("bookSelect").value));
+  $("uploadBook").addEventListener("click",importBook);
+  refresh();
+  setInterval(refresh,5000);
+})();
+</script>
+</body>
+</html>

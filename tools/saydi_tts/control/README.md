@@ -1,0 +1,192 @@
+# SAYDI Media Control — local operator dashboard (field MVP)
+
+**Scope:** a lightweight **read-only** operator Control panel for the active H4A16IL local SAYDI V5 runtime. This is an observable interim deliverable in the V6 roadmap, **not** a claim that authoritative `SAYDI-010` is DONE; task ordering remains in `00_PROJECT/SOURCE_OF_TRUTH.md`.
+
+## Local operator experience
+
+Open the desktop shortcut **SAYDI MEDIA CONTROL** or visit `http://127.0.0.1:8776/` **on DESKTOP-H4A16IL itself**.
+
+The dashboard automatically refreshes every 5 seconds and displays:
+- actual process activity vs completed/review/abnormal-stop states;
+- per-chapter render, first-pass QC, targeted repair and selected improvements;
+- remaining ASR review flags, clearly distinguished from confirmed listening defects;
+- CPU/RAM utilization and worker/process presence;
+- latest sanitized local run/recovery log excerpts;
+- embedded MP3 playback with seek support for full Chapter 1, the first 5 minutes and the middle 5 minutes.
+
+**Safety:** server binds ONLY to `127.0.0.1`. It does not invoke VieNeu, Whisper, remote APIs or Supabase, and has no write/action endpoint; `POST` returns 405. Audio routes are allowlisted and may serve only the three local review MP3 filenames. The dashboard contains no private manuscript content and does not report a false FINAL. Do not expose port 8776 to the Internet.
+
+## Install and run on the local Windows host
+
+Requirements: Windows, `C:\MAGASIN_MCP\.venv\Scripts\python.exe` with `psutil`, existing SAYDI runtime paths. The dashboard does **not** install any new heavy TTS or ASR packages.
+
+1. Copy the five files from this directory into `C:\SAYDI\control`.
+2. Run `INSTALL_MEDIA_CONTROL.ps1` in that directory. It verifies dependencies, sets an **HKCU-at-logon** start entry, creates the desktop shortcut and health-checks the localhost server. Use `-Open` to also open the dashboard.
+3. Alternatively run `START_MEDIA_CONTROL.ps1` manually, or add `-StartOnly` to avoid opening a browser.
+
+Actual field installation of the dashboard and shortcut on H4A16IL was confirmed, and the local service returned HTTP 200. The **updated v0.2 installer was rerun locally on DESKTOP-H4A16IL** on 2026-10-09 and returned `SAYDI_MEDIA_CONTROL_INSTALL=PASS`, with localhost health check, Desktop shortcut and current-user autostart confirmed. Clean-machine provisioning beyond this host is still unverified.
+
+## Local tests
+
+```powershell
+& C:\MAGASIN_MCP\.venv\Scripts\python.exe C:\SAYDI\control\test_media_control.py
+```
+
+Field observations on DESKTOP-H4A16IL:
+- two synthetic unit tests PASS, testing active-vs-review classification, HTTP read-only restriction and byte-range audio;
+- real `/healthz`, `/` and `/api/status` returned HTTP 200;
+- real `/audio/begin` returned HTTP 206 with a 1,024-byte partial response;
+- arbitrary audio route returns 404; POST returns 405;
+- JavaScript syntax verification via Node: PASS;
+- listener bound to **127.0.0.1:8776**, not to all interfaces.
+
+## Phase derivation & limitations
+
+Actual process inspection is authoritative for `RUNNING`: `render_owner_approved_v5.py`, `qc_local_segments.py` and `repair_chapter1_owner_v5_r2.py`. Checkpoint JSON is used to label the active stage and completed last run; a completed REVIEW state with no process must show **CHỜ NGHE DUYỆT**, not `robot đang chạy` and not `robot crashed`.
+
+Current data reader is tailored to Chapter 1 V5/R2 filenames. Future pipelines (video, other books, SAYDI V6 jobs) require a versioned job/telemetry contract and job registry rather than silently inferring state from a filename. Do not create misleading progress or fake ETA.
+
+**Next milestone:** authenticated local command API for Start/Pause/Resume with durable job ID, safe process locks, queue status, bounded retries and rollback; this read-only MVP intentionally does not advertise inert or unsafe Start/Stop buttons.
+
+## Private files and source
+
+Only source, installer, tests and this guide belong in Git. Owner manuscript, reference WAV, generated MP3, raw ASR transcript, secrets and runtime logs remain on H4A16IL. The app is a bridge to the V6 Owner-approved requirements in `00_PROJECT/SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md`.
+
+## Chapter 2 V5 QC (resource-gated field workflow, 2026-10-09)
+
+Owner ordered Chapter 2 QC with the same approved V5 narrator reference. **Do not use the V4 chapter-2 wavs/QC as V5 results.**
+
+On DESKTOP-H4A16IL Chapter 2 has a verified UTF-8 canonical source, an older **640-segment V4** manifest and audio, but initially **no V5-rendered audio**. The existing host has approximately 8 GB RAM and 4 logical CPU threads. Field preflight on 2026-10-09 15:22 local time showed 0.61 GB RAM free (92.3% used), CPU 84%, and 2.08 GB left on C:. Heavy synthesis/QC was intentionally not started under that load.
+
+Files:
+- `tools/saydi_tts/narration/chapter2_v5_qc_guarded.py`: checkpointed, source-and-reference-fingerprint-safe V5 chapter-02 render -> assemble -> batched QC (40 clips). Exit safely when RAM/disk is inadequate; do not run simultaneous TTS and Whisper.
+- `tools/saydi_tts/narration/test_chapter2_v5_qc_guarded.py`: three local synthetic tests (resource probe, atomic QUEUED_RESOURCE checkpoint, named mutex duplicate guard).
+- `tools/saydi_tts/control/RUN_CH02_V5_QC_SAFE.ps1`: Task Scheduler entrypoint. Windows task **SAYDI V5 CH02 QC Guardian** runs it every 15 minutes with `IgnoreNew`, subject to session/account scheduling. The runner is idempotent and can resume after restart without rerendering accepted chunks.
+- The Control dashboard shows a separate Chapter 2 status card. It **must** say `QUEUED_RESOURCE` with 0/640 rendered when blocked by RAM; it must not say `QC running` until that process really exists.
+
+Local output: `D:\SAYDI\OWNER_APPROVED_NATURAL_V5\Chuong_02` (models/source remain on C, no book content in Git). A lightweight status mirror exists at `C:\SAYDI\output\OWNER_APPROVED_NATURAL_V5\CH02_V5_STATUS.json` for Media Control.
+
+Safety gates: >= **2.3 GB** free RAM before loading a model, pause on < **0.70 GB** during VieNeu output, at least 3 GB free on D for render; Whisper is a separate <=2-thread subprocess run **after** TTS unload, in <=40-clip batches, and stops before prolonged critical memory exhaustion. CPU affinity 2 of 4 logical processors with below-normal priority. An unconfirmed QC/ASR estimate is not Owner listening acceptance. `REVIEW_READY` is not `FINAL`.
+
+Observed field evidence: manifest for 640 V5 segments generated and token/source integrity checked; two wrapper invocations exited 0 with `QUEUED_RESOURCE`, RAM below 2.3 GB; Windows task created and explicitly tested (last result 0, next scheduled run confirmed). Three Chapter 2 test cases and two Control test cases PASS. **No V5 chapter-2 segments had been synthesized and no V5 QC had run at the time of initial installation.** Schedule will only advance when resource preflight passes. If the machine does not naturally regain 2.3 GB RAM, Owner should close unused memory-heavy apps/tabs rather than killing unknown work.
+
+Do not mark any V6 milestone DONE due solely to installing the V5 guard; the authoritative SAYDI SOT task sequence remains unchanged.
+
+
+## Local operator commands (Media Control v0.2, 2026-10-09)
+
+The Control Center now includes a **chapter selector (1–11)**, **Resume / start chapter**, **Review flagged QC again**, **Improve voice quality (bounded)**, **Next chapter**, and a review MP3 player for the selected chapter.
+
+The page uses only a loopback HTTP API (`127.0.0.1:8776`), with origin / Host / CSRF enforcement. POST accepts only an exact allowlisted `{action,chapter}` object, without shell commands, file paths or user-supplied scripts. Each costly operation needs an explicit operator confirmation in the UI.
+
+Implementation:
+- `control_commands.py`: a single durable job with ID, state and selected chapter; rejects concurrent requests, checks 2.3 GB free RAM, and launches a separate process (never blocking the web server).
+- `RUN_CONTROL_JOBS.ps1`: 3-minute Windows Task Scheduler checkpoint/resume guardian, `IgnoreNew` instance settings and Windows mutex to prevent duplicate jobs.
+- `chapter_v5_job.py`: chapter 2–11 wrapper for the existing V5 source+reference verified renderer and 40-segment QC checkpoints. It is not a new voice model. The existing Chapter 2 handler is preserved.
+- `saydi_review_qc.py`: batch rechecks only ASR-flagged WAVs, validating hashes and retaining the original audio. This does **not** fix sound by itself.
+- `saydi_quality_improve.py`: bounded batch of up to 8 repair candidates for a selected chapter, <=2 attempts per flagged segment, CPU affinity 2/4, never TTS and Whisper simultaneously. Retains baseline WAVs/QC; writes a new REVIEW MP3 and remaining ASR exceptions; never automatically marks FINAL.
+- `test_control_commands.py`: synthetic chapter queue + concurrent request and localhost/CSRF checks.
+
+Field verification:
+- Live Control/JSON HTTP 200, 11 chapters recognized; Chapter 2 640/640 QC with 201 ASR REVIEW; Chapter 3 manuscript/preparation smoke produced a **285-segment V5 manifest** without loading heavy models, **0 audio rendered**.
+- Real API selected Chapter 2 then restored Chapter 1 with no render/QC job created. Selected Chapter 2 MP3 returned HTTP 206 Range; missing Chapter 3 audio returned 404.
+- 4/4 synthetic tests passed for the original Control and new command handling.
+- Installed `SAYDI Control Job Guardian` with task scheduler `IgnoreNew`, 3-minute retry, initial no-job tick returned 0.
+- The executable action worker code has passed Python syntax compilation. **Do not infer voice-quality integration tests passed:** no expensive rerender, full QC recheck or automatic repair run was launched merely to test these buttons. Those require live field QA and Owner sample listening.
+- An explicit click on `Tiếp tục / bắt đầu chương` is required before beginning Chapter 3 or any not-yet-started chapter. Merely preparing a manifest does not enqueue or begin work.
+- This is a subordinate practical Control upgrade; authoritative `SAYDI-002` task precedence, private local audio/manuscript and Owner FINAL gate remain unchanged.
+
+Local shortcut: `C:\Users\admin\Desktop\SAYDI MEDIA CONTROL.lnk`; dashboard: `http://127.0.0.1:8776/` on H4A16IL. Do not expose the raw control port to the Internet.
+
+
+## Activity timeline and heartbeat repair (2026-10-10)
+
+Owner screenshot revealed that **Nhật ký hoạt động** showed Oct-08 Chapter 1 R2 lines and a stale Oct-09 chapter checkpoint while a current `improve` Chapter 2 job was `QUEUED_RESOURCE` on Oct-10. This was a **Control observability defect**, not evidence that the repair was running.
+
+Fix:
+- `activity_monitor.py`: separate latest local scheduler heartbeat, current command admission/check/reason and actual workflow/process events. The current job is prioritized over historical Chapter 1 logs; show time-stamped, newest-first events, suppress repetitive no-op completed-QC ticks. Use 12-KiB bounded log reads and never display raw book text.
+- `media_control.py`: current job state overrides old chapter status for the hero banner; recognize Chapter 3+ and QC/repair worker processes. The API exposes `activity.headline`, `scheduler_healthy`, `last_heartbeat`, `last_check`, `job_state` and ordered events, with a 4-second lightweight snapshot cache to prevent duplicate heavy scans from the dashboard panels.
+- `control_commands.py`: every scheduled action check records `last_check_at`, free RAM and total checks in the durable job record, even when it must pause due to insufficient memory.
+- `index.html`: show **actual command state**, scheduler heartbeat and clear reason for waiting/paused/failed/running, rather than silently showing an old R2 log. This is not a repair to the sound quality itself.
+- `test_activity_monitor.py`: verify current queued Chapter 2 job outranks stale Chapter 1 logs, stale scheduler heartbeat triggers an alert and actual live processes are distinguished from waiting jobs. Existing controller tests were isolated from the real queued job.
+
+**Field results** from DESKTOP-H4A16IL:
+- At 2026-10-10 10:43 local, `/api/status` HTTP 200; Chapter 2 `improve` job queued at 10:40:34, attempts 0, no heavy process, RAM ~0.85 GB (below 2.3 GB).
+- A newer API test returned **CHỜ RAM — Tự sửa phát âm chương 2**, showed both the Oct-10 last-check and scheduler heartbeat, and listed the events newest-first; `/api/status` HTTP 200, second status poll hit the cache in ~1 ms, HTML contained both new monitor sections.
+- Local synthetic tests **7/7 PASS** (three activity + two base monitor + two command/auth tests); Python syntax and both inline JavaScript syntax tests PASS.
+- Existing Task Scheduler guardian 3-minute cadence remains enabled. No new VieNeu/Whisper render was triggered by this read-only diagnostic repair, and queued Chapter 2 repair remains **NOT RUNNING** until RAM preflight passes.
+
+This PR is **not** a full closed-loop V5 quality/FINAL acceptance. Keep source-of-truth task authority unchanged and do not claim Chapter 1 or Chapter 2 has passed Owner listening.
+
+
+## Single-core continuous V5 operation (Owner update, 2026-10-10)
+
+The Owner has requested **one logical CPU worker with automatic continuation** so SAYDI remains responsive on DESKTOP-H4A16IL (4 logical CPUs, ~8GB physical RAM). This means a single CPU core for each heavy phase and **sequential** VieNeu → unload → Whisper QC, **NOT** modifying speaking tempo or running through critical RAM pressure.
+
+### Applied field changes
+
+- One logical CPU affinity mask `0x1` and below-normal Windows process priority for V5 chapter render, QC recheck and bounded pronunciation repair. Internal OpenMP/OpenBLAS/MKL/NumExpr numerical threads all set to `1`; faster-whisper CPU threads set to `1` as well. The Controller passes a matching single-thread environment to spawned work.
+- The durable job controller now records a processing heartbeat every 25 seconds during long-running subprocesses, so operator Control can distinguish a live production worker from an idle Task Scheduler tick.
+- Fixed a malformed local Controller Python path (`CONTROL_PY`) that could prevent immediate click-to-start execution. It now points at `C:/MAGASIN_MCP/.venv/Scripts/python.exe` and checks that the executable exists.
+- Main `SAYDI Control Job Guardian` recurrence changed from every 3 minutes to **every 1 minute**, preserving Task Scheduler `IgnoreNew` and Windows job mutexes. If free RAM is below **2.3 GB** when starting a heavy worker, the task remains `QUEUED_RESOURCE`; render pauses at ~**0.70 GB** free. This deliberate safety pause is not a robot crash. A separate controller/worker is never started just to simulate activity.
+- Redundant `SAYDI V5 CH02 QC Guardian` was disabled **after verifying Chapter 2 was REVIEW_READY**. The old 3-minute watcher launched needless no-op Python jobs and could collide with Chapter 3's heavy-process inventory. This task was disabled, not deleted; rollback XML: `D:\SAYDI\backups\SAYDI_CH02_legacy_guardian_before_retirement_20261010.xml`. Main task rollback: `D:\SAYDI\backups\SAYDI_Control_Guardian_before_1min_20261010.xml`.
+- Media Control reports `logical_cpu_threads=1`, `max_concurrent_heavy_jobs=1`, `automatic_resume=true` and explicitly shows the single-core mode.
+
+### Tested
+
+On H4A16IL, 11/11 local tests PASS (three single-core policy including three real Windows `GetProcessAffinityMask == 0x1` checks; three activity, two command/auth and two dashboard). Python syntax tests passed; the locally relaunched Control returned HTTP 200 for health and status and confirmed `1` logical CPU thread, one active heavy job maximum, and automatic resume enabled. The Windows scheduler reports `PT1M` and `IgnoreNew`, and the v0.2 local installer returned PASS.
+
+Chapter 3's V5 job has been queued but encountered resource and conflicting legacy watcher gates during initial field checks; after retiring the old watcher it must still pass live render/QC and sample-listening QA. Chapter 2 has a rendered REVIEW MP3 and completed 640/640 baseline QC with unresolved flags; no chapter is made FINAL by this change.
+
+**Limitations:** This policy lowers peak CPU utilization, often at the expense of longer wall-clock render time. One CPU thread cannot reduce the fixed resident size of VieNeu/Whisper models enough to promise uninterrupted processing when Windows, Chrome, Zalo and other apps leave insufficient RAM. Retain the RAM safety gates, checkpoint/retry and explicit Owner listening approval. The current Windows guardian is configured as an **interactive-user task**, not a verified service that operates across user logoff or power outages. Do not label SAYDI-002 / V6 DONE on the basis of operational tuning alone.
+
+
+
+### Runtime observation correction (2026-10-10)
+The Control worker detector previously looked for an audio script name anywhere in a `powershell.exe`/Python command line. A diagnostic shell that **mentioned** `qc_local_segments.py` could therefore falsely light up `ACTIVE`. Both the dashboard and Control command coordinator now check the actual invoked Python `.py` script basename only. A new regression test starts a lightweight `python -c` probe mentioning worker names and verifies this is **not** treated as an active heavy job. The live Control endpoint subsequently reported `active=false` and the queued Chapter 3 job accurately remained `QUEUED_RESOURCE`; no production process was running at that check. Current physical RAM remained below 2.3 GiB preflight. Never infer continuous compute from a responsive watchdog alone.
+
+
+### Chapter 3 actual recovery and source/telemetry corrections (2026-10-10, 15:26 local)
+
+Further field investigation discovered a second collision: the V5 chapter wrapper's heavy-process scanner could count its own Windows venv `python.exe` **parent launcher** as a competing SAYDI job. `chapter_v5_job.py` now inventories process PID, parent PID and command line via read-only CIM, excludes its own ancestors, excludes `python -c` probes, but still blocks genuinely unrelated active VieNeu/Whisper workers. The scanner fails closed if inventory fails. It is covered by synthetic tests including an actual external QC PID.
+
+The obsolete `SAYDI NATURAL V4 Watchdog` was actually invoking the old completed **V5 Chapter 1 R2** resume script every 5 minutes; after verifying R2 phase `REVIEW_READY`, this repeated no-op watchdog was disabled (not removed) to make the **single V5 Control Job Guardian** the only active SAYDI production scheduler. Rollback: `D:\SAYDI\backups\SAYDI_V4_watchdog_before_retirement_20261010.xml`. Both old CH2 and V4 watchers are safely disabled; the original `SAYDI Full Book V4 Resume` was already Disabled and remained so.
+
+Fix for Chapter 3+ naming: the shared V5 pipeline previously hardcoded **Chapter 2** filenames and log labels. The file now uses the dynamically selected chapter number in review MP3s, QC reports and operator logs. Stale `blocking_jobs`/old `reason` fields are cleared when a new checkpoint phase is written. Synthetic assembly only writes a fake test file in a temporary directory; it is **not** a real Chapter 3 MP3 or listening acceptance.
+
+**Verified genuine production:** Chapter 3 V5 created **2/285 new WAV segments** (log records 2026-10-10 15:24–15:25). The worker paused at the configured free-RAM floor and saved those clips; this is actual progress, not simply a scheduler pulse. The 8GB host remains memory-constrained, so Chapter 3 is NOT completed or QC-accepted.
+
+Local complete regression: **14/14 PASS** (three chapter/process/naming, four single-core policy, three activity, two HTTP/control and two auth/commands); Python compilation PASS. The main task remains scheduled each minute with `IgnoreNew` and one logical CPU affinity; do not weaken RAM gates to present a false continuous green state.
+
+
+### Owner RAM start threshold lowered to 1.5 GB (2026-10-10, local field adjustment)
+
+The Owner explicitly approved starting SAYDI heavy work with **at least 1.5 GB free physical RAM**, rather than the previous 2.3 GB. This is the **admission threshold** for a render/QC attempt, *not* a guarantee that a resident VieNeu or Whisper model will finish without more memory. The 8 GB host had previously paused during rendering with RAM as low as 0.46 GB; do not disable low-memory interruption safeguards.
+
+Implementation changes:
+- `control_commands.py`: `OWNER_MIN_GB=1.5`, threshold interpolated into queue reason, durable queued checkpoint unchanged. One logical CPU and one heavyweight worker at any time still enforced.
+- `chapter2_v5_qc_guarded.py`: `MIN_START_RAM_GB=1.5` for every V5 chapter 2–11 render and checkpointed Whisper QC; each new status checkpoint carries `min_start_ram_gb=1.5`. The active-render pause floor remains `MIN_RUN_RAM_GB=0.70`; QC child critical-RAM abort threshold still `0.30` GB. The V5 source text/voice/tempo are unchanged.
+- `saydi_quality_improve.py` and `saydi_review_qc.py`: both use 1.5 GB admission for expensive jobs; reason labels updated to `RAM_BELOW_1_5_GB`. Existing media/checkpoints not deleted or reset.
+- `activity_monitor.py` and `media_control.py` pass through the current admission threshold; the Control dashboard renders it dynamically instead of showing stale **2.3 GB** strings.
+- New `test_ram_1p5_gate.py` ensures controller, V5 render, QC and quality worker thresholds agree; validates status and checkpoint messages without loading media models. The installer includes this regression test.
+
+Field validation: **18/18 local tests PASS**, Python and embedded-JavaScript syntax PASS; updated local installer `SAYDI_MEDIA_CONTROL_INSTALL=PASS`; restarted local Control returned health/status HTTP 200 with `min_start_free_ram_gb=1.5`, `logical_cpu_threads=1`, Chapter 3 queued checkpoint preserved. Backup of seven modified source files is stored under `D:\SAYDI\backups\RAM_START_GATE_2p3_TO_1p5_20261010`.
+
+The 1-minute Windows Task Scheduler Guardian remains active with `IgnoreNew`; it retries a queued job if machine resources become sufficient. A return to `QUEUED_RESOURCE` or `PAUSED_RESOURCE` during low physical memory is **expected protective behavior**, not proof that source code failed or that a chapter is FINAL. Do not claim stable long-running audio production until new render/QC field results support it.
+
+
+## Multi-book local library and live chapter card — Owner request 2026-10-10
+
+The 2026-10-10 screenshot showed Chapter 3 selected while the dashboard still rendered a static Chapter 2 card and historical Chapter 1 panels. Root cause: a fixed 11-chapter V5 manuscript and hardcoded cross-chapter UI. Choosing a *different book* was not implemented.
+
+Deployed as an isolated first gate:
+- A book library on DESKTOP-H4A16IL at `D:\SAYDI\BOOK_LIBRARY\book-<id>`. Existing V5 remains `legacy-v5` with its current queue, 11-chapter canonical source, and checkpoints untouched.
+- UI book selector and registration of a new PDF/TXT/DOCX/EPUB file (<=60 MiB). Source is streamed to a new immutable-identity folder, SHA-256 recorded, with explicit rights confirmation. Imported book status is `IMPORTED_NEEDS_INGESTION_AND_APPROVAL`. Import never starts TTS and never changes the legacy job.
+- `POST /api/books/select` changes view context only and does not kill/pause queued work. New books **cannot** call old `/api/command` or legacy audio URLs, preventing cross-book replay/mixing. Localhost/Origin/CSRF required, no arbitrary path or process invocation.
+- `/api/status` carries the book catalog, selected book, production book and per-chapter checkpoint timestamp. The old always-on Chapter 2 status widget is now a dynamically selected chapter card. Chapter 1-only historical widgets hide outside Chapter 1; other books show their own imported/readiness metadata rather than old book progress.
+- Cache invalidated on successful selection/import so displayed book state changes immediately.
+
+Field validation: 3 synthetic book-library tests + 18 existing local safety tests **21/21 PASS**, both embedded JS scripts syntax PASS, local installer PASS, live /api/status HTTP 200 and import/select controls present. A real legacy-only book select returned HTTP 202 with the existing `control_job.json` SHA-256 unchanged. No user book was imported, no real new-book audiobook pipeline was run. Chapter 3 was observed checkpointing from 4/285 to 5/285 and then re-entered resource wait; don't infer continuous render just from HTTP refresh.
+
+Next gate before offering to **produce** a new book: PDF/OCR/DOCX/EPUB/TXT content ingestion; chapter parsing and 3-layer canonical text; immutable book source fingerprint, voice reference, sample approval and independent per-book task queue/output path. Existing SOT requirements remain authoritative; do not mark the V1 multi-book pipeline complete or Owner FINAL.
+
