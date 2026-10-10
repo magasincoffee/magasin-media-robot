@@ -84,15 +84,21 @@ def wav_detail(path):
         beginning = w.readframes(edge_frames)
         w.setpos(frames-edge_frames)
         ending = w.readframes(edge_frames)
+        mid_frames = min(frames, max(1, round(rate * .5)))
+        w.setpos(max(0, (frames-mid_frames)//2))
+        middle = w.readframes(mid_frames)
     import array
-    first, last = array.array("h"), array.array("h")
+    first, last, mid = array.array("h"), array.array("h"), array.array("h")
     first.frombytes(beginning)
     last.frombytes(ending)
+    mid.frombytes(middle)
+    mid_rms = math.sqrt(sum(v*v for v in mid)/len(mid))/32768
     return {"seconds": frames/rate, "rate": rate,
             "start_abs": abs(first[0])/32768,
             "end_abs": abs(last[-1])/32768,
             "start_rms": math.sqrt(sum(v*v for v in first)/len(first))/32768,
-            "end_rms": math.sqrt(sum(v*v for v in last)/len(last))/32768}
+            "end_rms": math.sqrt(sum(v*v for v in last)/len(last))/32768,
+            "mid_rms_dbfs": round(20*math.log10(max(mid_rms,1e-10)),2)}
 
 def beat_hint(text, is_heading):
     """Only an auditable editorial *suggestion*. Never a claim about heard emotion."""
@@ -151,7 +157,7 @@ def audit(manifest, baseline_qc, original_concat, review_concat,
             raise ValueError(f"STALE_CHANGED_ASR_AT_{i}")
 
     now = 0.0
-    timeline, lengths, gaps, edge_flags = [], [], [], []
+    timeline, lengths, gaps, edge_flags, energy_levels = [], [], [], [], []
     last_parent = None
     for i, item in enumerate(items):
         audio, silence = changed[2*i:2*i+2]
@@ -163,6 +169,7 @@ def audit(manifest, baseline_qc, original_concat, review_concat,
         changed_paragraph = last_parent is not None and item.get("parent_line") != last_parent
         timeline.append({"segment":i,"time_s":round(start,3),"end_s":round(end,3)})
         lengths.append(md["seconds"])
+        energy_levels.append(md["mid_rms_dbfs"])
         gaps.append({"index":i,"gap_ms":current_gap_ms,"mark":suffix,
                      "heading":bool(item.get("heading")),
                      "changed":i in modified_gaps,
@@ -209,8 +216,21 @@ def audit(manifest, baseline_qc, original_concat, review_concat,
             if _ACRONYM.search(item.get("canonical_text","")):
                 entry["special_term"]="ACRONYM_PRONUNCIATION_REVIEW"
             flagged.append(entry)
+    # Energy is only a weak voice-continuity signal, never proof of emotion
+    # or timbre identity. Probe a short middle PCM window, not a TTS model.
+    energy_suspects=[{"join_after":i-1,"at_s":timeline[i]["time_s"],
+                      "mid_rms_difference_db":round(abs(energy_levels[i]-energy_levels[i-1]),2),
+                      "reason":"ENERGY_CHANGE_REVIEW_NOT_TIMBRE_PROOF"}
+                     for i in range(1,count)
+                     if lengths[i]>=2 and lengths[i-1]>=2
+                     and min(energy_levels[i],energy_levels[i-1])>-45
+                     and abs(energy_levels[i]-energy_levels[i-1])>8]
     qc03={"status":"REVIEW","semantic_candidates":editorial[:max_issues],
-          "candidate_total":len(editorial),"emotion_ear_check":"MISSING",
+          "candidate_total":len(editorial),
+          "energy_continuity_suspect_count":len(energy_suspects),
+          "energy_continuity_suspects":energy_suspects[:max_issues],
+          "energy_measurement":"MIDDLE_0P5S_PCM_RMS_ONLY",
+          "emotion_ear_check":"MISSING",
           "no_tts_emotion_controls_invented":True}
     qc04={"status":"REVIEW","baseline_review_count":sum(x["status"]!="PASS" for x in rows.values()),
           "checked_asr_review_count":sum(candidate_rows.get(i,rows[i])["status"]!="PASS" for i in rows),
