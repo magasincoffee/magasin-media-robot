@@ -947,3 +947,10 @@ Owner QC priorities: first validate natural contextual pauses (QC-01), then susp
 
 **Report and local-only preview paths:** `tools/saydi_tts/qc/V5_CH02_QC01_QC02_EVIDENCE_20261010.md` and `D:\SAYDI\QC_STAGING\CH02_V5_QC01_QC02_20261010\listening_previews`. Private manuscript, MP3 and WAV remain on the trusted local host; never commit them.
 
+
+### Owner QC02 reference approval (2026-10-10, 20:34 local; QC noise NOT accepted)
+
+Owner listened to `QC02_NGU_CANH_GOC_5PHUT_002334.mp3` (a direct 5-minute excerpt from the existing V5 Chapter 2 REVIEW MP3) and **approved its narration rhythm/emphasis**. Owner also reports residual, less frequent **unpleasant connecting sounds**; therefore this sample is **approved as narration STYLE ONLY**, not as a clean join, Chapter 2 FINAL, or QC-02 completion.
+
+The existing pipeline already applies short outer-WAV fades and context pause gaps. Do not force global crossfades, regenerate the whole chapter, replace VieNeu, or adjust playback tempo to try to remove the remaining artifacts. PR #101 now contains an opt-in QC02 edge/transient inspector with 3 synthetic unit tests and a read-only local 5-mark scan; **no strongly evidenced click at a scanned WAV edge** was found, and the exact audible events are still not localized. The new code is **not wired into production** or permitted to auto-repair/auto-PASS. Next: listening localization on the approved 5-minute sample, then targeted A/B repairs and post-fix QC evidence, then an explicit cutover gate. Preserve `SAYDI-002` authority and all previous deployment/rollback rules.
+
