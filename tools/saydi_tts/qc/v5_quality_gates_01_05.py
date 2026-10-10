@@ -211,7 +211,8 @@ def audit(manifest, baseline_qc, original_concat, review_concat,
           "no_tts_emotion_controls_invented":True}
     qc04={"status":"REVIEW","baseline_review_count":sum(x["status"]!="PASS" for x in rows.values()),
           "checked_asr_review_count":sum(candidate_rows.get(i,rows[i])["status"]!="PASS" for i in rows),
-          "issues_total":len(flagged),"issues":flagged[:max_issues],
+          "issues_total":len(flagged),"issues":flagged,
+          "issues_preview":flagged[:max_issues],
           "automatic_asr_not_pronunciation_pass":True}
     owner=read(owner_acceptance) if owner_acceptance else {}
     if owner.get("chapter_final_approved") and owner.get("source_mp3_sha256")!=new_hash:
