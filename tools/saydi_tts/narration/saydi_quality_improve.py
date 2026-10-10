@@ -60,8 +60,8 @@ def main():
     def status(phase,**kw):
         save(state,{"chapter":ch,"phase":phase,"updated":time.strftime("%Y-%m-%d %H:%M:%S"),
                     "final":False,"owner_approved":False,**kw})
-    if ram()<2.3:
-        status("PAUSED_RESOURCE",reason="RAM_BELOW_2_3_GB",free_gb=round(ram(),2))
+    if ram()<1.5:
+        status("PAUSED_RESOURCE",reason="RAM_BELOW_1_5_GB",free_gb=round(ram(),2))
         return 0
     v5spec=importlib.util.spec_from_file_location("v5_owner",str(V5))
     v5=importlib.util.module_from_spec(v5spec);v5spec.loader.exec_module(v5)
@@ -127,7 +127,7 @@ def main():
             except Exception:pass
             del tts
         gc.collect()
-    if ram()<2.3:
+    if ram()<1.5:
         status("PAUSED_RESOURCE",reason="RAM_BEFORE_ASR",selected=choices,completed=len(choices),
                free_gb=round(ram(),2))
         return 0
