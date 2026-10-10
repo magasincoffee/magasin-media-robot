@@ -36,7 +36,8 @@ def issue(pass_id: str, code: str, index: int | None = None,
             "severity": severity, **safe_details}
 
 
-def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None) -> dict:
+def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
+            legacy_audit: dict | None = None) -> dict:
     items = manifest.get("segments")
     if not isinstance(items, list) or not items:
         raise ValueError("MISSING_SEGMENTS")
@@ -100,6 +101,9 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None) -
             findings.append(issue("FIDELITY", "SOURCE_PROVENANCE_UNVERIFIED", idx))
         if words(canonical) != words(spoken):
             findings.append(issue("FIDELITY", "CANONICAL_SPOKEN_TOKEN_DIFF", idx))
+        editorial = obj.get("editorial_text")
+        if isinstance(editorial, str) and editorial and words(editorial) != words(spoken):
+            findings.append(issue("FIDELITY", "EDITORIAL_SPOKEN_TOKEN_DIFF", idx))
         declared = obj.get("tts_text_sha256")
         if isinstance(declared, str) and re.fullmatch(r"[a-fA-F0-9]{64}", declared):
             # Legacy V5's tts_text_sha256 is a producer-specific fingerprint.
@@ -129,6 +133,41 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None) -
         if wa and wa == wb:
             findings.append(issue("CONTINUITY", "POSSIBLE_DUPLICATE_UNIT", b,
                                   previous_index=a))
+
+    # Bind the existing legacy editorial audit to the exact chapter/source and
+    # voice: this is useful inherited evidence, NOT an independent spellcheck.
+    legacy_summary = {"status": "NOT_SUPPLIED"}
+    if legacy_audit is not None:
+        if not isinstance(legacy_audit, dict):
+            raise ValueError("INVALID_LEGACY_EDITORIAL_AUDIT")
+        same_source = bool(manifest.get("source_sha256")) and (
+            legacy_audit.get("source_sha256") == manifest["source_sha256"])
+        same_reference = bool(manifest.get("reference_sha256")) and (
+            legacy_audit.get("reference_sha256") == manifest["reference_sha256"])
+        same_count = legacy_audit.get("segments") == len(items)
+        if not (same_source and same_reference and same_count):
+            findings.append(issue("LEGACY_AUDIT", "LEGACY_AUDIT_BINDING_MISMATCH",
+                                  None, "BLOCK"))
+        suspect_count = legacy_audit.get("legacy_paraphrase_suspects")
+        if type(suspect_count) is not int or suspect_count < 0:
+            raise ValueError("INVALID_LEGACY_PARAPHRASE_COUNT")
+        if suspect_count:
+            findings.append(issue("LEGACY_AUDIT", "LEGACY_PARAPHRASE_REVIEW",
+                                  None, count=suspect_count))
+        if legacy_audit.get("word_integrity") != "PASS":
+            findings.append(issue("LEGACY_AUDIT", "LEGACY_WORD_INTEGRITY_NOT_PASS"))
+        if legacy_audit.get("v5_spoken_text_diff") is not False:
+            findings.append(issue("LEGACY_AUDIT", "V5_SPOKEN_TEXT_DIFFERENCE"))
+        if legacy_audit.get("canonical_source_utf8") is not True:
+            findings.append(issue("LEGACY_AUDIT", "CANONICAL_UTF8_UNVERIFIED"))
+        legacy_summary = {
+            "status": "BOUND_TO_SOURCE_AND_VOICE" if same_source and same_reference and same_count else "BINDING_FAILED",
+            "legacy_paraphrase_suspects": suspect_count,
+            "word_integrity": legacy_audit.get("word_integrity"),
+            "v5_spoken_text_diff": legacy_audit.get("v5_spoken_text_diff"),
+            "canonical_source_utf8": legacy_audit.get("canonical_source_utf8"),
+            "independent_proof": False,
+        }
 
     # Separately produced editorial-verification receipts only; independence
     # cannot be inferred from repeating the same algorithm. No fake PASS.
@@ -168,6 +207,7 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None) -
         "segment_count": len(items),
         "source_text_verified_segments": source_verified,
         "legacy_opaque_tts_hash_count": legacy_opaque_hashes,
+        "legacy_editorial_audit": legacy_summary,
         "passes": ["STRUCTURE", "ORTHOGRAPHY", "CONTINUITY", "FIDELITY",
                    "INDEPENDENT"],
         "finding_count": len(findings),
@@ -209,6 +249,7 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--independent-reviews", type=Path)
+    parser.add_argument("--legacy-editorial-audit", type=Path)
     parser.add_argument("--enable-experimental-editorial-qc", action="store_true")
     args = parser.parse_args()
     if not args.enable_experimental_editorial_qc:
@@ -218,7 +259,9 @@ def main() -> int:
     manifest = json.loads(raw.decode("utf-8-sig"))
     reviews = (json.loads(args.independent_reviews.read_text(encoding="utf-8-sig"))
                if args.independent_reviews else None)
-    report = inspect(manifest, hashlib.sha256(raw).hexdigest(), reviews)
+    legacy = (json.loads(args.legacy_editorial_audit.read_text(encoding="utf-8-sig"))
+              if args.legacy_editorial_audit else None)
+    report = inspect(manifest, hashlib.sha256(raw).hexdigest(), reviews, legacy)
     write_report(args.report, report)
     print(json.dumps({"report": str(args.report), "status": report["status"],
                       "segments": report["segment_count"],
