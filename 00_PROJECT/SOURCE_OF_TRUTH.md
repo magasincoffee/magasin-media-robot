@@ -928,3 +928,70 @@ Continue using the existing `SAYDI-ND` and `SAYDI-QC` subtracks; do not create a
 ### Latest local observation (not repo field acceptance)
 
 On 2026-10-08, Chapter 1 V5 was rendered in 347 WAV segments. Initial QC flagged 120 basic REVIEW; a locally generated V5 R2 candidate package reduced basic ASR REVIEW to 115 after selecting 12 improved variants out of 35 targeted attempts. This does **not** establish audible Owner approval; Chapter 1 remains `REVIEW`, and V6 remains unimplemented. Intermediate WAVs, manuscript and listening files stay on the local host.
+
+
+## Scoped Owner QC pilot — Chapter 2 V5 QC-01 / QC-02 (2026-10-10, proposal only)
+
+**Authority / priority:** This is a read-only and opt-in *quality experiment* on the already produced Chapter 2 REVIEW MP3. It does **not** change the main authoritative NEXT task (**SAYDI-002**), the 2026-10-09 unified Control Center migration and Owner STOP/START policy, the deployed VieNeu engine, voice reference, task protocols, Windows scheduler, checkpoint source, local data models or active Chapter 3 production.
+
+Owner QC priorities: first validate natural contextual pauses (QC-01), then suspected join click/pop events (QC-02) before attempting emotional direction, pronunciation rerender or a fix-verification loop (QC-03–05). Keep existing normal behavior default; no broad fades, atempo, silent text rewriting, or automatic FINAL.
+
+**Baseline evidence** on the host:
+- Chapter 2 original REVIEW MP3 duration 3991.700s, SHA-256 `ed17de91ad34570ca2f79695c139fb79f5f0ac33af7faf7604e50095c8a6b831`, 640 source segments, 439 baseline ASR PASS and 201 baseline REVIEW (not accepted as real human listening).
+- Existing `pause_after()` already distinguishes comma/sentence/question/paragraph/heading, and `clean_clip()` already uses 12ms edge fades. Direct join reconstruction shows 489 of 640 inserted gaps are 610ms; other gaps are 180/215/670/700/900/1020ms. Don't assume all audible 0.7–0.8s pauses are abnormal.
+- Measurements at suspected 00:16:33 / 00:23:34 / 00:36:19 / 00:56:29 / 01:01:12 were gathered from unchanged audio, but do not coincide exactly with reconstructed join points. These are still listening **REVIEW**, not confirmed faults.
+
+**Isolated implementation:** Branch `feat/saydi-v5-ch02-qc01-qc02-audit` provides a *read-only baseline analyzer*, and an opt-in FFmpeg A/B sample generator that varies silence by at most ±80ms on a candidate full-stop boundary, preserving actual spoken WAVs, native voice speed and existing loudnorm. It also produces five unchanged 8s listen excerpts. Original MP3 hash was reverified unchanged; two sample pairs differed by exactly +80ms in total duration. Three scoped offline unit tests passed. No TTS or ASR model was loaded for these tests; current Chapter 3 renderer was not interrupted.
+
+**Owner gate:** Before any production change to `pause_after`, `clean_clip`, `assemble` or QC acceptance, Owner must hear paired clips and adjudicate the five suspected join sounds. Only confirmed issues may receive *segment-level* targeted repair, protected by technical comparison, text-fidelity verification, reversibility, bounded attempts and post-fix listening. QC-03/04/05 remain pending. Full end-to-end regression and Owner FINAL have not passed.
+
+**Report and local-only preview paths:** `tools/saydi_tts/qc/V5_CH02_QC01_QC02_EVIDENCE_20261010.md` and `D:\SAYDI\QC_STAGING\CH02_V5_QC01_QC02_20261010\listening_previews`. Private manuscript, MP3 and WAV remain on the trusted local host; never commit them.
+
+
+### Owner QC02 reference approval (2026-10-10, 20:34 local; QC noise NOT accepted)
+
+Owner listened to `QC02_NGU_CANH_GOC_5PHUT_002334.mp3` (a direct 5-minute excerpt from the existing V5 Chapter 2 REVIEW MP3) and **approved its narration rhythm/emphasis**. Owner also reports residual, less frequent **unpleasant connecting sounds**; therefore this sample is **approved as narration STYLE ONLY**, not as a clean join, Chapter 2 FINAL, or QC-02 completion.
+
+The existing pipeline already applies short outer-WAV fades and context pause gaps. Do not force global crossfades, regenerate the whole chapter, replace VieNeu, or adjust playback tempo to try to remove the remaining artifacts. PR #101 now contains an opt-in QC02 edge/transient inspector with 3 synthetic unit tests and a read-only local 5-mark scan; **no strongly evidenced click at a scanned WAV edge** was found, and the exact audible events are still not localized. The new code is **not wired into production** or permitted to auto-repair/auto-PASS. Next: listening localization on the approved 5-minute sample, then targeted A/B repairs and post-fix QC evidence, then an explicit cutover gate. Preserve `SAYDI-002` authority and all previous deployment/rollback rules.
+
+
+### QC-01/02 5-minute listening gate update (2026-10-10, local preview only)
+
+Following Owner feedback that 8-second previews are inadequate, opt-in non-production QC tooling now produces a **294.330s Chapter 2 A** and **295.690s Chapter 2 B** for 39 identical spoken WAV segments, with only 21 candidate silence gaps changing (net +1.360s). A separate unmodified **300.024s QC-02** context sample is available around 00:23:34. The existing VieNeu engine, speed, voice, Checkpoint, Control, Supabase protocol and chapter REVIEW MP3 remain untouched. All nine scoped local tests passed, including duration/hash/WAV-provenance verification. Existing Chapter 3 job reached **285/285 render and QC** with state `REVIEW_READY`; no Owner FINAL approval implied.
+
+For the five suspect QC-02 timestamps, the actual nearest PCM join endpoints are at amplitude zero after the existing fades. This **does not prove audible quality** and may not pinpoint the exact user-reported sound. No automatic fade/crossfade was applied. Owner listening and confirmed timecoded defects are still required before any targeted correction. The pilot scripts remain entirely disconnected from the production scheduler; QC-01/02 are **REVIEW, not accepted** and QC-03/04/05 are untouched. Full evidence: `tools/saydi_tts/qc/V5_CH02_QC01_QC02_EVIDENCE_20261010.md`; local private MP3s under `D:\SAYDI\QC_STAGING\CH02_V5_QC01_QC02_20261010\listening_5phut`. The current authoritative NEXT task, `SAYDI-002`, does not advance from this pilot.
+
+
+### Additional V5 QC-01/QC-02 listening sample — Chapter 3 (2026-10-10, REVIEW only)
+
+To obtain an **independent ~5-minute Chapter 3** sample rather than another Chapter 2 comparison, the isolated QC pilot now includes `tools/saydi_tts/qc/preview_chapter3_5min.py`, reusing the previously scoped WAV/pause and seam inspection helpers. The local folder is `D:\SAYDI\QC_STAGING\CH03_V5_QC01_QC02_20261010\listening_5phut` with an Owner Desktop shortcut. Three observed files: A 300.890s, B 301.770s, QC-02 original stream-copy 300.024s. A/B use exactly the same 59 spoken source WAVs, differ only in 25 suggested silence intervals (+880ms net); 58 joins were screened and none triggered conservative edge warnings. This does not prove they are perceptually clean or that B is preferable. Original Chapter 3 MP3 SHA-256 was verified unchanged; 285/285 render and basic QC remain `REVIEW_READY`, not Owner `FINAL`. The new sample is **feature-OFF** from the production robot; source, API, engine, Control, scheduler and existing checkpoint are unchanged. Details and Owner listening gate: `tools/saydi_tts/qc/V5_CH03_QC01_QC02_5MIN_EVIDENCE_20261010.md`. Existing SOT task authority and NEXT `SAYDI-002` stay unchanged.
+
+
+### Owner listening disposition, Chapter 3 QC-01/02 — 2026-10-10 21:55 ICT
+
+Owner selected **B** as the better natural pacing in the separate ~5-minute Chapter 3 trial. This approves *B as preferred sample for continued QC*, not as a full-chapter or production `FINAL`. A/B retain identical 59 spoken WAVs; therefore the voice-drift problem described below is **also present in B** until the underlying affected speech clip is repaired.
+
+Owner separately confirmed an **audible change into two different-sounding voice tones starting near 03:13** in `QC02_CHUONG_03_GOC_5PHUT.mp3`. The time maps to ~785.89s in the original Chapter 3, close to the seam at 785.04s between WAVs **145 → 146** (the next utterance starts around 785.65s). Both items share the approved reference fingerprint, but the legacy ASR report independently classified **145 REVIEW (similarity .9299)** and **146 REVIEW (.9341)**. This is a **confirmed subjective timbre-continuity defect**, not a confirmed digital click/pop. Do not apply an unverified global fade or conclude a common reference hash guarantees identical tone.
+
+A focused 70s **unchanged source** excerpt and durable human-review ledger were saved *locally* in `D:\SAYDI\QC_STAGING\CH03_V5_QC02_VOICE_JOIN_145_146`. Original Chapter 3 SHA-256 remains `4809f72dd6b10c1172e8f029cfa6c492cb2a68d9733f19ad2045595c98e3618f`. The proposed one-segment rerender is **not produced** at this checkpoint (a tool safety check rejected the attempted isolated render-script write); no production artifacts, Control configuration, source text, narrator reference or SOT task order were altered.
+
+**Next safe gate:** separately re-render only original spoken segment 146 with the same VieNeu ONNX V5 voice reference and a strict attempt limit, check 145 as its unchanged preceding context, compare listening and transcript/ASR before promoting anything. Keep `QC02=REPAIR_PENDING` and `QC01=B_SAMPLE_PREFERRED`; never infer QC PASS/FINAL from audio metrics alone. Existing authoritative NEXT `SAYDI-002` remains unchanged.
+
+
+### Owner-authorized Ch3 WAV 146 bounded QC02 R1/R2 trial — 2026-10-10 22:36 ICT
+
+Within the subordinate QC-01/QC-02 draft pilot, **two local non-production re-renders** of the previously Owner-confirmed 145→146 tonal drift were generated by the unchanged VieNeu V5 ONNX engine with the same manifest spoken text and reference fingerprint. R1 ASR similarity 0.9282 (**REVIEW**), R2 similarity 0.9503 (**technical ASR PASS**), original similarity 0.9341 (**REVIEW**). ASR PASS is explicitly **NOT** Owner voice continuity or proper “VOC” pronunciation PASS. A first Windows CPU-affinity invocation failed before synthesis, then the script was repaired; exactly two actual candidates were rendered, and no further candidate attempts are authorized without a separate decision.
+
+In `D:\SAYDI\QC_STAGING\CH03_V5_QC02_VOICE_JOIN_145_146`, the team preserved B (Owner-preferred sentence pauses) and rendered focused 80-second audio comparisons (original B vs B-R1 vs B-R2) plus optional full ~5-minute B-R1/B-R2 previews by substituting **only WAV 146**. Technical ledger: `QC02_TECHNICAL_GATE.json`, `LISTEN_QC02_AB_REPORT.json`. Production Chapter 3 MP3 SHA-256 `4809f72dd6b10c1172e8f029cfa6c492cb2a68d9733f19ad2045595c98e3618f` remains unchanged, Control task `DONE`, Guardian `Ready`.
+
+**Release gate:** Keep `QC01=B_SAMPLE_PREFERRED`, `QC02=REVIEW_OWNER_TIMBRE_AND_PRONUNCIATION_REQUIRED`, Chapter 3 `REVIEW_READY` (not FINAL). Only explicit Owner listening approval of tonal continuity, text and the abbreviation, followed by regression and a review artifact, may promote a replacement. SOT NEXT `SAYDI-002` and current engine/scheduler/control protocol remain unchanged. Default feature OFF, rollback simply ignore staged candidates. Local comparison and audit source files are present but their final GitHub sync was blocked by safety review; never claim full PR code coverage until verified.
+
+
+### Owner approval of B+R2 five-minute Ch3 sample and isolated full REVIEW — 2026-10-10, 22:57 ICT
+
+Owner **explicitly chose** the five-minute `B_QC02_146_R2_5PHUT.REVIEW.mp3` sample for QC01 preferred B cadence and QC02 targeted WAV 146 tone correction. The field-verified sample SHA-256 is `4c24320f9425c140e4370ea7012c204e564ac0a959dd3c315cec1139ba48e720`; use only the latter. This is **sample-level listening approval**, not complete chapter FINAL or a general pronunciation/timbre certificate outside this sample.
+
+A new **non-production** full Chapter 3 `REVIEW` output was encoded to `D:\SAYDI\QC_STAGING\CH03_V5_R2_B_WINDOW_REVIEW_20261010\CHUONG_03_V5_QC01_B_QC02_R2.REVIEW.mp3`. FFprobe duration 1533.875s, SHA-256 `8ce6b51e17eb50402222e68e0f3d20dda2f7fa4b52752189ad12ea2cac6e5a36`. Exact concat/diff check: only spoken WAV **146** replaced by SHA-matched R2; **25 bounded B sentence pauses** changed solely inside previously approved sample's index range **107–165**. All other 284 spoken clips, all pauses outside that interval and all original text/manifests/checkpoints/job controls untouched. Measured +0.960s duration vs source = +0.880s pauses plus +0.080s R2 WAV duration. Original production MP3 SHA-256 still `4809f72dd6b10c1172e8f029cfa6c492cb2a68d9733f19ad2045595c98e3618f`.
+
+**Acceptance states:** `QC01=B_SAMPLE_APPROVED`, `QC02=R2_SAMPLE_APPROVED`, `WHOLE_CHAPTER_3=REVIEW_PENDING`, `QC03/04/05=INCOMPLETE`. Full MP3 decode follow-up and Desktop shortcut creation were blocked by a safety control, so their validation is **NOT** asserted. Full report and rollback proof: `tools/saydi_tts/qc/V5_CH03_R2_B_WINDOW_FULL_REVIEW_EVIDENCE_20261010.md` (branch PR #101); local private `REVIEW_QC_GATE.json`. Do not deploy, merge or mark `FINAL` solely on the scoped Owner sample approval. Task authority remains `SAYDI-002` until its existing SOT closure gates pass.
+
