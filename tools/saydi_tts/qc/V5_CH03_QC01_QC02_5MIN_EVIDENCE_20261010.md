@@ -53,3 +53,12 @@ This is an **opt-in, disconnected comparison script**: `tools/saydi_tts/qc/previ
 
 **Targeted repair acceptance gate:** Isolate index 146 (and check neighbor 145) with the same immutable V5 approved voice source and original text; at most a bounded 1–2 candidate attempts in a protected, separate staging area. Compare original versus candidate with preceding and following sentences at native pace, ASR pronunciation/diacritics, reference fingerprint and decoded acoustic properties. Keep the original WAV and original chapter MP3 unchanged. Only promote after a real 30–60s A/B listening comparison confirms tonal continuity and content preservation; failures stay REVIEW, never auto FINAL. Avoid touching unrelated book/chapter jobs.
 
+
+## Owner final listening selection for the scoped 5-minute sample — 2026-10-10 ~22:53 ICT
+
+Owner explicitly confirmed **`B_QC02_146_R2_5PHUT.REVIEW.mp3` — "chốt"** after the first listening report favored B cadence and identified a two-tone seam between WAV 145→146. This settles the **sample-level** Owner gate for the 5-minute Chapter 3 R2+B listening comparison, including the reported timbre discontinuity within that sample. It does **not** certify all remaining Chapter 3 narration, all instances of the abbreviation "VOC", or QC-03/QC-04/QC-05 across the book.
+
+Exact approved local sample: `D:\SAYDI\QC_STAGING\CH03_V5_QC02_VOICE_JOIN_145_146\B_QC02_146_R2_5PHUT.REVIEW.mp3`, SHA-256 `4c24320f9425c140e4370ea7012c204e564ac0a959dd3c315cec1139ba48e720`. R2 audio `000146_candidate_r2.wav` is the **only** changed spoken chunk in that candidate; ASR measured similarity 0.9503 (technical PASS) and the Owner chose the resulting listening sample. Other 58 spoken WAVs and the Owner-preferred B pause sample are unchanged. Old production Chapter 3 MP3 SHA-256 `4809f72dd6b10c1172e8f029cfa6c492cb2a68d9733f19ad2045595c98e3618f` remains the rollback anchor.
+
+**Next test-only action:** A separately named full Chapter 3 `REVIEW` candidate may be assembled under `D:\SAYDI\QC_STAGING\CH03_V5_R2_B_WINDOW_REVIEW_20261010` by applying exactly one R2 speech replacement at index 146 and only the 25 B pause differences *inside the approved 5-minute window (original segments 107–165)*. Outside that window use the original manifest/concat source with no retiming, text or voice engine change. File, sha, audio duration, exact diff and checkpoint integrity must be measured before describing that test as produced. No production promotion, task advancement, PR merge or `FINAL` merely from approving this 5-minute sample.
+
