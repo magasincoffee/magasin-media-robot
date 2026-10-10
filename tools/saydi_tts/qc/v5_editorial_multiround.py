@@ -47,6 +47,7 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
     sequence: list[tuple[int, str, str, int]] = []
     seen: set[int] = set()
     source_verified = 0
+    missing_source_provenance = 0
     legacy_opaque_hashes = 0
     for pos, obj in enumerate(items):
         if not isinstance(obj, dict):
@@ -98,7 +99,7 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
             if words(original) != words(canonical):
                 findings.append(issue("FIDELITY", "SOURCE_CANONICAL_TOKEN_DIFF", idx))
         elif not obj.get("source_span") and not obj.get("original_span"):
-            findings.append(issue("FIDELITY", "SOURCE_PROVENANCE_UNVERIFIED", idx))
+            missing_source_provenance += 1
         if words(canonical) != words(spoken):
             findings.append(issue("FIDELITY", "CANONICAL_SPOKEN_TOKEN_DIFF", idx))
         editorial = obj.get("editorial_text")
@@ -117,6 +118,10 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
                 legacy_opaque_hashes += 1
         else:
             findings.append(issue("FIDELITY", "TTS_TEXT_HASH_UNAVAILABLE", idx))
+
+    if missing_source_provenance:
+        findings.append(issue("FIDELITY", "SOURCE_PROVENANCE_UNVERIFIED",
+                              None, count=missing_source_provenance))
 
     # Continuity pass: candidate fragment/overlap markers only. Never move,
     # drop, deduplicate or rewrite an author's repeated phrases automatically.
@@ -206,6 +211,7 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
         "chapter": manifest.get("chapter_number"),
         "segment_count": len(items),
         "source_text_verified_segments": source_verified,
+        "missing_source_provenance_count": missing_source_provenance,
         "legacy_opaque_tts_hash_count": legacy_opaque_hashes,
         "legacy_editorial_audit": legacy_summary,
         "passes": ["STRUCTURE", "ORTHOGRAPHY", "CONTINUITY", "FIDELITY",
