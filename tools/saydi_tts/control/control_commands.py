@@ -19,7 +19,7 @@ LOG=HERE/"job_controller.log"
 PYTHON=ROOT/"VieNeu-TTS"/".venv"/"Scripts"/"python.exe"
 CONTROL_PY=Path("C:/MAGASIN_MCP/.venv/Scripts/python.exe")
 RECHECK_PYTHON=ROOT/"qc2"/".venv"/"Scripts"/"python.exe"
-OWNER_MIN_GB=2.3
+OWNER_MIN_GB=1.5
 OWNER_CPU_THREADS=1
 RUNTIME_ENV=("OMP_NUM_THREADS","OPENBLAS_NUM_THREADS","MKL_NUM_THREADS","NUMEXPR_NUM_THREADS","RAYON_NUM_THREADS")
 LOCK=threading.RLock()
@@ -219,7 +219,7 @@ def execute_tick():
         free=free_ram()
         if free<OWNER_MIN_GB:
             job.update(state="QUEUED_RESOURCE",free_ram_gb=free,
-                       detail="Requires at least 2.3 GB free RAM before expensive work.")
+                       detail=f"Requires at least {OWNER_MIN_GB:.1f} GB free RAM before expensive work.")
             persist(JOB,job)
             return 0
         action=job["action"]
