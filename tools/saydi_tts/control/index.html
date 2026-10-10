@@ -202,7 +202,7 @@
     set("ch2Render",num(render2)+"/"+num(total2));
     set("ch2Qc",num(qc2)+"/"+num(total2));
     set("ch2Flags",c2.stage==="REVIEW_READY"?num(c2.pass_count)+" / "+num(c2.review_count):"Chưa QC xong");
-    set("ch2Ram",c2.min_start_ram_gb?"≥ "+c2.min_start_ram_gb+" GB":"2,3 GB tối thiểu");
+    set("ch2Ram","≥ "+((data.control&&data.control.resource_policy&&data.control.resource_policy.min_start_free_ram_gb)||1.5)+" GB");
     set("ch2Reason",c2.stage==="QUEUED_RESOURCE"||c2.stage==="PAUSED_RESOURCE"?
       "Chờ máy đủ RAM. "+(c2.reason||"")+" · RAM trống đo gần nhất: "+num(c2.free_ram_gb)+" GB. Không chạy TTS/Whisper song song." :
       c2.stage==="REVIEW_READY"?"Đã có QC và MP3 chương 2, chưa đạt FINAL.":
@@ -231,7 +231,7 @@
       var j=data.control&&data.control.job||{};
       set("processNote",j.state==="QUEUED_RESOURCE"?
         "KHÔNG render/QC: lệnh "+j.action+" chương "+j.chapter+
-        " đang chờ RAM đủ 2,3 GB. RAM trống hiện tại "+r.free_gb+" GB.":
+        " đang chờ RAM đủ "+((data.control&&data.control.resource_policy&&data.control.resource_policy.min_start_free_ram_gb)||1.5)+" GB. RAM trống hiện tại "+r.free_gb+" GB.":
         "Không tìm thấy tiến trình tạo giọng, QC hay sửa âm thanh đang chạy. Việc Control cập nhật không đồng nghĩa robot đang sản xuất.");
     }
     set("meaning",s.kind==="review" ?
@@ -354,7 +354,7 @@
       let result="Lệnh "+(names[job.action]||job.action)+" · chương "+job.chapter+
        " · "+job.state;
       if(job.detail)result+=". "+job.detail;
-      if(job.state==="QUEUED_RESOURCE")result+=" Robot sẽ thử lại khi RAM trống ≥2,3 GB.";
+      if(job.state==="QUEUED_RESOURCE")result+=" Robot sẽ thử lại khi RAM trống ≥"+((ctrl.resource_policy&&ctrl.resource_policy.min_start_free_ram_gb)||1.5)+" GB.";
       $("jobMessage").textContent=result;
     }else{
       $("jobMessage").textContent="Chưa có việc mới. Chọn chương rồi bấm tác vụ để giao cho robot.";
