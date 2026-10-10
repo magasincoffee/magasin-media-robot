@@ -51,3 +51,26 @@ Local reports, kept off GitHub:
 `D:\SAYDI\QC_STAGING\QC01_QC05_V5_GATES_20261010\CH03_BOUNDED_REPAIR_PROPOSAL.json`
 
 **Next necessary controlled implementation, not yet DONE:** semantic structured prose/emotion plans (SAYDI-004/005), QC03 confidence/continuity validation, robust Vietnamese accent verification independent of Whisper, all-chapter QA against original source, one-at-a-time guarded repair dispatch into existing job model, and exact-main Control/regression verification before Owner deployment approval.
+
+
+## 2026-10-10 ~23:15 local: QC-03/04 context/ambiguity extension and read-only Control status
+
+The following additional optional modules were added to this same **Draft** branch and verified on the local host:
+
+- `qc_v5_semantic_contract.py`: builds a hierarchy-aware, source-hash-pinned *context contract* for each segment and validates optional provider-neutral Director suggestions (role/emotion/intensity/confidence/pauses). It rejects changed canonical or spoken-text fingerprints, unsupported values, excessive pauses, large unexplained emotion-intensity discontinuities, and incomplete/low-confidence coverage. It **does not call any LLM or TTS**. Field run on Chapter 3 formed **285 segment envelopes within 31 paragraph/context groups**; all are pending actual semantic interpretation. 6 synthetic tests PASS.
+- `qc_v5_vietnamese_triage.py`: compares immutable expected Vietnamese text with existing Whisper output, classifies **diacritic ambiguity** (e.g. hè/he), token substitutions, phrase mismatch, possible omission, and extra/repeated tokens. It refuses expected-text drift, does **not** auto-correct the manuscript or infer acoustic pronunciation faults from ASR alone. Field Chapter 3 with R2 ASR row yielded **262 segments with one or more textual disagreement flags**, containing 151 diacritic-only mismatch events, 227 substitutions, 34 phrase mismatches, 3 potential omissions and 3 potential extra/repeated-token events. *These are ambiguity events, not independently proven utterance mistakes, and may overlap or co-occur.* 6 synthetic tests PASS.
+- `qc_v5_control_status.py`: assembles a read-only, disabled-by-default **QC01–QC05** status JSON from the existing staged reports, without touching the live Control UI, API, worker scheduler or production code. Field file `CH03_CONTROL_QC_STATUS.json` was generated with `phase=QC_REVIEW_PENDING` and six safe repair *proposals*, never automatic dispatch. 3 tests PASS.
+- `qc_v5_five_gates.py` now has optional original-versus-REVIEW concat reference-diff validation: verifies exactly which spoken WAV and silence references changed against `REVIEW_QC_GATE.json`, and bounds silence edits to the approved five-minute window. A synthetic test rejects falsely declared diffs. This exact new concat-diff gate is **NOT YET field-passed**: an earlier host command with field args was blocked by safety controls. Avoid implying it passed; the original full-Chapter-3 REVIEW production proof remains separately backed by the earlier assembly-stage exact-diff check.
+
+**Total focused local synthetic unit tests: 28/28 PASS** (8 evidence-gate tests, 5 bounded repair plan tests, 6 Vietnamese-language tests, 6 semantics/continuity contract tests, 3 Control status tests). The experimental status and proposal were field run; **full pipeline / historical Control START-STOP regression not rerun**. New files are add-on tools, no stable pipeline refactor, no automatic deployment, no hidden audio changes.
+
+Local evidence location (private book metadata/audio must stay local):
+`D:\SAYDI\QC_STAGING\QC01_QC05_V5_GATES_20261010`
+- `CH03_ALL_FIVE_QC_RESULT.json` — five QC stage findings and SHA-pinned approved sample, from first field run before latest diff validator.
+- `CH03_BOUNDED_REPAIR_PROPOSAL.json` — six candidate IDs for review only; WAV146 protected.
+- `CH03_QC03_CONTEXT.json` — 285 source-aware context envelopes, 31 groups; **not** fully-semantic narration directives.
+- `CH03_VIETNAMESE_TRIAGE.json` — ASR ambiguity classification, not a pronunciation verdict.
+- `CH03_CONTROL_QC_STATUS.json` — consolidated non-live QC status, **not yet wired into Control**.
+
+**Remaining functional gates before SAYDI automatic QC01–05 can be called complete:** validated AI-generated semantic/emotion plans from the existing local Director on every scene (SAYDI-004/005); audio/prosody-based QC03 human calibration; verified Vietnamese sound/diacritic listening beyond Whisper QC04; bounded repair *execution* and reassessment by the existing responsible worker under safe Owner latch; a field GREEN exact-diff and all-chapter regression; full-chapter listening acceptance; CI and exact-main rollout approval. These tasks remain REVIEW/OPEN and must not be conflated with the present 28 unit PASS.
+
