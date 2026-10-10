@@ -1022,3 +1022,8 @@ Within Draft PR #101, the **opt-in / disabled-by-default** QC01–QC05 evidence 
 
 **Still not complete:** semantic/prosody inference by the existing local Director and listening calibration, source-safe phonetic verification beyond Whisper, existing guarded worker dispatch of approved repairs, field revalidation of the newest full-chapter concat-diff gate (an attempted invocation was safety-blocked), complete live Control regressions, chapter-level Owner FINAL, and authorized deployment. These remain subordinate `SAYDI-004/005/008` acceptance gates; `SAYDI-002` stays the authoritative NEXT in main SOT. Preserve original hashes/owner-approved outputs and current Owner STOP/START requirements. Source/evidence: `tools/saydi_tts/qc/V5_QC01_QC05_FIELD_GATE_EVIDENCE_20261010.md`.
 
+
+#### Additional safe QC03 PCM energy check — 2026-10-10 (~23:25 ICT)
+
+Opt-in staged QC03 now measures **0.5-second middle-of-speech PCM energy** and raises REVIEW-only flags for neighboring segments with >8 dB RMS energy difference; this is **not** a substitute for hearing timbre, emotion or Vietnamese pronunciation. Chapter 3 field run observed two candidates near **03:00.160** (after index 29, 19.97 dB) and **13:27.480** (after index 149, 9.20 dB). Two ~40s unchanged listening excerpts were placed in local QC staging; no production audio altered. The V4 local QC01–05 report and bounded worklist remained REVIEW, and **14/14 synthetic local tests passed**. Hosted CI exact-commit green, live runner integration and full-chapter listening remain open gates. The main authoritative NEXT remains **SAYDI-002**, no automatic QC worker/scheduler added.
+
