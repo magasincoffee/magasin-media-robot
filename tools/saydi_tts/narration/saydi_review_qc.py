@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse, ctypes, hashlib, json, os, subprocess, sys, time
 from pathlib import Path
 for key in ("OMP_NUM_THREADS","MKL_NUM_THREADS","OPENBLAS_NUM_THREADS","NUMEXPR_NUM_THREADS"):
-    os.environ[key]="2"
+    os.environ[key]="1"
 ROOT=Path(r"C:\SAYDI")
 BASE=ROOT/"output"/"OWNER_APPROVED_NATURAL_V5"
 D_BASE=Path(r"D:\SAYDI\OWNER_APPROVED_NATURAL_V5")
@@ -35,7 +35,7 @@ def limit_cpu():
     k.SetProcessAffinityMask.argtypes=(ctypes.c_void_p,ctypes.c_size_t)
     k.SetPriorityClass.argtypes=(ctypes.c_void_p,ctypes.c_uint)
     h=k.GetCurrentProcess()
-    if not k.SetProcessAffinityMask(h,5):raise RuntimeError("QC_CPU_LIMIT_FAILED")
+    if not k.SetProcessAffinityMask(h,1):raise RuntimeError("QC_CPU_LIMIT_FAILED")
     k.SetPriorityClass(h,0x4000)
 
 def source(chapter):
