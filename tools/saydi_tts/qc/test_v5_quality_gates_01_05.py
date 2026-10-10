@@ -1,7 +1,7 @@
 """Synthetic QC01-05 tests, no private manuscript, TTS, ASR model or audio."""
 import hashlib, json, tempfile, unittest, wave
 from pathlib import Path
-from v5_quality_gates_01_05 import audit, write_report, lexical_findings, beat_hint, sha
+from v5_quality_gates_01_05 import audit, write_report, lexical_findings, beat_hint, sha, wav_detail
 
 def make_wav(path, seconds=.1):
     with wave.open(str(path), "wb") as f:
@@ -46,6 +46,14 @@ class GateTests(unittest.TestCase):
         self.assertEqual(r["qc04"]["checked_asr_review_count"],0)
         self.assertEqual(r["qc05"]["speech_change_count"],0)
         self.assertTrue(r["qc05"]["prohibited_auto_final"])
+
+    def test_pcm_energy_screen_is_measurement_not_emotion_pass(self):
+        silence=self.chunk/"000000.wav"
+        measured=wav_detail(silence)
+        self.assertLess(measured["mid_rms_dbfs"],-100)
+        report=self.call()
+        self.assertEqual(report["qc03"]["status"],"REVIEW")
+        self.assertEqual(report["qc03"]["energy_measurement"],"MIDDLE_0P5S_PCM_RMS_ONLY")
 
     def test_vietnamese_tone_routed_as_review(self):
         differences=lexical_findings("Mỗi khi hè về.","Mỗi khi he về.")
