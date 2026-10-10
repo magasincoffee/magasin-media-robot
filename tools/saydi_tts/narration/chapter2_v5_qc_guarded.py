@@ -33,7 +33,7 @@ QC_BATCHES = WORK / "qc_batches"
 STATUS_PATH = WORK / "job_status.json"
 POINTER = ROOT / "output" / "OWNER_APPROVED_NATURAL_V5" / "CH02_V5_STATUS.json"
 RUN_LOG = WORK / "job.log"
-MIN_START_RAM_GB = 2.3
+MIN_START_RAM_GB = 1.5
 MIN_RUN_RAM_GB = 0.70
 MIN_DISK_GB = 3.0
 CHAPTER = 2
@@ -99,6 +99,7 @@ def status(phase: str, **fields):
         "output_root": str(WORK),
         "final": False,
         "owner_approved": False,
+        "min_start_ram_gb": MIN_START_RAM_GB,
         **fields,
     }
     atomic_json(STATUS_PATH, data)
