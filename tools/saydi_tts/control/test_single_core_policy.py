@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,7 @@ CONTROL=ROOT/"control"
 NARR=ROOT/"narration_director_v1"
 sys.path.insert(0,str(CONTROL))
 import control_commands
+import media_control
 
 class SingleCorePolicyTests(unittest.TestCase):
     def test_controller_python_path_valid(self):
@@ -41,6 +43,22 @@ class SingleCorePolicyTests(unittest.TestCase):
                       'os.environ[key]="1"' in text or
                       'os.environ[name]="1"' in text
                     )
+
+    def test_shell_or_python_probe_text_not_mistaken_for_worker(self):
+        probe="import time; label='chapter_v5_job.py qc_local_segments.py'; time.sleep(4)"
+        flags=getattr(subprocess,"CREATE_NO_WINDOW",0)
+        child=subprocess.Popen([str(control_commands.CONTROL_PY),"-c",probe],
+                               stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                               creationflags=flags)
+        try:
+            time.sleep(.2)
+            self.assertIsNone(child.poll())
+            monitor,_=media_control.processes()
+            self.assertFalse(any(x["pid"]==child.pid for x in monitor))
+            self.assertNotIn(child.pid,control_commands.known_heavy())
+        finally:
+            child.terminate()
+            child.wait(timeout=6)
 
     def test_affinity_actual_one_logical_cpu(self):
         # Run in a subprocess so its CPU affinity cannot affect the operator or this test.
