@@ -174,3 +174,19 @@ Field validation: **18/18 local tests PASS**, Python and embedded-JavaScript syn
 
 The 1-minute Windows Task Scheduler Guardian remains active with `IgnoreNew`; it retries a queued job if machine resources become sufficient. A return to `QUEUED_RESOURCE` or `PAUSED_RESOURCE` during low physical memory is **expected protective behavior**, not proof that source code failed or that a chapter is FINAL. Do not claim stable long-running audio production until new render/QC field results support it.
 
+
+## Multi-book local library and live chapter card — Owner request 2026-10-10
+
+The 2026-10-10 screenshot showed Chapter 3 selected while the dashboard still rendered a static Chapter 2 card and historical Chapter 1 panels. Root cause: a fixed 11-chapter V5 manuscript and hardcoded cross-chapter UI. Choosing a *different book* was not implemented.
+
+Deployed as an isolated first gate:
+- A book library on DESKTOP-H4A16IL at `D:\SAYDI\BOOK_LIBRARY\book-<id>`. Existing V5 remains `legacy-v5` with its current queue, 11-chapter canonical source, and checkpoints untouched.
+- UI book selector and registration of a new PDF/TXT/DOCX/EPUB file (<=60 MiB). Source is streamed to a new immutable-identity folder, SHA-256 recorded, with explicit rights confirmation. Imported book status is `IMPORTED_NEEDS_INGESTION_AND_APPROVAL`. Import never starts TTS and never changes the legacy job.
+- `POST /api/books/select` changes view context only and does not kill/pause queued work. New books **cannot** call old `/api/command` or legacy audio URLs, preventing cross-book replay/mixing. Localhost/Origin/CSRF required, no arbitrary path or process invocation.
+- `/api/status` carries the book catalog, selected book, production book and per-chapter checkpoint timestamp. The old always-on Chapter 2 status widget is now a dynamically selected chapter card. Chapter 1-only historical widgets hide outside Chapter 1; other books show their own imported/readiness metadata rather than old book progress.
+- Cache invalidated on successful selection/import so displayed book state changes immediately.
+
+Field validation: 3 synthetic book-library tests + 18 existing local safety tests **21/21 PASS**, both embedded JS scripts syntax PASS, local installer PASS, live /api/status HTTP 200 and import/select controls present. A real legacy-only book select returned HTTP 202 with the existing `control_job.json` SHA-256 unchanged. No user book was imported, no real new-book audiobook pipeline was run. Chapter 3 was observed checkpointing from 4/285 to 5/285 and then re-entered resource wait; don't infer continuous render just from HTTP refresh.
+
+Next gate before offering to **produce** a new book: PDF/OCR/DOCX/EPUB/TXT content ingestion; chapter parsing and 3-layer canonical text; immutable book source fingerprint, voice reference, sample approval and independent per-book task queue/output path. Existing SOT requirements remain authoritative; do not mark the V1 multi-book pipeline complete or Owner FINAL.
+

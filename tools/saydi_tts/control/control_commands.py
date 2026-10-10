@@ -109,6 +109,7 @@ def chapter_data(ch):
     return {
         "chapter":ch,"source_available":canonical.exists(),
         "phase":phase,"total":total,"rendered":rendered,"qc_checked":checked,
+        "last_checkpoint_at":state.get("updated") or state.get("last_updated") or None,
         "review":review,"recheck":recheck.get("phase"),
         "quality":quality.get("phase"),
         "quality_review":quality.get("remaining_basic_review"),

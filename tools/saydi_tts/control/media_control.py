@@ -8,10 +8,11 @@ import threading
 import time
 import control_commands as jobs
 import activity_monitor
+import book_library
 from datetime import datetime
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
 import psutil
 
 ROOT = Path(os.getenv("SAYDI_RUNTIME_ROOT", r"C:\SAYDI\output\OWNER_APPROVED_NATURAL_V5"))
@@ -174,6 +175,7 @@ def snapshot():
         "processes": active, "worker": bool(workers), "audio": info,
         "events": entries, "read_only": False,
         "chapter2": ch2,
+        "books": book_library.overview(),
         "control": {"selected_chapter":jobs.selected_chapter(),
                     "chapters":jobs.catalog(),"job":job_now,
                     "csrf":CSRF_TOKEN,"actions_enabled":True,
@@ -193,6 +195,12 @@ def cached_snapshot():
             _STATUS_CACHE = updated
             _STATUS_CACHE_AT = time.monotonic()
         return _STATUS_CACHE
+
+def invalidate_status_cache():
+    global _STATUS_CACHE_AT, _STATUS_CACHE
+    with _STATUS_CACHE_LOCK:
+        _STATUS_CACHE_AT = 0.0
+        _STATUS_CACHE = None
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -237,6 +245,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/healthz":
             return self.send_data(b"ok", "text/plain")
         if path.startswith("/audio/chapter/"):
+            if book_library.selected_id() != book_library.LEGACY_ID:
+                return self.send_data(b"Selected book has no approved audio", "text/plain", 409)
             chapter_text = path.rsplit("/", 1)[-1]
             if not chapter_text.isascii() or not chapter_text.isdecimal():
                 return self.send_data(b"Invalid chapter", "text/plain", 404)
@@ -256,6 +266,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.audio(AUDIOS["full"])
             return self.audio(base/f"CHUONG_{chapter:02d}_OWNER_APPROVED_V5.REVIEW.mp3")
         if path.startswith("/audio/"):
+            if book_library.selected_id() != book_library.LEGACY_ID:
+                return self.send_data(b"Selected book has no approved audio", "text/plain", 409)
             key = path.split("/")[-1]
             if key not in AUDIOS:
                 return self.send_data(b"Unknown audio", "text/plain", 404)
@@ -306,34 +318,68 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.allow_local_host():
             return self.send_data(b"Local host only", "text/plain", 403)
-        if urlsplit(self.path).path != "/api/command":
-            return self.send_data(b"Unknown command endpoint", "text/plain", 404)
         origin = self.headers.get("Origin", "")
         if origin not in ("http://127.0.0.1:"+str(PORT), "http://localhost:"+str(PORT)):
             return self.send_data(b"Origin not allowed", "text/plain", 403)
         if self.headers.get("X-Saydi-Csrf") != CSRF_TOKEN:
             return self.send_data(b"CSRF token missing", "text/plain", 403)
-        if self.headers.get("Content-Type", "").split(";")[0].strip()!="application/json":
-            return self.send_data(b"JSON required", "text/plain", 415)
+        path = urlsplit(self.path).path
+        if path not in ("/api/command", "/api/books/select", "/api/books/import"):
+            return self.send_data(b"Unknown endpoint", "text/plain", 404)
+        mime = self.headers.get("Content-Type", "").split(";")[0].strip()
         try:
-            length=int(self.headers.get("Content-Length","0"))
+            length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
-            length=0
-        if length<2 or length>1024:
-            return self.send_data(b"Invalid request size", "text/plain", 413)
+            length = 0
         try:
-            payload=json.loads(self.rfile.read(length).decode("utf-8"))
-            if not isinstance(payload,dict) or set(payload)!={"action","chapter"}:
-                raise ValueError("Invalid action payload")
-            result=jobs.submit(payload["action"],payload["chapter"])
-            body=json.dumps(result,ensure_ascii=False).encode("utf-8")
-            return self.send_data(body,"application/json; charset=utf-8",202)
-        except (ValueError,TypeError) as exc:
+            if path == "/api/books/import":
+                if mime != "application/octet-stream":
+                    return self.send_data(b"Binary book source required", "text/plain", 415)
+                if not 1 <= length <= book_library.MAX_BOOK_BYTES:
+                    return self.send_data(b"File too large or empty", "text/plain", 413)
+                encoded_title = self.headers.get("X-Saydi-Title", "")
+                encoded_name = self.headers.get("X-Saydi-Filename", "")
+                if len(encoded_title) > 800 or len(encoded_name) > 700:
+                    raise ValueError("BOOK_METADATA_TOO_LONG")
+                title = unquote(encoded_title)
+                confirmation = self.headers.get("X-Saydi-Rights") == "confirmed"
+                new_book = book_library.import_stream(
+                    title, encoded_name, self.rfile, length, confirmation)
+                invalidate_status_cache()
+                return self.send_data(json.dumps(
+                    {"imported": new_book, "production_started": False},
+                    ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", 201)
+
+            if mime != "application/json":
+                return self.send_data(b"JSON required", "text/plain", 415)
+            if not 2 <= length <= 1024:
+                return self.send_data(b"Invalid JSON size", "text/plain", 413)
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("INVALID_COMMAND_PAYLOAD")
+            if path == "/api/books/select":
+                if set(payload) != {"book_id"}:
+                    raise ValueError("INVALID_BOOK_SELECTION")
+                result = book_library.choose_book(payload["book_id"])
+                invalidate_status_cache()
+                return self.send_data(json.dumps(result, ensure_ascii=False).encode("utf-8"),
+                                      "application/json; charset=utf-8", 202)
+            if set(payload) != {"action", "chapter"}:
+                raise ValueError("INVALID_CHAPTER_COMMAND")
+            if book_library.selected_id() != book_library.LEGACY_ID:
+                raise RuntimeError("NEW_BOOK_NOT_INGESTED_OR_VOICE_APPROVED")
+            result = jobs.submit(payload["action"], payload["chapter"])
+            invalidate_status_cache()
+            return self.send_data(json.dumps(result, ensure_ascii=False).encode("utf-8"),
+                                  "application/json; charset=utf-8", 202)
+        except (ValueError, TypeError) as exc:
             return self.send_data(json.dumps({"error":str(exc)}).encode("utf-8"),
-                                  "application/json",400)
+                                  "application/json; charset=utf-8", 400)
         except RuntimeError as exc:
             return self.send_data(json.dumps({"error":str(exc)}).encode("utf-8"),
-                                  "application/json",409)
+                                  "application/json; charset=utf-8", 409)
+        except OSError:
+            return self.send_data(b"Book storage unavailable", "text/plain", 503)
 
 def main():
     server = ThreadingHTTPServer((HOST, PORT), Handler)
