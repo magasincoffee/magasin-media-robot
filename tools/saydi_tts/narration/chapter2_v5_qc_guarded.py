@@ -19,7 +19,7 @@ import time
 from pathlib import Path
 
 for key in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
-    os.environ[key] = "2"
+    os.environ[key] = "1"
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except AttributeError:
@@ -126,7 +126,7 @@ def cap_cpu():
     kernel.SetProcessAffinityMask.argtypes = (ctypes.c_void_p, ctypes.c_size_t)
     kernel.SetPriorityClass.argtypes = (ctypes.c_void_p, ctypes.c_uint)
     handle = kernel.GetCurrentProcess()
-    if not kernel.SetProcessAffinityMask(handle, 0x5):
+    if not kernel.SetProcessAffinityMask(handle, 0x1):
         raise RuntimeError("COULD_NOT_LIMIT_CPU")
     kernel.SetPriorityClass(handle, 0x00004000)  # BelowNormal
 
