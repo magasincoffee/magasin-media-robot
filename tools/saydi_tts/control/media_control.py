@@ -70,14 +70,17 @@ def processes():
     active, worker = [], []
     for p in psutil.process_iter(["pid", "name", "cmdline", "memory_info"]):
         try:
-            if (p.info.get("name") or "").lower() not in ("python.exe", "pythonw.exe", "powershell.exe"):
+            if (p.info.get("name") or "").lower() not in ("python.exe", "pythonw.exe"):
                 continue
-            cmd = " ".join(p.info.get("cmdline") or []).lower()
-            role = next((r for match, r in PROCESS_TYPES.items() if match in cmd), None)
+            args = p.info.get("cmdline") or []
+            # Only the invoked .py file counts, not shell/probe text mentioning a script.
+            script = next((Path(arg.strip('"')).name.lower() for arg in args[1:]
+                           if arg.strip('"').lower().endswith(".py")), "")
+            role = PROCESS_TYPES.get(script)
             if role:
                 mem = p.info.get("memory_info")
                 active.append({"pid": p.pid, "kind": role, "ram_mb": round(mem.rss / 1048576, 1) if mem else None})
-            elif "saydi_worker.py" in cmd:
+            elif script == "saydi_worker.py":
                 worker.append(p.pid)
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
