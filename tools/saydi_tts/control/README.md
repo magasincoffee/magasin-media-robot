@@ -158,3 +158,19 @@ Fix for Chapter 3+ naming: the shared V5 pipeline previously hardcoded **Chapter
 
 Local complete regression: **14/14 PASS** (three chapter/process/naming, four single-core policy, three activity, two HTTP/control and two auth/commands); Python compilation PASS. The main task remains scheduled each minute with `IgnoreNew` and one logical CPU affinity; do not weaken RAM gates to present a false continuous green state.
 
+
+### Owner RAM start threshold lowered to 1.5 GB (2026-10-10, local field adjustment)
+
+The Owner explicitly approved starting SAYDI heavy work with **at least 1.5 GB free physical RAM**, rather than the previous 2.3 GB. This is the **admission threshold** for a render/QC attempt, *not* a guarantee that a resident VieNeu or Whisper model will finish without more memory. The 8 GB host had previously paused during rendering with RAM as low as 0.46 GB; do not disable low-memory interruption safeguards.
+
+Implementation changes:
+- `control_commands.py`: `OWNER_MIN_GB=1.5`, threshold interpolated into queue reason, durable queued checkpoint unchanged. One logical CPU and one heavyweight worker at any time still enforced.
+- `chapter2_v5_qc_guarded.py`: `MIN_START_RAM_GB=1.5` for every V5 chapter 2–11 render and checkpointed Whisper QC; each new status checkpoint carries `min_start_ram_gb=1.5`. The active-render pause floor remains `MIN_RUN_RAM_GB=0.70`; QC child critical-RAM abort threshold still `0.30` GB. The V5 source text/voice/tempo are unchanged.
+- `saydi_quality_improve.py` and `saydi_review_qc.py`: both use 1.5 GB admission for expensive jobs; reason labels updated to `RAM_BELOW_1_5_GB`. Existing media/checkpoints not deleted or reset.
+- `activity_monitor.py` and `media_control.py` pass through the current admission threshold; the Control dashboard renders it dynamically instead of showing stale **2.3 GB** strings.
+- New `test_ram_1p5_gate.py` ensures controller, V5 render, QC and quality worker thresholds agree; validates status and checkpoint messages without loading media models. The installer includes this regression test.
+
+Field validation: **18/18 local tests PASS**, Python and embedded-JavaScript syntax PASS; updated local installer `SAYDI_MEDIA_CONTROL_INSTALL=PASS`; restarted local Control returned health/status HTTP 200 with `min_start_free_ram_gb=1.5`, `logical_cpu_threads=1`, Chapter 3 queued checkpoint preserved. Backup of seven modified source files is stored under `D:\SAYDI\backups\RAM_START_GATE_2p3_TO_1p5_20261010`.
+
+The 1-minute Windows Task Scheduler Guardian remains active with `IgnoreNew`; it retries a queued job if machine resources become sufficient. A return to `QUEUED_RESOURCE` or `PAUSED_RESOURCE` during low physical memory is **expected protective behavior**, not proof that source code failed or that a chapter is FINAL. Do not claim stable long-running audio production until new render/QC field results support it.
+
