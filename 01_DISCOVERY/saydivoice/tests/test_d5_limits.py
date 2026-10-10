@@ -11,16 +11,25 @@ def test_parse_counter_missing() -> None:
 
 
 def test_classify_empty_blocked() -> None:
-    assert classify_input_state(0, 20000, False) == "EMPTY_BLOCKED_UI"
+    assert classify_input_state(0, 0, 20000, False) == "EMPTY_BLOCKED_UI"
 
 
-def test_classify_accepted_at_limit() -> None:
-    assert classify_input_state(20000, 20000, True) == "ACCEPTED_UI"
+def test_classify_regular_input_accepted() -> None:
+    assert classify_input_state(19999, 19999, 20000, True) == "ACCEPTED_UI"
 
 
-def test_classify_over_limit_blocked() -> None:
-    assert classify_input_state(20001, 20000, False) == "OVER_LIMIT_BLOCKED_UI"
+def test_classify_limit_accepted() -> None:
+    assert classify_input_state(20000, 20000, 20000, True) == "LIMIT_ACCEPTED_UI"
 
 
-def test_classify_ambiguous_if_over_limit_still_enabled() -> None:
-    assert classify_input_state(20001, 20000, True) == "AMBIGUOUS"
+def test_classify_limit_blocked() -> None:
+    assert classify_input_state(20000, 20000, 20000, False) == "LIMIT_BLOCKED_UI"
+
+
+def test_classify_over_limit_clamped() -> None:
+    assert classify_input_state(20001, 20000, 20000, False) == "OVER_LIMIT_CLAMPED_UI"
+    assert classify_input_state(20001, 20000, 20000, True) == "OVER_LIMIT_CLAMPED_UI"
+
+
+def test_classify_ambiguous_when_no_clamp_observed() -> None:
+    assert classify_input_state(20001, 20001, 20000, True) == "AMBIGUOUS"
