@@ -66,9 +66,18 @@ class V5EditorialMultiroundTests(unittest.TestCase):
     def test_bad_spoken_hash_blocks(self):
         m = copy.deepcopy(self.manifest)
         m["segments"][0]["tts_text_sha256"] = "a" * 64
+        m["segments"][0]["tts_text_hash_scheme"] = "sha256_utf8_spoken_v1"
         r = self.run_check(m)
         self.assertEqual(r["status"], "BLOCKED")
         self.assertIn("TTS_TEXT_HASH_DRIFT", codes(r))
+
+    def test_legacy_v5_opaque_fingerprint_is_not_a_false_block(self):
+        m = copy.deepcopy(self.manifest)
+        m["segments"][0]["tts_text_sha256"] = "a" * 64
+        r = self.run_check(m)
+        self.assertEqual(r["status"], "REVIEW")
+        self.assertEqual(r["legacy_opaque_tts_hash_count"], 3)
+        self.assertNotIn("TTS_TEXT_HASH_DRIFT", codes(r))
 
     def test_structural_gap_blocks(self):
         m = copy.deepcopy(self.manifest)
