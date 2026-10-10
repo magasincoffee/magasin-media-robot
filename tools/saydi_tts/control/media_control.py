@@ -172,7 +172,11 @@ def snapshot():
         "chapter2": ch2,
         "control": {"selected_chapter":jobs.selected_chapter(),
                     "chapters":jobs.catalog(),"job":job_now,
-                    "csrf":CSRF_TOKEN,"actions_enabled":True},
+                    "csrf":CSRF_TOKEN,"actions_enabled":True,
+                    "resource_policy":{"logical_cpu_threads":jobs.OWNER_CPU_THREADS,
+                                       "max_concurrent_heavy_jobs":1,
+                                       "min_start_free_ram_gb":jobs.OWNER_MIN_GB,
+                                       "automatic_resume":True}},
     }
 
 def cached_snapshot():
