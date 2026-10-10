@@ -156,6 +156,8 @@
     </section>
     <section class="panel">
       <div class="sectionhead"><h2>Nhật ký hoạt động</h2><span class="tag" id="lastLog">Nguồn local</span></div>
+      <div class="monitor-message" id="activityState" aria-live="polite" style="white-space:pre-line">Đang xác minh tiến trình và nhịp kiểm tra của robot...</div>
+      <p class="micro" id="heartbeatState" style="margin-top:11px">Nhịp giám sát: đang kiểm tra</p>
       <div class="list" id="logs"><p class="muted">Đang đọc log...</p></div>
     </section>
   </div>
@@ -224,24 +226,38 @@
     usage("cpuBar",r.cpu);usage("ramBar",r.ram);
     set("ramText","Còn "+r.free_gb+" GB / "+r.total_gb+" GB");
     if(s.active){
-      set("processNote","Đang hoạt động: "+data.processes.map(function(x){return x.kind+" (PID "+x.pid+")";}).join(", ")+".");
+      set("processNote","ĐÃ XÁC NHẬN tiến trình thực tế: "+data.processes.map(function(x){return x.kind+" (PID "+x.pid+")";}).join(", ")+".");
     }else{
-      set("processNote","Không tìm thấy tiến trình render/QC/sửa lỗi đang chạy. "+
-         (s.kind==="review"?"Đây là trạng thái chờ duyệt, không phải robot gặp sự cố.":"Bảng vẫn cập nhật mỗi 5 giây."));
+      var j=data.control&&data.control.job||{};
+      set("processNote",j.state==="QUEUED_RESOURCE"?
+        "KHÔNG render/QC: lệnh "+j.action+" chương "+j.chapter+
+        " đang chờ RAM đủ 2,3 GB. RAM trống hiện tại "+r.free_gb+" GB.":
+        "Không tìm thấy tiến trình tạo giọng, QC hay sửa âm thanh đang chạy. Việc Control cập nhật không đồng nghĩa robot đang sản xuất.");
     }
     set("meaning",s.kind==="review" ?
       "Bản R2 đã sẵn sàng để nghe. "+num(q.review)+" cảnh báo ASR còn phải xác minh; chưa được phép gọi là FINAL." :
       s.kind==="running"?"Robot đang hoạt động. Số liệu hiển thị được lấy từ tiến trình thật, không suy ra từ log cũ." :
       "Theo dõi log và tiến trình ở dưới. Không tự khởi chạy khi chưa xác nhận công việc tiếp theo.");
     set("updated","Làm mới: "+new Date(data.updated).toLocaleTimeString("vi-VN"));
-    set("lastLog",data.last_record?"Dữ liệu: "+new Date(data.last_record).toLocaleTimeString("vi-VN"):"Chưa có log");
+    var activity=data.activity||{};
+    set("lastLog",activity.last_event?"Sự kiện mới: "+new Date(activity.last_event).toLocaleString("vi-VN"):"Chưa có sự kiện");
+    set("activityState",(activity.headline||"Không có dữ liệu hoạt động")+
+       "\n"+(activity.explanation||"Trạng thái không xác định"));
+    set("heartbeatState",activity.last_heartbeat?
+       "Kiểm tra định kỳ cuối: "+new Date(activity.last_heartbeat).toLocaleString("vi-VN")+
+       " · "+(activity.scheduler_healthy?"Bộ điều phối phản hồi":"QUÁ HẠN/NGỪNG PHẢN HỒI")+
+       " · "+(activity.job_state||"NONE"):
+       "Chưa tìm thấy nhịp kiểm tra định kỳ: kiểm tra Task Scheduler");
     renderAudio(data);
     var container=$("logs");container.replaceChildren();
-    var recent = data.events.slice(0,11);
+    var recent = data.events.slice(0,18);
     if(!recent.length){var t=document.createElement("p");t.className="muted";t.textContent="Chưa có nhật ký.";container.appendChild(t);}
     recent.forEach(function(item){
       var outer=document.createElement("div");outer.className="logitem";
-      var label=document.createElement("div");label.className="source";label.textContent=item.group;
+      var label=document.createElement("div");label.className="source";
+      var formattedTime=item.time?new Date(item.time).toLocaleString("vi-VN"):"Không có thời gian";
+      label.textContent=formattedTime+" · "+item.group+
+        (item.kind==="heartbeat"?" · chỉ là kiểm tra định kỳ":"");
       var body=document.createElement("div");body.className="msg";body.textContent=item.text;
       outer.appendChild(label);outer.appendChild(body);container.appendChild(outer);
     });

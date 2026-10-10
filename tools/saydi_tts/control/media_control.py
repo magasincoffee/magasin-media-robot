@@ -4,7 +4,10 @@ import json
 import os
 import re
 import secrets
+import threading
+import time
 import control_commands as jobs
+import activity_monitor
 from datetime import datetime
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,6 +22,9 @@ R2 = ROOT / "Chuong_01_R2"
 CH2_STATE = ROOT / "CH02_V5_STATUS.json"
 HOST, PORT = "127.0.0.1", int(os.getenv("SAYDI_CONTROL_PORT", "8776"))
 CSRF_TOKEN = secrets.token_urlsafe(32)
+_STATUS_CACHE_LOCK = threading.Lock()
+_STATUS_CACHE_AT = 0.0
+_STATUS_CACHE = None
 AUDIOS = {
     "full": DESKTOP / "CHUONG_01_V5_R2_SUA_LOI_NANG.REVIEW.mp3",
     "begin": DESKTOP / "CHUONG_01_V5_R2_DAU_CHUONG_5PHUT.mp3",
@@ -31,6 +37,9 @@ PROCESS_TYPES = {
     "repair_chapter1_owner_v5_r2.py": "repair",
     "repair_owner_v5_pilot.py": "repair",
     "chapter2_v5_qc_guarded.py": "chapter2",
+    "chapter_v5_job.py": "render",
+    "saydi_review_qc.py": "qc",
+    "saydi_quality_improve.py": "repair",
 }
 ACTIVE_PHASES = {"RENDERING", "QC_RUNNING", "QC_TARGETED", "RENDERING_CANDIDATES", "ASSEMBLING_MP3", "REPAIRING"}
 
@@ -80,9 +89,10 @@ def snapshot():
     repair = jread(R2 / "AUTO_REPAIR_STATUS.json")
     r2 = jread(R2 / "REVIEW_STATUS.json")
     ch2 = jread(CH2_STATE)
+    job_now = jobs.job_status()
     active, workers = processes()
     types = {p["kind"] for p in active}
-    phase = str(repair.get("phase") or state.get("status") or "UNKNOWN")
+    phase = str(job_now.get("state") or repair.get("phase") or state.get("status") or "UNKNOWN")
     if "chapter2" in types:
         chapter2_stage = ch2.get("stage", "PROCESS_ACTIVE")
         kind, title, detail = ("running", "ĐANG XỬ LÝ CHƯƠNG 2",
@@ -93,6 +103,11 @@ def snapshot():
         kind, title, detail = "running", "ĐANG RENDER", "VieNeu đang tạo giọng."
     elif "repair" in types:
         kind, title, detail = "running", "ĐANG SỬA LỖI", "Robot đang kiểm tra/sửa các đoạn bị cảnh báo."
+    elif job_now.get("state") in ("QUEUED_RESOURCE", "WAIT_OTHER_WORKER", "QUEUED"):
+        kind, title, detail = ("warning", "LỆNH ĐANG CHỜ — CHƯA CHẠY",
+                               "Công việc mới đang chờ đủ RAM hoặc đợi tác vụ khác; không có tiến trình xử lý.")
+    elif job_now.get("state") == "FAILED":
+        kind, title, detail = ("warning", "LỆNH BỊ LỖI", "Kiểm tra lỗi của công việc mới trong nhật ký.")
     elif ch2.get("stage") in ("QUEUED_RESOURCE", "PAUSED_RESOURCE"):
         kind, title, detail = ("warning", "CHƯƠNG 2 CHỜ ĐỦ TÀI NGUYÊN",
                                "Đã chuẩn bị V5; chưa khởi chạy mô hình do RAM hoặc ổ đĩa không đủ.")
@@ -120,10 +135,12 @@ def snapshot():
                          "modified": datetime.fromtimestamp(st.st_mtime).astimezone().isoformat(timespec="seconds")}
         except OSError:
             info[key] = {"exists": False, "url": "/audio/" + key}
-    entries = []
-    for label, path in [("R2", R2 / "auto_repair.log"), ("V5", ROOT / "run.log"), ("Watchdog", ROOT / "resume.log")]:
-        for line in tail(path, 5):
-            entries.append({"group": label, "text": line})
+    chapter_for_activity = job_now.get("chapter") or jobs.selected_chapter()
+    job_log = WEB / ("job_" + str(job_now.get("id")) + ".log") if job_now.get("id") else None
+    activity = activity_monitor.summarize(
+        job_now, jobs.JOB, WEB / "job_guardian.log", jobs.LOG, job_log,
+        chapter_for_activity, round(vm.available / 1073741824, 2), active)
+    entries = activity["events"]
     basic_review = r2.get("basic_qc_review_remaining")
     if basic_review is None:
         basic_review = len(gate.get("legacy_qc_flagged") or [])
@@ -132,9 +149,8 @@ def snapshot():
         strict_review = gate.get("strict_asr_review_count")
     return {
         "updated": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "last_record": max([t for t in [stamp(R2 / "REVIEW_STATUS.json"),
-                        stamp(R2 / "AUTO_REPAIR_STATUS.json"), stamp(CH / "render_state.json"),
-                        stamp(CH2_STATE)] if t], default=None),
+        "last_record": activity["last_event"],
+        "activity": activity,
         "hostname": os.getenv("COMPUTERNAME", "DESKTOP-H4A16IL"),
         "version": "V5 / mẫu Owner chốt",
         "phase": phase,
@@ -155,9 +171,20 @@ def snapshot():
         "events": entries, "read_only": False,
         "chapter2": ch2,
         "control": {"selected_chapter":jobs.selected_chapter(),
-                    "chapters":jobs.catalog(),"job":jobs.job_status(),
+                    "chapters":jobs.catalog(),"job":job_now,
                     "csrf":CSRF_TOKEN,"actions_enabled":True},
     }
+
+def cached_snapshot():
+    """Share one status scan across simultaneous UI panels; avoids double CPU scans."""
+    global _STATUS_CACHE_AT, _STATUS_CACHE
+    with _STATUS_CACHE_LOCK:
+        now = time.monotonic()
+        if _STATUS_CACHE is None or now - _STATUS_CACHE_AT >= 4.0:
+            updated = snapshot()
+            _STATUS_CACHE = updated
+            _STATUS_CACHE_AT = time.monotonic()
+        return _STATUS_CACHE
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -195,7 +222,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_data(b"UI not installed", "text/plain", 503)
         if path == "/api/status":
             try:
-                return self.send_data(json.dumps(snapshot(), ensure_ascii=False).encode("utf-8"),
+                return self.send_data(json.dumps(cached_snapshot(), ensure_ascii=False).encode("utf-8"),
                                       "application/json; charset=utf-8")
             except Exception as exc:
                 return self.send_data(json.dumps({"error": type(exc).__name__}).encode(), "application/json", 503)

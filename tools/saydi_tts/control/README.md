@@ -98,3 +98,23 @@ Field verification:
 
 Local shortcut: `C:\Users\admin\Desktop\SAYDI MEDIA CONTROL.lnk`; dashboard: `http://127.0.0.1:8776/` on H4A16IL. Do not expose the raw control port to the Internet.
 
+
+## Activity timeline and heartbeat repair (2026-10-10)
+
+Owner screenshot revealed that **Nhật ký hoạt động** showed Oct-08 Chapter 1 R2 lines and a stale Oct-09 chapter checkpoint while a current `improve` Chapter 2 job was `QUEUED_RESOURCE` on Oct-10. This was a **Control observability defect**, not evidence that the repair was running.
+
+Fix:
+- `activity_monitor.py`: separate latest local scheduler heartbeat, current command admission/check/reason and actual workflow/process events. The current job is prioritized over historical Chapter 1 logs; show time-stamped, newest-first events, suppress repetitive no-op completed-QC ticks. Use 12-KiB bounded log reads and never display raw book text.
+- `media_control.py`: current job state overrides old chapter status for the hero banner; recognize Chapter 3+ and QC/repair worker processes. The API exposes `activity.headline`, `scheduler_healthy`, `last_heartbeat`, `last_check`, `job_state` and ordered events, with a 4-second lightweight snapshot cache to prevent duplicate heavy scans from the dashboard panels.
+- `control_commands.py`: every scheduled action check records `last_check_at`, free RAM and total checks in the durable job record, even when it must pause due to insufficient memory.
+- `index.html`: show **actual command state**, scheduler heartbeat and clear reason for waiting/paused/failed/running, rather than silently showing an old R2 log. This is not a repair to the sound quality itself.
+- `test_activity_monitor.py`: verify current queued Chapter 2 job outranks stale Chapter 1 logs, stale scheduler heartbeat triggers an alert and actual live processes are distinguished from waiting jobs. Existing controller tests were isolated from the real queued job.
+
+**Field results** from DESKTOP-H4A16IL:
+- At 2026-10-10 10:43 local, `/api/status` HTTP 200; Chapter 2 `improve` job queued at 10:40:34, attempts 0, no heavy process, RAM ~0.85 GB (below 2.3 GB).
+- A newer API test returned **CHỜ RAM — Tự sửa phát âm chương 2**, showed both the Oct-10 last-check and scheduler heartbeat, and listed the events newest-first; `/api/status` HTTP 200, second status poll hit the cache in ~1 ms, HTML contained both new monitor sections.
+- Local synthetic tests **7/7 PASS** (three activity + two base monitor + two command/auth tests); Python syntax and both inline JavaScript syntax tests PASS.
+- Existing Task Scheduler guardian 3-minute cadence remains enabled. No new VieNeu/Whisper render was triggered by this read-only diagnostic repair, and queued Chapter 2 repair remains **NOT RUNNING** until RAM preflight passes.
+
+This PR is **not** a full closed-loop V5 quality/FINAL acceptance. Keep source-of-truth task authority unchanged and do not claim Chapter 1 or Chapter 2 has passed Owner listening.
+

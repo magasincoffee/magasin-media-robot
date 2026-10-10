@@ -204,6 +204,9 @@ def execute_tick():
         if job.get("state") in COMPLETED or not job.get("action"):
             return 0
         chapter=validate_chapter(job.get("chapter"))
+        job["last_check_at"]=time.strftime("%Y-%m-%d %H:%M:%S")
+        job["last_check_free_ram_gb"]=free_ram()
+        job["check_count"]=int(job.get("check_count") or 0)+1
         if known_heavy():
             job.update(state="WAIT_OTHER_WORKER",detail="Other SAYDI render/QC process is active.")
             persist(JOB,job)
