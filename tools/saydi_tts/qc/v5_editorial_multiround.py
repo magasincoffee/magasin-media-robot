@@ -195,6 +195,8 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
             findings = [f for f in findings
                         if f["code"] != "SOURCE_PROVENANCE_UNVERIFIED"]
             lineage_summary = "SHA_BOUND_LEXICAL_EQUIVALENCE_PASS"
+            if source_lineage.get("punctuation_equivalence") != "PASS":
+                findings.append(issue("FIDELITY", "SOURCE_PUNCTUATION_REVIEW"))
         else:
             findings.append(issue("FIDELITY", "SOURCE_LINEAGE_INCOMPLETE_OR_CHANGED"))
             lineage_summary = "REVIEW_UNVERIFIED"
