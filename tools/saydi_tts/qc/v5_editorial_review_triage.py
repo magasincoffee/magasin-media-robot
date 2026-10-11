@@ -61,11 +61,14 @@ def diff_types(old: str, current: str) -> set[str]:
 
 
 def triage(manifest: dict, manifest_sha256: str,
-           legacy_audit: dict | None = None, max_review: int = MAX_REVIEW) -> dict:
+           legacy_audit: dict | None = None, max_review: int = MAX_REVIEW,
+           review_offset: int = 0) -> dict:
     if not isinstance(manifest_sha256, str) or not re.fullmatch(r"[a-f0-9]{64}", manifest_sha256):
         raise ValueError("INVALID_MANIFEST_SHA")
     if type(max_review) is not int or not 1 <= max_review <= MAX_REVIEW:
         raise ValueError("INVALID_REVIEW_LIMIT")
+    if type(review_offset) is not int or review_offset < 0:
+        raise ValueError("INVALID_REVIEW_OFFSET")
     segments = manifest.get("segments")
     if not isinstance(segments, list) or not segments:
         raise ValueError("INVALID_SEGMENTS")
@@ -125,9 +128,10 @@ def triage(manifest: dict, manifest_sha256: str,
         "legacy_audit_status": legacy_state,
         "legacy_paraphrase_suspect_count": legacy_number,
         "legacy_count_does_not_identify_segments": True,
-        "review_items_shown": min(len(issues), max_review),
-        "review_queue": issues[:max_review],
-        "review_items_not_shown": max(0, len(issues)-max_review),
+        "review_offset": review_offset,
+        "review_items_shown": len(issues[review_offset:review_offset+max_review]),
+        "review_queue": issues[review_offset:review_offset+max_review],
+        "review_items_not_shown": max(0, len(issues)-(review_offset+max_review)),
         "status": "REVIEW",
         "source_semantic_approval": False,
         "audio_pronunciation_verified": False,
@@ -142,6 +146,7 @@ def main() -> int:
     p.add_argument("--manifest", type=Path, required=True)
     p.add_argument("--legacy-audit", type=Path)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--review-offset", type=int, default=0)
     p.add_argument("--enable-experimental-triage", action="store_true")
     args = p.parse_args()
     if not args.enable_experimental_triage:
@@ -150,7 +155,8 @@ def main() -> int:
     raw = args.manifest.read_bytes()
     old = (json.loads(args.legacy_audit.read_text(encoding="utf-8-sig"))
            if args.legacy_audit else None)
-    result = triage(json.loads(raw.decode("utf-8-sig")), sha(raw), old)
+    result = triage(json.loads(raw.decode("utf-8-sig")), sha(raw), old,
+                    review_offset=args.review_offset)
     if any(x.casefold() in {"chunks", "owner_approved_natural_v5", "stitch_cleaned"}
            for x in args.output.parts):
         raise ValueError("REFUSE_PRODUCTION_REPORT")
