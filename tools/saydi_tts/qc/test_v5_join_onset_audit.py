@@ -36,6 +36,7 @@ class JoinOnsetAuditTests(unittest.TestCase):
         for i in range(3):
             create_wav(self.raw / f"{i:06d}.wav", frames=24000)
             create_wav(self.clean / f"{i:06d}.wav", frames=24000)
+        create_wav(self.clean / "gap_610.wav",frames=29280)
         self.concat = ("\n".join(
             line for i in range(3) for line in
             (f"file '{self.clean / f'{i:06d}.wav'}'",
@@ -48,12 +49,13 @@ class JoinOnsetAuditTests(unittest.TestCase):
                      self.raw, self.clean, self.concat if concat is None else concat, self.hash)
 
     def test_detects_repetitive_pauses_and_clause_split(self):
-        r=self.run_audit()
+        m=copy.deepcopy(self.manifest)
+        m["segments"][0]["canonical_text"]="Một câu có ý nghĩa,"
+        r=self.run_audit(manifest=m)
         self.assertEqual(r["segments"],3)
         self.assertTrue(r["repetitive_pause"])
         self.assertIn("REPETITIVE_PAUSE_DURATION_REVIEW",r["warnings"])
-        self.assertIn(2,r["clauses_without_strong_end_punctuation_indices"] if
-                      2 in r["clauses_without_strong_end_punctuation_indices"] else [2])
+        self.assertIn(0,r["clauses_without_strong_end_punctuation_indices"])
         self.assertFalse(r["owner_approved"])
 
     def test_flags_120ms_trim_without_declaring_phoneme_error(self):
@@ -71,6 +73,8 @@ class JoinOnsetAuditTests(unittest.TestCase):
         b=("\n".join(line for i,ms in enumerate((450,610,850)) for line in
             (f"file '{self.clean / f'{i:06d}.wav'}'",
              f"file '{self.clean / f'gap_{ms}.wav'}'"))+"\n").encode()
+        create_wav(self.clean / "gap_450.wav",frames=21600)
+        create_wav(self.clean / "gap_850.wav",frames=40800)
         r=self.run_audit(concat=b,manifest=m)
         self.assertEqual(r["warnings"],[])
         self.assertEqual(r["status"],"REVIEW_NOT_FINAL")
@@ -95,6 +99,16 @@ class JoinOnsetAuditTests(unittest.TestCase):
         b=self.concat.replace(b"gap_610.wav",b"gap_0.wav",1)
         with self.assertRaisesRegex(ValueError,"OUT_OF_RANGE_GAP"):
             self.run_audit(concat=b)
+
+    def test_gap_wav_missing_blocks_report(self):
+        (self.clean / "gap_610.wav").unlink()
+        with self.assertRaisesRegex(ValueError,"WAV_DECODE_UNAVAILABLE"):
+            self.run_audit()
+
+    def test_gap_wav_wrong_duration_blocks_report(self):
+        create_wav(self.clean / "gap_610.wav",frames=24000)
+        with self.assertRaisesRegex(ValueError,"PAUSE_WAV_DURATION_MISMATCH"):
+            self.run_audit()
 
     def test_inflated_clean_wav_fails(self):
         create_wav(self.clean / "000000.wav",frames=32000)
