@@ -28,14 +28,14 @@ for ($i=0; $i -lt 5; $i++) {
 $heavy = @()
 $tts = "render_owner_approved_v5\.py|render_candidate_ch03_146(?:_r2)?\.py"
 $asr = "qc_local_segments\.py|saydi_review_qc\.py"
-$mixed = "chapter_v5_job\.py|chapter2_v5_qc_guarded\.py|saydi_quality_improve\.py|repair_chapter1_owner_v5_r2\.py"
+$wrappers = "chapter_v5_job\.py|chapter2_v5_qc_guarded\.py|saydi_quality_improve\.py|repair_chapter1_owner_v5_r2\.py"
 foreach ($proc in @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -match "^(python|pythonw|ffmpeg)(\.exe)?$"
 })) {
     $line = [string]$proc.CommandLine
     if (-not $line) { continue }
     $kind = $null
-    if ($line -match $mixed) { $kind = "MIXED" }
+    if ($line -match $wrappers) { $kind = "WRAPPER" }
     elseif ($line -match $tts) { $kind = "TTS" }
     elseif ($line -match $asr) { $kind = "ASR" }
     elseif ($line -match '(?i)vieneu|faster.whisper|onnxruntime|transcribe.*\.py|whisper.*\.py') {
