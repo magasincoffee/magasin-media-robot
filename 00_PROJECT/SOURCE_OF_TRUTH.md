@@ -15,11 +15,89 @@ Precedence:
 
 If another document conflicts with this file, this file wins until it is deliberately updated.
 
+## OWNER LOCK — ONE SAYDI SOURCE OF TRUTH / V6 QUALITY UPGRADE (2026-10-11)
+
+**ONE AND ONLY CURRENT TASK AUTHORITY: `00_PROJECT/SOURCE_OF_TRUTH.md` on `main`.** Three former `*TEMP_SOURCE_OF_TRUTH.md` documents and duplicate status/plan trackers have been retired from the current branch. Git history preserves their old evidence, NOT their executable authority. A future ChatGPT/robot must read this SOT from the beginning and derive exactly one active task ID here. README, old links, PRs, branches, code comments, older chat, historical QC/ND "NEXT" statements, plans, matrices and test fixtures cannot authorize a different task or bypass Owner gates. Historical links to deleted SOTs are invalid for execution: open this canonical SOT directly (no automatic GitHub redirect is implied); never fetch Git history to reactivate a retired task.
+
+**Owner approved:** V5 VieNeu audiobook robot is the protected, already functioning baseline; **V6 is the latest quality/autonomy upgrade target, not a deployed release**. Preserve existing voice, references, model, book text, original/derived manifests, WAV/MP3, checkpoints, durable queues, Supabase state, active workers, credentials and QC evidence. Do not replace VieNeu, invoke paid SaydiVoice, start from scratch or rerecord accepted sections without separately approved and hash-proven invalidation. Quality / correct pronunciation / natural emotion and pauses / auto-QC and safe isolated repair take precedence over render speed and 24/7 throughput.
+
+**Authoritative selected task remains `SAYDI-002 = NEXT`; currently actionable subordinate task `SAYDI002-VN-001 = IN_PROGRESS`.** SAYDI-001 is DONE, SAYDI-003..011 not yet formally accepted. The 24 numbered V6 steps below are checkboxes, **not new alternative TASK_ID/NEXT_TASK_ID namespaces**; mapped to existing SAYDI, SAYDI002-VN, SAYDI-ND, SAYDI-QC and V6-P0/P1 IDs. A SOT update alone NEVER advances a gate. Work on later quality modules must not be dispatched independently while SAYDI-002 is still NEXT unless the current task explicitly permits an offline preparatory dependency.
+
+### V5 protections and V6 quality gates
+
+- Active TTS = local VieNeu v3 Turbo / ONNX, H4 only (`DESKTOP-H4A16IL`), Owner-approved `SAYDI Nam Mien Nam`. Keep the approved approximately 237-second narration reference/fingerprint; V5 pacing/intonation/emphasis accepted in a Chapter 4 sample are not permission to change voice or slow down audio. **NO `atempo`, pitch shifting, time stretch, invented discrete VieNeu emotion controls or forced waveform tempo.** Convey feeling through sentence/clause editorial preparation, punctuation, natural breaths and safe join intervals within actual provider capability. A materially changed fingerprint requires separate new Owner sample approval.
+- H4 retains 8 GB RAM (7.88 GiB OS-visible). VieNeu and Whisper are **strictly sequential**: only one heavy worker, resource preflight, model/process fully unloaded before other is started, mutex and checkpoint owner proven, durable Owner STOP obeyed. 2026-10-11 C: free ~1.25 GiB, D: ~56.2 GiB; 2.1 GiB stable RAM TTS / 2.5 GiB ASR over five samples, C: 2 GiB and D: 10 GiB are **proposed** safety floors pending validation. Cannot launch real new work while C: below safe floor / Owner START generation unverified / composite V5 inner unload barrier unqualified. No blind TEMP bulk deletion: ~22,192 C: TEMP files (~1.45 GiB) include only ~0.4 MiB older than 7 days. Reversible per-SAYDI storage remedy only after inventory and proper authorization; no global OS TEMP redirects.
+- Preserve Chapter 2 V5 640/640 WAV and QC and approved MP3; Chapter 4 440/440; Chapter 5 346/346. All recorded REVIEW_READY, **not FINAL**. Chapter 1 V5 347/347 chunks and 35m11s preview; R2 35 candidate tries / 12 selected, 115 basic ASR REVIEW and 279 strict ASR REVIEW are warning counts, **not directly 115 audible pronunciation mistakes or Owner FINAL**. Original source/voice/first/last and full checkpoint SHA ownership need field proof before resuming or altering anything. Never reset/revoice/double-QC protected 640 chunks, corrupt approved audio, kill existing active Chapter 5 ASR process, or overwrite accepted WAVs.
+- Heading-only G music design approved: original soft 2-second instrumental before title, ~160ms separation, low-level ducked sound during structural heading ONLY, absolutely none under body. Design preset approval is not entire chapter audio acceptance.
+- Preserve immutable `original_text`; derive separate `normalized_text`, `spoken_text`, semantic units, source spans and SHA. Reconstruct punctuation/phrases/dialogue but never silently omit, rewrite or change book meaning. Uncertain editorial decisions -> REVIEW. Do not send private manuscript, audio/reference, credentials or exact personal material to public GitHub or cloud without explicit Owner enablement.
+- QC is default-on after synthesis: coverage, exact-text/word and Vietnamese tone, suspect-token + timecode, Whisper/ASR plus independent confirmation where required, emotional pacing/pause/F0/dynamics, acoustic clip/silence and joins, voice consistency. Each result bound to **actual source/TTS text/voice/WAV hash and QC version**. ASR agreement alone is not human-quality proof; an ASR mismatch alone is not proof of wrong Vietnamese tone.
+- Repair only a verified, retry-safe defective chunk: maximum **two** attempts; only promote a candidate demonstrably better than baseline, with exact SHA and unchanged neighboring audio, rerun affected+neighbor QC; unresolved/ambiguous -> REVIEW (never infinite loop or false FINAL). Preserve native articulation speed.
+- Control Center target: one Owner UI for SAYDI/Supervisor/SAPO after qualified cutover. Until isolated lifecycle approval, old scheduled tasks are not silently altered; the new target is **OFF after reboot until authenticated Owner START**, durable STOP must not be auto-restarted. Existing disabled START/STOP in UI is NOT evidence of a functioning actuator. Never start heavy worker or change production system during source-only documentation migration.
+
+### Sole authorized SAYDI-002 local VieNeu queue (migrated from retired temporary SOT)
+
+| TASK_ID | Current status | To complete / evidence |
+|---|---|---|
+| **SAYDI002-VN-001** | **IN_PROGRESS / active** | Read-only H4 checkpoint/source/voice/model SHA, PID/mutex and authenticated Owner STOP generation, RAM/disk/C: consumer inventory, safe reversible storage plan, exact-head+main Windows offline CI; qualify legacy V5 inner VieNeu-unload-to-Whisper barrier before any real trial. No new heavy worker/production write. |
+| SAYDI002-VN-002 | PENDING after VN-001 | Verify local VieNeu adapter and versioned VoiceProvider/AI contracts, narrator fingerprint, source/spoken hashes, deterministic local fallback, unsupported controls, security/idempotency unit tests. No live synthesis. |
+| SAYDI002-VN-003 | PENDING after VN-002 | Prefer read-only existing real VieNeu sample with exact-hash source/voice/WAV/MP3 and Owner approved reference; only a separately authorized safe bounded local sample if absolutely required. No duplicate 640-chunk render. |
+| SAYDI002-VN-004 | PENDING after VN-003 | Connect editorial/heading G staging/first-word+join+pronunciation QC + bounded repaired clips into repeatable chapter `REVIEW` receipt, zero music under body and protected WAV unchanged. |
+| SAYDI002-VN-005 | PENDING after VN-001..004 | Final safe VieNeu vertical slice/AI/Voice/fingerprint/local QC + Owner preview approvals, privacy/idempotency, H4 field proof, exact PR CI and exact-main readback; only then `SAYDI-002 DONE`, `SAYDI-003 NEXT`. |
+
+**Existing evidence (not closure):** PR #104 / #105 merged H4 read-only collector, resource diagnostics, protected checkpoint/temp inventory, D: staged *inactive* controller bridge; H4 synthetic sequence and 21/21 tests PASS without VieNeu/Whisper model load. PR #106 hardened read-only fresh H4 telemetry; Windows checks PASS on exact main. **This is NOT live integration**; C: headroom, authenticated Owner witness, full fingerprint/checkpoint ownership and internal unload barrier remain blockers. On block, log `BLOCKER_ID, TASK_ID, STATUS, TYPE, SUMMARY, OWNER_ACTION, EVIDENCE, RESUME_WHEN` in this SOT; no infinite wait/repair loops.
+
+### Owner-approved V6 upgrade — 6 phases / 24 small jobs
+
+Each checkbox starts TODO unless complete acceptance is proven (having a V5 implementation only means baseline exists). Report task proof: merged commit, exact-head+exact-main CI, sanitized H4 receipts, Owner listening when needed. Stages are roughly **3–5, 4–6, 4–7, 5–8, 4–7, 4–7 workdays** respectively; estimated **24–40 workdays** total, not a delivery promise. Sequential stages and dependency gates still apply.
+
+| Step | Small job / simple user outcome | Existing owner ID(s) | Status / gate |
+|---|---|---|---|
+| **1.1** | Freeze and hash all approved V5 WAV/MP3, reference voice, chapter checkpoints and active worker | SAYDI-002 / VN-001 | IN_PROGRESS; read-only partial evidence, hashes/owner incomplete |
+| **1.2** | Inventory C: and safely free/redirect only authorized per-SAYDI data with backup/rollback | SAYDI-002 / VN-001 | TODO; C: resource blocker |
+| **1.3** | Prove VieNeu off/unloaded before Whisper starts; resource, mutex, Owner STOP/START barriers | SAYDI-002 / VN-001; V6-P0-06 | IN_PROGRESS offline; real sequence unqualified |
+| **1.4** | Qualify local VieNeu contract, approved bounded sample, G/QC receipt and hand off to SAYDI-003 | SAYDI-002 / VN-002..005 | TODO, dependencies VN-001 |
+| **2.1** | Recognize book, chapter, title, paragraphs; remove non-spoken PDF page debris | SAYDI-003; V6-P0-01 | TODO / canonical provenance test |
+| **2.2** | Prepare speech punctuation, line joins, numbers, abbreviations, name/term lexicon | SAYDI-004; V6-P0-01 | TODO / no word loss |
+| **2.3** | Label narration, dialogue, quotes, emphasis and logical pauses | SAYDI-004/005; V6-P0-01 | TODO / semantic confidence |
+| **2.4** | Token/source equivalence gate: preserve meaning and send uncertain edits to REVIEW | SAYDI-004; V6-P0-01 | TODO / source immutability |
+| **3.1** | Understand book/chapter/scene intent and audience, not just isolated keywords | SAYDI-005; V6-P0-01 | TODO / hierarchical context |
+| **3.2** | Establish emotion/intensity, speaker continuity and smooth adjacent scene changes | SAYDI-005; V6-P0-01 | TODO / emotional arc test |
+| **3.3** | Prepare provider-safe native-speed pauses, emphasis, pronunciation directions pre-render | SAYDI-005/006; V6-P0-02 | TODO / validated narration plan |
+| **3.4** | Generate representative 3–5-minute V5 vs V6 listening sample with approved voice | SAYDI-005/006; V6-P0-02 | TODO / Owner A/B acceptance |
+| **4.1** | Detect missing/duplicate/out-of-order segments and mismatched spoken text | SAYDI-008; V6-P0-03 | TODO / source+WAV SHA |
+| **4.2** | Detect suspected wrong Vietnamese tones, slurs, names with two signals when consequential | SAYDI-008; V6-P0-03 / SAYDI-QC | TODO / guard ASR false alarms |
+| **4.3** | Check pauses, phrasing, intonation, sound levels and joins against approved profile | SAYDI-007/008; V6-P0-05 | TODO / audio QC and audition |
+| **4.4** | Classify root causes SOURCE/EDITORIAL/VIENEU/ASR_FALSE_POSITIVE/AUDIO_JOIN | SAYDI-008; V6-P0-03 | TODO / explain defect before repair |
+| **5.1** | Select only exact damaged chunk; keep all accepted chunks unchanged | SAYDI-006/008; V6-P0-04 | TODO / SHA isolation |
+| **5.2** | Try at most 2 safe targeted fixes; no rerender whole chapter | SAYDI-006/008; V6-P0-04 | TODO / bounded retry |
+| **5.3** | Recheck modified WAV, neighboring joins and voice consistency; accept only better result | SAYDI-007/008; V6-P0-04/05 | TODO / before-after QC |
+| **5.4** | Retain baseline if inconclusive and issue exact timecoded REVIEW exception | SAYDI-008; V6-P0-04 | TODO / no false FINAL |
+| **6.1** | Assemble, validate and export chapter MP3 / book M4B with complete QC report | SAYDI-007/009; V6-P1-08 | TODO / playable metadata |
+| **6.2** | Show real workflow phases, RAM, QA findings, owner-controlled lifecycle + playback in Control Center | SAYDI-010; V6-P1-07/08 | TODO / separate secure UI cutover |
+| **6.3** | Full Chapter 1 recovery using 347 V5 WAVs, auto-QC/repairs then Owner chapter audition | SAYDI-008/009/010; V6-P1-08 | TODO / field and listening PASS |
+| **6.4** | Test one independent new chapter from ingestion to approved output, reboot/recovery, release gate | SAYDI-011; V6-P1-08 | TODO / clean field acceptance |
+
+**Prior V6 work-package meanings (subordinate only):** V6-P0-01 editorial/semantic Director; P0-02 approved golden voice and native articulation; P0-03 multiple-evidence pronunciation/root-cause QC; P0-04 at most 2 attempts and isolated SHA repair; P0-05 natural joins/prosody; P0-06 memory/watchdog; P1-07 local Director-to-robot schema (private manuscript default); P1-08 Owner chapter/listening dashboard. Implement in existing `02_SAYDI_CORE/src/saydi_audiobook/{editorial,director,pronunciation,prosody,quality,repair}.py` and `tools/saydi_tts/{narration,qc}`; do not build competing subsystem.
+
+### Consolidated preexisting QC / Narration Director statuses (proof, NOT separate NEXT)
+
+- `SAYDI-QC-001` DONE (PR #60 deterministic QC); `QC-002` DONE (H4 metrics field acceptance); `QC-003` DONE (PR #64 lexicon); `QC-004` code merged (PR #66/Edge v7) but correct-H4 targeted rerender field acceptance **PENDING**, previous wrong-machine 4K7 attempt not proof; `QC-005` DONE (PR #69 profile envelopes); `QC-006` synthetic harness available, real H4 and Owner before/after listening **PENDING**; `QC-007` editorial/stitch code present, field listening **PENDING**.
+- `SAYDI-ND-001` DONE (PR #83 beat Director); `ND-002` V2 raw 17/17 finished, master/Owner listening pending; `ND-002B` V3 proposed natural-speed, not listening accepted; `ND-002C` V4 73/73 raw, Owner/master pending; `ND-002D` editorial field 33/33 raw VieNeu chunks, post-render QC/stitch/Owner listening pending, isolated Python 3.11 QC env fix PR #95; `ND-003` production integration PENDING. **Never treat any of these historical "next" tasks as current executable tasks** when `SAYDI-002`/VN-001 remains active. Preserve local files and markers.
+- Audio benchmarks: Chapter 1 V5 347 chunks (R2 115 basic ASR REVIEW, 279 strict ASR REVIEW), Chapters 2/4/5 chunk counts above. Owner's perceived ~90% quality of approved sample is subjective listening guidance, NOT objective QC PASS rate or license to mark full chapter FINAL.
+
+### Robot execution & signoff from THIS file ONLY
+
+1. **DISCOVER:** reread main SOT from first line; take exactly one already-authorized current ID; never choose a superseded SaydiVoice task, old QC/ND tracker "NEXT", or V6 checklist row as `NEXT_TASK_ID`. No new alternative SOT, temporary queue or unreviewed status tracker.
+2. **EXECUTE/CHECK:** protect production STOP, 8GB RAM, immutable audio and private manuscript; do source-only code, deterministic/synthetic fixture tests while real live gates blocked. CI test changed paths, check exact PR head and main. New heavy real worker only with verified Owner START generation, safe C:/RAM, mutex/checkpoint and unload barrier; separate controlled and reversible cutover approval required.
+3. **COMPLETE:** mark an existing task DONE and advance `NEXT_TASK_ID` **only** when its written gates pass, and update only this file with auditable PR/main SHA + sanitized field proof. If blocked, retain task state and document explicit block; do not loop. Keep the 24 checklist honest; count **DONE/24** from actual acceptances, not architecture task count.
+4. **Owner milestones:** A = safe V5 baseline/worker; B = actual better V6 3–5 minute listening sample; C = Chapter 1 full MP3, robot QC and minimal repair, real Owner listening acceptance. Owner intervention normally only sample/voice/meaning/quality high-impact exceptions and production lifecycle cutover, not every technical PR.
+
+
 ## Owner confirmation 2026-10-11 — V6 is the latest upgrade TARGET, V5 remains protected baseline
 
 The Owner confirms: **use the latest V6 quality/automation specification to improve the existing VieNeu V5 robot, NOT rebuild V5 or substitute retired SaydiVoice.** Here **V6 means the target upgrade specification**, **not a deployed or accepted production release**. Preserve the Owner-approved V5 narrator/reference, previously rendered chapters, WAV/MP3, queues, checkpoints and local scripts unless a separately approved, reversible, evidence-backed migration permits changes. Do not automatically rerender an approved segment or upgrade the narrator fingerprint.
 
-The V6 target is local semantic editorial preparation -> approved reference sample -> sequential VieNeu render -> layered pronunciation/tone/prosody/acoustic and join QC -> SHA-matched bounded repairs -> chapter REVIEW/Owner exception approval -> validated exports, with clear read-only progress visible in MAGASIN Control Center. The canonical detailed requirements and existing subordinate work packages remain [SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md](./SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md); the task queue below and its NEXT task **do not change**.
+The V6 target is local semantic editorial preparation -> approved reference sample -> sequential VieNeu render -> layered pronunciation/tone/prosody/acoustic and join QC -> SHA-matched bounded repairs -> chapter REVIEW/Owner exception approval -> validated exports, with clear read-only progress visible in MAGASIN Control Center. The canonical detailed requirements and existing subordinate work packages remain the consolidated V6 execution section above; the task queue below and its NEXT task **do not change**.
 
 First executable safety increment under **SAYDI-002 / SAYDI002-VN-001**: harden the *offline-only* H4 8GB read-only telemetry preflight against stale, missing, naive-time or future-dated snapshots; keep explicit Owner lifecycle witness, checkpoint ownership, disk and inner TTS-to-ASR unload-barrier gates unqualified until independently verified. This is V6-P0-06 prerequisite work and **does not install a new Control worker, enable production, mark VN-001 DONE or qualify V6 as released**. Subsequent V6 quality work remains under its existing SAYDI-004..010 owning tasks, with no bypass of current eligibility/Owner approval gates.
 
@@ -29,7 +107,7 @@ First executable safety increment under **SAYDI-002 / SAYDI002-VN-001**: harden 
 
 1. **Sole active TTS:** VieNeu v3 Turbo / ONNX on **DESKTOP-H4A16IL**, using the existing approved local narrator/reference `SAYDI Nam Mien Nam`. No cloud/paid SaydiVoice TTS requirement. DESKTOP-4K7IM13 is not a prerequisite.
 2. **Disable execution:** Never dispatch SaydiVoice browser authentication, preflight, Generate, catalog, profile recovery, external provider API or SaydiVoice voice-sample approval tasks. Legacy SaydiVoice repository code and historic evidence may remain as an **inactive archive**; do not delete private browser profiles or old logs as part of this documentation transition.
-3. **Current task remains `SAYDI-002: NEXT`** — it must now be closed against verified local VieNeu evidence, *not* the retired SaydiVoice gates. Historical task IDs `SAYDI002-003..006` tied to SaydiVoice are **SUPERSEDED / NOT EXECUTABLE**, **not DONE**; follow **`SAYDI002-VN-001`** in updated `00_PROJECT/SAYDI_002_TEMP_SOURCE_OF_TRUTH.md`. Never reuse an old legacy task ID for a different operation.
+3. **Current task remains `SAYDI-002: NEXT`** — it must now be closed against verified local VieNeu evidence, *not* the retired SaydiVoice gates. Historical task IDs `SAYDI002-003..006` tied to SaydiVoice are **SUPERSEDED / NOT EXECUTABLE**, **not DONE**; follow **`SAYDI002-VN-001`** in updated this single canonical SOT. Never reuse an old legacy task ID for a different operation.
 4. **Style G is Owner-approved for title signal**: original soft instrumental 2s prelude, 160ms separation and very quiet voice-ducked bed during structural headings only, never during body narration. Style approval **does not** approve the entire chapter, original first-word pronunciation, material joins, a changed narrator fingerprint or FINAL release.
 5. **Preserve protected assets and control:** no modification to Chapter 2's protected 640 chunks/checkpoints, previously approved MP3/WAV/book/manifests, worker ownership, Windows scheduled tasks or Control Center cutover. Do not start heavy VieNeu/Whisper solely because of a SOT edit. Owner STOP and post-cutover OFF-after-reboot policy remain authoritative.
 6. **SAYDI-002 VieNeu completion evidence:** verified provider-neutral Voice/AI interfaces, deterministic local fallback, approved narrator fingerprint, preflight of worker/RAM/checkpoint, reproducible one bounded local audible sample or existing exact-hash field receipts, text/audio approval status, idempotency/privacy tests and safe QC. No silent DONE based only on unit tests; do not skip SAYDI-003..011.
@@ -702,7 +780,7 @@ Required SAYDI-002 evidence:
 
 ### 2026-10-11 — Active SAYDI-002 closure reinterpretation
 
-The older provider-specific completion terms are historical and non-executable. Do not substitute retired SaydiVoice auth/sample evidence for local VieNeu evidence; do not mark `SAYDI-002 DONE` prematurely. The new subordinate VieNeu tasks, explicitly approved by the Owner's provider-retirement directive, are maintained in `00_PROJECT/SAYDI_002_TEMP_SOURCE_OF_TRUTH.md`, with `SAYDI002-VN-001` as the next read-only task. Only an exact-main, gate-verified handoff can advance the main task to `SAYDI-003`.
+The older provider-specific completion terms are historical and non-executable. Do not substitute retired SaydiVoice auth/sample evidence for local VieNeu evidence; do not mark `SAYDI-002 DONE` prematurely. The new subordinate VieNeu tasks, explicitly approved by the Owner's provider-retirement directive, are maintained in this single canonical SOT, with `SAYDI002-VN-001` as the next read-only task. Only an exact-main, gate-verified handoff can advance the main task to `SAYDI-003`.
 
 ## Completion definition for the project
 
@@ -924,7 +1002,7 @@ Mandatory interpretation behavior:
 
 The durable implementation checklist is:
 
-`00_PROJECT/NARRATION_INTELLIGENCE_CAPABILITY_MATRIX.md`
+the consolidated V6 capability and acceptance matrix above
 
 That matrix may grow whenever the Owner discovers a missing or improvable capability. It records implementation coverage only; authoritative task ordering remains in this Source of Truth.
 
@@ -934,7 +1012,7 @@ The Owner's intended end-state is minimal-input operation: supply the legally us
 
 **Decision:** Owner approves **V6 capability upgrade planning**, building on the existing local VieNeu V5 rather than rebuilding the robot. The complete normative implementation and acceptance specification is:
 
-`00_PROJECT/SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md`
+the consolidated V6 execution section above
 
 This directive is **requirements approval, not implementation completion**. Do not claim V6 shipped, Chapter 1 FINAL, or full-book production passed without runnable code, QC results, field evidence and Owner listening acceptance.
 
