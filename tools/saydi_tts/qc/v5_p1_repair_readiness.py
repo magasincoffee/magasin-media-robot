@@ -73,12 +73,35 @@ def prepare(manifest: dict, audit: dict, worklist: dict,
                 or lineage.get("manifest_sha256") != manifest_sha256
                 or lineage.get("source_sha256") != source_sha):
             raise ValueError("STALE_P0_SOURCE_LINEAGE")
+        spans = lineage.get("source_spans")
+        verified_spans = isinstance(spans, list) and len(spans) == len(items)
+        total_words = 0
+        if verified_spans:
+            for i, (span, item) in enumerate(zip(spans, items)):
+                words = re.findall(r"[^\\W_]+", item.get("canonical_text", ""), re.UNICODE)
+                count = len(words)
+                if (not isinstance(span, dict)
+                        or type(item.get("canonical_text")) is not str
+                        or span.get("index") != i
+                        or span.get("verified") is not True
+                        or type(span.get("word_count")) is not int
+                        or count == 0
+                        or span["word_count"] != count
+                        or span.get("source_word_start") != total_words
+                        or span.get("source_word_end_exclusive") != total_words + count
+                        or span.get("canonical_sha256") != checksum(item["canonical_text"].encode("utf-8"))
+                        or not is_sha(span.get("source_span_sha256"))):
+                    verified_spans = False
+                    break
+                total_words += count
         eligible_lineage = (
             lineage.get("lexical_equivalence") == "PASS"
             and lineage.get("punctuation_equivalence") == "PASS"
             and lineage.get("verified_source_span_count") == len(items)
-            and isinstance(lineage.get("source_spans"), list)
-            and len(lineage["source_spans"]) == len(items)
+            and verified_spans
+            and lineage.get("source_token_count") == total_words
+            and lineage.get("canonical_token_count") == total_words
+            and lineage.get("first_mismatch_source_word_offset") is None
         )
     actions = worklist.get("confirmed_actions")
     if not isinstance(actions, list) or type(worklist.get("confirmed_action_total")) is not int:
