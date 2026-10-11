@@ -1,0 +1,51 @@
+name: SAYDI VieNeu 8GB Resource Gate (Offline)
+
+on:
+  pull_request:
+    paths:
+      - "tools/saydi_tts/qc/vn_8gb_resource_gate.py"
+      - "tools/saydi_tts/qc/test_vn_8gb_resource_gate.py"
+      - "tools/saydi_tts/qc/INSPECT_VN_8GB_H4_READONLY.ps1"
+      - ".github/workflows/saydi-vn-8gb-readonly-checks.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "tools/saydi_tts/qc/vn_8gb_resource_gate.py"
+      - "tools/saydi_tts/qc/test_vn_8gb_resource_gate.py"
+      - "tools/saydi_tts/qc/INSPECT_VN_8GB_H4_READONLY.ps1"
+      - ".github/workflows/saydi-vn-8gb-readonly-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-no-dispatch:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile and parse read-only hardware probe
+        shell: powershell
+        run: |
+          python -m py_compile tools/saydi_tts/qc/vn_8gb_resource_gate.py
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "tools/saydi_tts/qc/INSPECT_VN_8GB_H4_READONLY.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host $_.Message }
+            throw "READONLY_PROBE_SYNTAX_INVALID"
+          }
+
+      - name: 8GB VieNeu and Whisper safe sequencing (offline only)
+        shell: powershell
+        run: |
+          python -m unittest discover -s tools/saydi_tts/qc -p test_vn_8gb_resource_gate.py -v
