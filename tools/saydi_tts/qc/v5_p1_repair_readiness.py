@@ -125,6 +125,15 @@ def prepare(manifest: dict, audit: dict, worklist: dict,
                 or action.get("auto_run") is not False
                 or action.get("owner_acceptance_after") is not True):
             raise ValueError("UNSAFE_REPAIR_ACTION")
+        if action.get("code") not in {
+            "OWNER_CONFIRMED_TONE_DRIFT",
+            "OWNER_CONFIRMED_WRONG_WORD",
+            "OWNER_CONFIRMED_AUDIBLE_CLICK",
+        }:
+            raise ValueError("UNSUPPORTED_CONFIRMED_DEFECT_CODE")
+        if (type(items[idx].get("index")) is not int
+                or items[idx]["index"] != idx):
+            raise ValueError("MANIFEST_SEGMENT_INDEX_CHANGED")
         used = action.get("attempts_used")
         remaining = action.get("remaining_attempts")
         if (type(used) is not int or type(remaining) is not int
@@ -159,7 +168,7 @@ def prepare(manifest: dict, audit: dict, worklist: dict,
         "source_sha256": source_sha,
         "voice_reference_sha256": voice_sha,
         "original_review_mp3_sha256": review_sha,
-        "p0_source_lineage_status": "LEXICAL_AND_PUNCTUATION_SCREEN_PASS"
+        "p0_source_lineage_status": "P0_LINEAGE_RECEIPT_SCREEN_ONLY"
         if eligible_lineage else "PENDING_OR_INCOMPLETE",
         "confirmed_actions_in_worklist": worklist["confirmed_action_total"],
         "actions_exposed_for_inspection": len(intents),
