@@ -112,7 +112,7 @@ class GuardTests(unittest.TestCase):
 
     def test_no_shell_or_provider_import_in_guard(self):
         import ast
-        parsed=ast.parse(SUT.read_text(encoding="utf-8"))
+        parsed=ast.parse(SUT.read_text(encoding="utf-8-sig"))
         imports={getattr(n,"module","") for n in ast.walk(parsed) if isinstance(n,ast.ImportFrom)}
         self.assertFalse(imports.intersection({"vieneu","whisper","psutil","subprocess","onnxruntime","supabase"}))
 
