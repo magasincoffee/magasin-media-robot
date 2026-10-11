@@ -1,13 +1,15 @@
 # SAYDI — Kế hoạch tích hợp render + QC tự động theo phong cách G
 
-**Ngày:** 2026-10-11  
+**Ngày:** 2026-10-11
+> **OWNER UPDATE 2026-10-11:** Main SOT was corrected and merged through [PR #103](https://github.com/magasincoffee/magasin-media-robot/pull/103). **VieNeu local on DESKTOP-H4A16IL is the ONLY active TTS path; SaydiVoice and historical `SAYDI002-003` are RETIRED / NON-EXECUTABLE.** New subtask NEXT: `SAYDI002-VN-001`. This newer instruction overrides any older SaydiVoice examples below. The chapter G audio remains REVIEW, not FINAL.
+  
 **Chủ trương Owner:** CHỐT phong cách nhạc tiêu đề G.  
 **Trạng thái:** KẾ HOẠCH / CHƯA HOÀN THÀNH TÍCH HỢP / CHƯA PRODUCTION-ACCEPTED.  
 **Host:** DESKTOP-H4A16IL, local-first.  
 **Sole authority:** SOURCE_OF_TRUTH.md trên main.  
 **References:** SAYDI_002_TEMP_SOURCE_OF_TRUTH.md; SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md; SAYDI_PROSODY_PRONUNCIATION_QC_TEMP_SOURCE_OF_TRUTH.md; SAYDI_NARRATION_DIRECTOR_TEMP_SOURCE_OF_TRUTH.md; NARRATION_INTELLIGENCE_CAPABILITY_MATRIX.md.
 
-> Đây là đặc tả triển khai phụ thuộc SOT, không tạo NEXT, task P3/P4 hay chuỗi TASK_ID mới. SAYDI-002 vẫn là NEXT. Theo TEMP SOT, SAYDI002-003 (authenticated preflight, KHÔNG Generate) cần hoàn thành; SAYDI002-005 có blocker Owner audio verdict cho SG - Chí Đạt. Owner chốt phong cách G **không đồng nghĩa** phê duyệt mẫu người kể SG - Chí Đạt hay toàn bộ Chapter 4. Kế hoạch được viết trên Draft PR #101, chưa merge/main/cutover.
+> Đây là đặc tả triển khai phụ thuộc SOT, không tạo NEXT, task P3/P4 hay chuỗi TASK_ID mới. SAYDI-002 vẫn là NEXT. Theo **main SOT đã cập nhật ngày 2026-10-11**, toàn bộ SaydiVoice đã nghỉ, task cũ `SAYDI002-003` và mẫu SG - Chí Đạt không còn là điều kiện thực thi. **Nhiệm vụ con hiện tại là `SAYDI002-VN-001`**: kiểm kê read-only trên H4, giữ nguyên VieNeu/checkpoint. Owner chốt phong cách G **không đồng nghĩa** nghiệm thu toàn bộ Chương 4 hay thay đổi giọng VieNeu đã duyệt. Kế hoạch được viết trên Draft PR #101, chưa merge/main/cutover.
 
 ## 1. Đầu ra mục tiêu
 
@@ -52,7 +54,7 @@ Tên preset: **SAYDI_HEADING_MUSIC_G_V1**.
 
 | Task SOT / thứ tự | Source cần tích hợp | Definition of Done |
 |---|---|---|
-| **SAYDI-002** | Đối chiếu temp task 003 preflight, 004 sample receipts, 005 Owner voice approval, 006 close; duy trì core provider/AI interfaces | Auth/profile/sample thật; no duplicate Generate; Owner phê duyệt đúng fingerprint; exact-main SOT chuyển task chỉ sau full gate |
+| **SAYDI-002** | Thực hiện `SAYDI002-VN-001..005` theo TEMP SOT mới: kiểm kê H4, xác minh VieNeu adapter, giọng `SAYDI Nam Mien Nam`, local sample/QC, G mixer, bàn giao đúng SOT | VieNeu/worker/checkpoint/voice fingerprint thật; không dùng SaydiVoice, không đụng checkpoint 640; QA/exact-main trước chuyển nhiệm vụ |
 | **SAYDI-003** | PDF-first ingest, page/footer/annotation classifier, OCR confidence, three text layers with spans | Không đọc số trang rác; không bỏ nội dung gốc; số không rõ là trang hay nội dung → REVIEW |
 | **SAYDI-004** | Semantic boundary reconstruction, Vietnamese leading word MUST_CHECK, title roles, chapter/scene/paragraph hierarchy | Không chẻ câu sai nghĩa; canonical token map giữ nguyên; heading tách body; test tiếng Việt |
 | **SAYDI-005** | Director schema, book/scene contextual delivery, reference fingerprint, heading G preset and approval contract | No fake VieNeu controls, no automatic approval; deterministic valid plan; confidence+review |
@@ -103,7 +105,7 @@ Each phase records immutable input/output SHA, source/ref/preset versions, worke
 ## 7. Incremental execution and verification sequence
 
 1. **Read-only baseline + doc PR:** inventory main SOT and temp task states, local running jobs/guardians, RAM, manifest/audio/checkpoint SHA; freeze known good Ch02/Ch03/Ch04 files. This document on Draft PR #101, not main.
-2. **SOT-authorized SAYDI002 gates:** non-generative authenticated preflight of exactly the approved profile; reconcile existing sample evidence; request true Owner narrator approval only where SOT demands it; close 002 via formal gates, not by audio G style acceptance.
+2. **SOT-authorized VieNeu SAYDI002 gates:** bắt đầu `SAYDI002-VN-001` kiểm kê read-only VieNeu trên H4, đối chiếu 640 checkpoint bảo vệ và voice/reference hiện có; sử dụng bằng chứng WAV VieNeu đã render, không login/Generate SaydiVoice; đóng 002 chỉ khi các cổng VieNeu và nghe duyệt thật đạt, không dùng phong cách nhạc G để duyệt thay.
 3. **Offline implementation:** schema/director roles, page/annotation policy, G preset/mixer contract, orchestration stage interface and synthetic negative tests. Targeted/impacted tests GREEN before CI all.
 4. **Local H4 dry-run:** reproduce E→G with hash checks; inject bad source/heading/page, duplicate chunk, failed fade/duck, rejected first-word and missing WAV. Show fail-closed and immutable output.
 5. **First real limited TTS pilot only after authorization:** isolated new passage with source/ref/Owner approval, safe RAM, single worker, QC and at most 2 target repair candidates; neighboring WAV hashes unchanged.
@@ -122,6 +124,6 @@ Each phase records immutable input/output SHA, source/ref/preset versions, worke
 
 **Now:** record this Owner G style lock and implementation plan on Draft PR #101; optionally link the existing V6 planning document. Keep PR draft and main SOT authoritative. **No production script deployment, model start, main merge, Windows task edit, Supabase queue write, media overwrite, or FINAL claim.**
 
-**Next executable project action:** re-read main SOT + SAYDI002 TEMP SOT; execute current SAYDI002-003 authenticated **non-generative preflight** if prerequisites satisfied, rather than skipping to SAYDI-007/008/010. Owner approval for G heading music is not the same as voice-sample approval at SAYDI002-005.
+**Next executable project action:** đọc main SOT mới (merged PR #103) và TEMP SOT VieNeu; thực hiện `SAYDI002-VN-001` **read-only inventory trên DESKTOP-H4A16IL** trước các cổng local tiếp theo. Không yêu cầu 4K7, không SaydiVoice profile/generate. Owner phê duyệt G là quyết định thiết kế nhạc, không phải `FINAL` hay duyệt thay fingerprint VieNeu.
 
 **Status:** plan prepared, integration and end-to-end field verification still pending.
