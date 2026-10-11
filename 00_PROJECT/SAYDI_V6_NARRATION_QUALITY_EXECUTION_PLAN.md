@@ -177,3 +177,18 @@ On every autonomous iteration:
 6. For local private Chapter 1 field work, store manuscript/audio and raw ASR only on H4A16IL; publish only sanitized result summaries and non-sensitive synthetic test fixtures.
 
 **Implementation is requested, not yet delivered by this document.**
+
+
+## 11. Owner decision 2026-10-11 — style G autonomous pipeline planning
+
+Owner **approved the STYLE of the G heading background-music reference**: an original soft instrumental intro before heading text plus extremely quiet ducked instrumental support while a heading is read, with no music over ordinary narrative body. G does not replace native VieNeu pronunciation, narrator fingerprint acceptance, natural sentence transitions, or Owner listening verdict for an entire chapter.
+
+The detailed source-update and field-gate plan is:
+
+**[SAYDI_G_AUTONOMOUS_RENDER_QC_IMPLEMENTATION_PLAN_20261011.md](./SAYDI_G_AUTONOMOUS_RENDER_QC_IMPLEMENTATION_PLAN_20261011.md)**
+
+The new plan reuses this V6 specification, the existing Narration Director and QC subtracks, and the main SOT task sequence. It covers editorial-first ingest and page/annotation cleanup, source-safe semantic segmentation, local VieNeu checkpointed render, first-word/tone/joins/prosody QC, bounded isolated correction, heading G sound design, audio mixing QC, export review packages and Control Center lifecycle.
+
+**Current evidence is limited to isolated staging components and real Chapter 4 G REVIEW output.** The GitHub code for G is OFF-by-default/staging only and does not establish a fully automated end-to-end book renderer. Do not claim this section completed a production cutover or an Owner full-chapter QC signoff.
+
+**Authority and approval boundaries remain unchanged:** main SOURCE_OF_TRUTH.md controls the only NEXT task (currently SAYDI-002); SAYDI002-003 authenticated preflight and SAYDI002-005 voice sample Owner verdict remain distinct prerequisites. G style approval does NOT close those tasks. PR #101 must remain Draft until its field and SOT gates permit further integration. Do not start a heavy VieNeu/Whisper worker, modify production checkpoints, rewrite scheduled tasks or merge into main based only on this documentation.
