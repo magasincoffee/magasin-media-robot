@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from v5_editorial_multiround import digest, inspect, write_report
+from v5_source_lineage import audit as source_audit, utf8_sha
 
 
 MANIFEST_SHA = "b" * 64
@@ -115,6 +116,44 @@ class V5EditorialMultiroundTests(unittest.TestCase):
         self.assertIn("SOURCE_PROVENANCE_UNVERIFIED", codes(r))
         self.assertEqual(r["missing_source_provenance_count"], 1)
         self.assertEqual(len([f for f in r["findings"] if f["code"] == "SOURCE_PROVENANCE_UNVERIFIED"]), 1)
+
+    def test_verified_lineage_closes_unknown_source_span_count_only(self):
+        m = copy.deepcopy(self.manifest)
+        for segment in m["segments"]:
+            segment.pop("original_text", None)
+        source = "Mỗi khi hè về. Người phụ nữ bước tới. Tôi nghe thấy tiếng mưa."
+        m["source_sha256"] = utf8_sha(source)
+        lineage = source_audit(m, source.encode("utf-8"),
+                               manifest_sha256=MANIFEST_SHA)
+        report = inspect(m, MANIFEST_SHA, source_lineage=lineage)
+        self.assertEqual(report["source_text_verified_segments"], 3)
+        self.assertEqual(report["missing_source_provenance_count"], 0)
+        self.assertEqual(report["source_lineage"],
+                         "SHA_BOUND_LEXICAL_EQUIVALENCE_PASS")
+        self.assertNotIn("SOURCE_PROVENANCE_UNVERIFIED", codes(report))
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertFalse(report["independent_semantics_verified"]
+                         if "independent_semantics_verified" in report else False)
+
+    def test_stale_lineage_manifest_sha_cannot_authorize_source_span(self):
+        m = copy.deepcopy(self.manifest)
+        source = "Mỗi khi hè về. Người phụ nữ bước tới. Tôi nghe thấy tiếng mưa."
+        m["source_sha256"] = utf8_sha(source)
+        lineage = source_audit(m, source.encode("utf-8"),
+                               manifest_sha256="c" * 64)
+        with self.assertRaisesRegex(ValueError, "STALE_OR_UNBOUND_SOURCE_LINEAGE"):
+            inspect(m, MANIFEST_SHA, source_lineage=lineage)
+
+    def test_incomplete_source_lineage_keeps_review_open(self):
+        m = copy.deepcopy(self.manifest)
+        source = "Mỗi khi hè về. Người phụ nữ đi tới. Tôi nghe thấy tiếng mưa."
+        m["source_sha256"] = utf8_sha(source)
+        lineage = source_audit(m, source.encode("utf-8"),
+                               manifest_sha256=MANIFEST_SHA)
+        report = inspect(m, MANIFEST_SHA, source_lineage=lineage)
+        self.assertEqual(report["source_lineage"], "REVIEW_UNVERIFIED")
+        self.assertIn("SOURCE_LINEAGE_INCOMPLETE_OR_CHANGED", codes(report))
+        self.assertEqual(report["status"], "REVIEW")
 
     def test_distinct_external_review_receipts_do_not_certify_final(self):
         reviewers = {"manifest_sha256": MANIFEST_SHA, "validators": [
