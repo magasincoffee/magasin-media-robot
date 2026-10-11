@@ -82,7 +82,7 @@ Use the G staging mixer only as a reference while integrating the production wor
 
 Confirm runnable local VieNeu vertical slice, provider-neutral AI and Voice contracts, local analysis fallback, voice/text/audio approvals, privacy/duplicate guards, exact-head CI, H4 sample field evidence, G staging/QC readiness; report remaining downstream V6 quality gaps to SAYDI-003..011, not invented PASS.
 
-**Acceptance:** only then main SOT \`SAYDI-002 = DONE\`, \`SAYDI-003 = NEXT\`; exact-main readback and removal/archive of this TEMP SOT when authorized. Do not close on planning alone.
+**Acceptance:** only then main SOT `SAYDI-002 = DONE`, `SAYDI-003 = NEXT`; exact-main readback and removal/archive of this TEMP SOT when authorized. Do not close on planning alone.
 
 ## Open and historical blockers
 
@@ -90,7 +90,7 @@ There is **no current SaydiVoice blocker**. Any legacy SaydiVoice Chrome/auth/qu
 
 For active VieNeu tasks, update a new blocker using:
 
-\`\`\`text
+```text
 BLOCKER_ID=<BLK-SAYDI002-VN-XXX>
 TASK_ID=<SAYDI002-VN-...>
 STATUS=OPEN
@@ -99,7 +99,7 @@ SUMMARY=<sanitized real boundary>
 OWNER_ACTION=<minimum real action or NONE>
 EVIDENCE=<timestamp/sha/log without secrets>
 RESUME_WHEN=<verifiable condition>
-\`\`\`
+```
 
 Historic SaydiVoice blocker reports are preserved by prior Git commits, not destroyed as evidence.
 
@@ -111,14 +111,14 @@ No SaydiVoice login/call/generation requirement remains. Local VieNeu can close 
 
 Use the existing MAGASIN task response contract but return the **current VieNeu-only** subtask; never return SAYDI002-003 as NEXT.
 
-\`\`\`text
+```text
 MAGASIN_TASK_CONTROL_V1
 STATUS=<READY|RUNNING|COMPLETE|BLOCKED|DONE>
 TASK_ID=<current task ID or NONE>
 NEXT_TASK_ID=<one current VN task ID or NONE>
 CHECK_AFTER_SECONDS=<0-3600>
 END_MAGASIN_TASK_CONTROL_V1
-\`\`\`
+```
 
-**Authoritative next executable subtask:** \`SAYDI002-VN-001\`  
-**Project-level SOT next task:** \`SAYDI-002\`.
+**Authoritative next executable subtask:** `SAYDI002-VN-001`  
+**Project-level SOT next task:** `SAYDI-002`.
