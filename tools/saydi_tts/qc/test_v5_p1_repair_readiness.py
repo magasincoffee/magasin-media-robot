@@ -40,7 +40,17 @@ def setup():
              "manifest_sha256":M,"source_sha256":A,
              "lexical_equivalence":"PASS","punctuation_equivalence":"PASS",
              "verified_source_span_count":2,
-             "source_spans":[{"index":0},{"index":1}]}
+             "source_token_count":7,"canonical_token_count":7,
+             "first_mismatch_source_word_offset":None,
+             "source_spans":[
+                 {"index":0,"verified":True,"word_count":4,
+                  "source_word_start":0,"source_word_end_exclusive":4,
+                  "canonical_sha256":checksum("Mỗi khi hè về.".encode("utf-8")),
+                  "source_span_sha256":D},
+                 {"index":1,"verified":True,"word_count":3,
+                  "source_word_start":4,"source_word_end_exclusive":7,
+                  "canonical_sha256":checksum("Người phụ nữ.".encode("utf-8")),
+                  "source_span_sha256":D}]}
     return manifest,audit,wl,lineage
 
 class RepairReadinessTests(unittest.TestCase):
@@ -131,6 +141,16 @@ class RepairReadinessTests(unittest.TestCase):
         r=prepare(m,a,w,M,l)
         self.assertEqual(r["actions_exposed_for_inspection"],0)
         self.assertEqual(r["state"],"REVIEW_ONLY_NO_RUNTIME_PERMISSION")
+
+    def test_forged_source_spans_never_get_p0_pass(self):
+        for item, value in (("source_word_start", 99),
+                            ("source_span_sha256", "not_sha"),
+                            ("canonical_sha256", "0"*64)):
+            m,a,w,l=setup()
+            l["source_spans"][0][item] = value
+            r=prepare(m,a,w,M,l)
+            self.assertEqual(r["p0_source_lineage_status"],"PENDING_OR_INCOMPLETE")
+            self.assertFalse(r["intents"][0]["approved_to_dispatch"])
 
     def test_legacy_lineage_cannot_mark_p0_pass(self):
         m,a,w,l=setup()
