@@ -135,6 +135,19 @@ class V5EditorialMultiroundTests(unittest.TestCase):
         self.assertFalse(report["independent_semantics_verified"]
                          if "independent_semantics_verified" in report else False)
 
+    def test_source_punctuation_divergence_never_becomes_auto_pass(self):
+        m = copy.deepcopy(self.manifest)
+        original = "Mỗi khi hè về, Người phụ nữ bước tới. Tôi nghe thấy tiếng mưa."
+        m["source_sha256"] = utf8_sha(original)
+        lineage = source_audit(m, original.encode("utf-8"),
+                               manifest_sha256=MANIFEST_SHA)
+        self.assertEqual(lineage["lexical_equivalence"], "PASS")
+        self.assertEqual(lineage["punctuation_equivalence"], "REVIEW")
+        result = inspect(m, MANIFEST_SHA, source_lineage=lineage)
+        self.assertIn("SOURCE_PUNCTUATION_REVIEW", codes(result))
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertFalse(result["owner_final"])
+
     def test_stale_lineage_manifest_sha_cannot_authorize_source_span(self):
         m = copy.deepcopy(self.manifest)
         source = "Mỗi khi hè về. Người phụ nữ bước tới. Tôi nghe thấy tiếng mưa."
