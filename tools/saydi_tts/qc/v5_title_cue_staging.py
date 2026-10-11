@@ -42,8 +42,8 @@ def soft_bell_pcm() -> tuple[bytes, dict]:
         tail = min(1.0, (CUE_MS / 1000 - t) / 0.075)
         env = max(0.0, min(attack, tail)) * math.exp(-t / 0.23)
         # Warm consonant dyad rather than a sharp click or music bed.
-        tone = (0.078 * math.sin(2 * math.pi * 523.25 * t) +
-                0.022 * math.sin(2 * math.pi * 659.25 * t))
+        tone = (0.060 * math.sin(2 * math.pi * 523.25 * t) +
+                0.017 * math.sin(2 * math.pi * 659.25 * t))
         value = min(0.98, max(-0.98, env * tone))
         samples.append(int(round(value * 32767)))
     p = max(abs(x) for x in samples) / 32768
