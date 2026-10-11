@@ -60,6 +60,8 @@ def audit(manifest: dict, raw_dir: Path, cleaned_dir: Path,
         name = f"{idx:06d}.wav"
         if Path(current.group(1)).name != name:
             raise ValueError("OUT_OF_ORDER_CONCAT_WAV")
+        if Path(current.group(1)).resolve() != (cleaned_dir / name).resolve():
+            raise ValueError("CONCAT_WAV_NOT_IN_CLEANED_DIR")
         gap_name = Path(pause.group(1)).name
         match = GAP_NAME.fullmatch(gap_name)
         if not match:
@@ -67,6 +69,11 @@ def audit(manifest: dict, raw_dir: Path, cleaned_dir: Path,
         actual_gap = int(match.group(1))
         if not 50 <= actual_gap <= 2500:
             raise ValueError("OUT_OF_RANGE_GAP")
+        gap_file = cleaned_dir / gap_name
+        if Path(pause.group(1)).resolve() != gap_file.resolve():
+            raise ValueError("CONCAT_GAP_NOT_IN_CLEANED_DIR")
+        if abs(wav_duration_ms(gap_file) - actual_gap) > 1.0:
+            raise ValueError("PAUSE_WAV_DURATION_MISMATCH")
         pause_ms.append(actual_gap)
         raw_duration = wav_duration_ms(raw_dir / name)
         clean_duration = wav_duration_ms(cleaned_dir / name)
@@ -111,7 +118,7 @@ def audit(manifest: dict, raw_dir: Path, cleaned_dir: Path,
         "dominant_pause_count": most_common_n,
         "repetitive_pause": repetitive,
         "pause_duration_histogram_ms": dict(sorted(counts.items())),
-        "source_punctuation_counts": dict(sorted(punctuation.items())),
+        "canonical_punctuation_counts": dict(sorted(punctuation.items())),
         "clauses_without_strong_end_punctuation_indices": split_indices[:100],
         "clauses_omitted": max(0, len(split_indices)-100),
         "warnings": warnings,
