@@ -148,6 +148,40 @@ class V5EditorialMultiroundTests(unittest.TestCase):
         self.assertEqual(result["status"], "REVIEW")
         self.assertFalse(result["owner_final"])
 
+    def test_forged_source_span_index_or_digest_cannot_verify_original(self):
+        m = copy.deepcopy(self.manifest)
+        for obj in m["segments"]:
+            obj.pop("original_text", None)
+        source = "Mỗi khi hè về. Người phụ nữ bước tới. Tôi nghe thấy tiếng mưa."
+        m["source_sha256"] = utf8_sha(source)
+        base = source_audit(m, source.encode("utf-8"), manifest_sha256=MANIFEST_SHA)
+        for mutation in ("start", "canonical", "count"):
+            falsified = copy.deepcopy(base)
+            span = falsified["source_spans"][1]
+            if mutation == "start":
+                span["source_word_start"] += 1
+            elif mutation == "canonical":
+                span["canonical_sha256"] = "f" * 64
+            else:
+                span["word_count"] += 1
+            report = inspect(m, MANIFEST_SHA, source_lineage=falsified)
+            self.assertEqual(report["source_lineage"], "REVIEW_UNVERIFIED")
+            self.assertIn("SOURCE_LINEAGE_INCOMPLETE_OR_CHANGED", codes(report))
+            self.assertEqual(report["missing_source_provenance_count"], 3)
+            self.assertFalse(report["owner_final"])
+
+    def test_forged_total_source_word_count_cannot_verify_original(self):
+        m = copy.deepcopy(self.manifest)
+        for obj in m["segments"]:
+            obj.pop("original_text", None)
+        source = "Mỗi khi hè về. Người phụ nữ bước tới. Tôi nghe thấy tiếng mưa."
+        m["source_sha256"] = utf8_sha(source)
+        falsified = source_audit(m, source.encode("utf-8"), manifest_sha256=MANIFEST_SHA)
+        falsified["source_token_count"] += 1
+        report = inspect(m, MANIFEST_SHA, source_lineage=falsified)
+        self.assertIn("SOURCE_LINEAGE_INCOMPLETE_OR_CHANGED", codes(report))
+        self.assertFalse(report["owner_final"])
+
     def test_stale_lineage_manifest_sha_cannot_authorize_source_span(self):
         m = copy.deepcopy(self.manifest)
         source = "Mỗi khi hè về. Người phụ nữ bước tới. Tôi nghe thấy tiếng mưa."
