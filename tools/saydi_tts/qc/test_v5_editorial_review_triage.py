@@ -104,6 +104,23 @@ class EditorialReviewTriageTests(unittest.TestCase):
         self.assertEqual(len(r["review_queue"]), 25)
         self.assertEqual(r["review_items_not_shown"], 25)
 
+    def test_review_pagination_keeps_all_issues_accessible(self):
+        m = {"segments": [
+            {"index": i, "canonical_text": "Từ gốc.", "origin_spoken_text_v4": "Từ khác."}
+            for i in range(60)
+        ]}
+        second = triage(m, "c"*64, review_offset=25)
+        last = triage(m, "c"*64, review_offset=50)
+        self.assertEqual(second["review_queue"][0]["index"], 25)
+        self.assertEqual(last["review_queue"][-1]["index"], 59)
+        self.assertEqual(last["review_items_not_shown"], 0)
+        self.assertEqual(len(second["review_queue"]), 25)
+        self.assertEqual(len(last["review_queue"]), 10)
+
+    def test_bad_review_offset_refused(self):
+        with self.assertRaisesRegex(ValueError, "INVALID_REVIEW_OFFSET"):
+            triage(fixture(), "c"*64, review_offset=-1)
+
     def test_private_text_never_output(self):
         report = json.dumps(self.report(), ensure_ascii=False)
         self.assertNotIn("người phụ nữ", report.casefold())
