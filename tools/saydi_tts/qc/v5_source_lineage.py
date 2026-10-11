@@ -51,7 +51,16 @@ def verify_source_hash(manifest: dict, source_bytes: bytes) -> tuple[str, str]:
     raise ValueError("SOURCE_SHA256_MISMATCH")
 
 
-def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None) -> dict:
+def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None,
+          manifest_sha256: str | None = None) -> dict:
+    if manifest_sha256 is None:
+        manifest_sha256 = utf8_sha(json.dumps(manifest, ensure_ascii=False,
+                                        sort_keys=True, separators=(",", ":")))
+        hash_method = "CANONICAL_JSON"
+    else:
+        if not isinstance(manifest_sha256, str) or not HEX_SHA.fullmatch(manifest_sha256):
+            raise ValueError("INVALID_MANIFEST_SHA256")
+        hash_method = "RAW_MANIFEST_BYTES"
     method, source = verify_source_hash(manifest, source_bytes)
     segments = manifest.get("segments")
     if not isinstance(segments, list) or not segments:
@@ -142,6 +151,8 @@ def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None) -> di
     return {
         "schema": SCHEMA,
         "chapter": manifest.get("chapter_number"),
+        "manifest_sha256": manifest_sha256,
+        "manifest_hash_method": hash_method,
         "source_sha256": manifest["source_sha256"],
         "source_hash_method": method,
         "source_token_count": len(sw),
@@ -184,10 +195,12 @@ def main() -> int:
     if not args.opt_in_source_lineage:
         print("SOURCE_LINEAGE_OFF_BY_DEFAULT")
         return 0
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8-sig"))
+    manifest_bytes = args.manifest.read_bytes()
+    manifest = json.loads(manifest_bytes.decode("utf-8-sig"))
     legacy = (json.loads(args.legacy_audit.read_text(encoding="utf-8-sig"))
               if args.legacy_audit else None)
-    report = audit(manifest, args.source_utf8.read_bytes(), legacy)
+    report = audit(manifest, args.source_utf8.read_bytes(), legacy,
+                   manifest_sha256=digest(manifest_bytes))
     save_new_report(args.out, report)
     print(json.dumps({"schema": SCHEMA, "status": report["status"],
                       "source_spans": report["verified_source_span_count"],
