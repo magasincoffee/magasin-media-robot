@@ -10,6 +10,7 @@ import json
 import math
 import sys
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,9 @@ MIN_C_FREE_GIB = 2.0  # conservative staging proposal, not existing SOT requirem
 MIN_D_FREE_GIB = 10.0
 HISTORY_MINIMUM_GIB = {"TTS": 1.9, "ASR": 2.3}
 SAMPLE_COUNT = 5
+TELEMETRY_SCHEMA = "saydi-vn-8gb-h4-telemetry-v1"
+MAX_SNAPSHOT_AGE_SECONDS = 30.0
+MAX_FUTURE_SKEW_SECONDS = 5.0
 
 def _number(value: Any) -> float | None:
     try:
@@ -28,6 +32,18 @@ def _number(value: Any) -> float | None:
         n = float(value)
         return n if math.isfinite(n) and 0 <= n < 2048 else None
     except (ValueError, TypeError):
+        return None
+
+def _snapshot_age_seconds(raw: Any) -> float | None:
+    """Require a recent, timezone-aware H4 capture; a string is never Owner proof."""
+    if not isinstance(raw, str):
+        return None
+    try:
+        captured = datetime.fromisoformat(raw.strip().replace("Z", "+00:00"))
+        if captured.tzinfo is None or captured.utcoffset() is None:
+            return None
+        return (datetime.now(timezone.utc) - captured.astimezone(timezone.utc)).total_seconds()
+    except (ValueError, OverflowError):
         return None
 
 def evaluate(snapshot: Mapping[str, Any], *, stage: str) -> dict[str, Any]:
@@ -39,6 +55,10 @@ def evaluate(snapshot: Mapping[str, Any], *, stage: str) -> dict[str, Any]:
         if not ok:
             reasons.append(error)
 
+    check(snapshot.get("schema") == TELEMETRY_SCHEMA, "TELEMETRY_SCHEMA_UNVERIFIED")
+    snapshot_age = _snapshot_age_seconds(snapshot.get("captured_at"))
+    check(snapshot_age is not None and -MAX_FUTURE_SKEW_SECONDS <= snapshot_age <= MAX_SNAPSHOT_AGE_SECONDS,
+          "TELEMETRY_STALE_OR_UNVERIFIED")
     check(snapshot.get("host") == HOST, "WRONG_HOST")
     physical = _number(snapshot.get("physical_ram_gib"))
     check(physical is not None and 7.0 <= physical <= 9.0, "EXPECTED_8GB_MACHINE_NOT_PROVEN")
@@ -99,6 +119,8 @@ def evaluate(snapshot: Mapping[str, Any], *, stage: str) -> dict[str, Any]:
         "host": HOST,
         "resource_assessment": "ELIGIBLE_FOR_SEPARATE_AUTHORIZED_CHECK" if resource_possible else "HOLD",
         "reasons": reasons,
+        "telemetry_age_seconds": round(snapshot_age, 3) if snapshot_age is not None else None,
+        "telemetry_max_age_seconds": MAX_SNAPSHOT_AGE_SECONDS,
         "historical_stage_floor_gib": HISTORY_MINIMUM_GIB[stage],
         "conservative_stage_floor_gib": min_admit,
         "observed_min_free_ram_gib": min_ram,
