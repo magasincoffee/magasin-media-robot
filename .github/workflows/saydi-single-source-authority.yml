@@ -1,0 +1,54 @@
+name: SAYDI Single Source Authority
+on:
+  pull_request:
+    paths:
+      - "00_PROJECT/**"
+      - "README.md"
+      - ".github/workflows/saydi-single-source-authority.yml"
+  push:
+    branches: [main]
+    paths:
+      - "00_PROJECT/**"
+      - "README.md"
+      - ".github/workflows/saydi-single-source-authority.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  one-sot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject duplicate SOT or V6 task-plan authorities
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+          root = pathlib.Path("00_PROJECT")
+          sole = root / "SOURCE_OF_TRUTH.md"
+          assert sole.is_file(), "Canonical SOT missing"
+          all_sot = sorted(p.as_posix() for p in root.rglob("*SOURCE_OF_TRUTH.md"))
+          assert all_sot == [sole.as_posix()], f"Duplicate authoritative SOT: {all_sot}"
+          retired = [
+              "SAYDI_002_TEMP_SOURCE_OF_TRUTH.md",
+              "SAYDI_NARRATION_DIRECTOR_TEMP_SOURCE_OF_TRUTH.md",
+              "SAYDI_PROSODY_PRONUNCIATION_QC_TEMP_SOURCE_OF_TRUTH.md",
+              "SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md",
+              "NARRATION_INTELLIGENCE_CAPABILITY_MATRIX.md",
+              "CURRENT_STATUS.md",
+          ]
+          assert not any((root / x).exists() for x in retired), "Retired task authority recreated"
+          text = sole.read_text(encoding="utf-8")
+          assert "ONE SAYDI SOURCE OF TRUTH" in text, "Single authority lock missing"
+          assert "SAYDI002-VN-001 = IN_PROGRESS" in text, "Current task must be explicit"
+          assert "SAYDI-002 = NEXT" in text, "Project NEXT must be explicit"
+          for phase in range(1, 7):
+              for task in range(1, 5):
+                  key = f"{phase}.{task}"
+                  assert re.search(r"^\| \*\*" + re.escape(key) + r"\*\* \|", text, re.M), "Missing V6 step " + key
+          assert len(re.findall(r"^\| \*\*[1-6]\.[1-4]\*\* \|", text, re.M)) == 24
+          print("PASS: one canonical SOT; 24 V6 steps; no duplicate active source.")
+          PY
