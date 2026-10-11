@@ -120,6 +120,35 @@ class SourceLineageTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SOURCE_SHA256_MISMATCH"):
             audit(m, windows_source)
 
+    def test_ellipsis_location_is_review_not_auto_edit(self):
+        original = "Mỗi khi hè về.\u2026 Người phụ nữ bước tới."
+        m = {"source_sha256": utf8_sha(original), "segments": [
+            {"index": 0, "canonical_text": "Mỗi khi hè về."},
+            {"index": 1, "canonical_text": "Người phụ nữ bước tới."},
+        ]}
+        r = audit(m, original.encode("utf-8"))
+        self.assertEqual(r["lexical_equivalence"], "PASS")
+        self.assertEqual(r["punctuation_equivalence"], "REVIEW")
+        self.assertEqual(r["punctuation_difference_gap_count"], 1)
+        self.assertEqual(r["punctuation_difference_gaps"][0]["source_punctuation"], ".\u2026")
+        self.assertEqual(r["punctuation_difference_gaps"][0]["canonical_punctuation"], ".")
+        self.assertEqual(r["punctuation_difference_gaps"][0]["segment_index"], 0)
+        self.assertTrue(r["punctuation_difference_gaps"][0]["at_segment_boundary"])
+        self.assertFalse(r["production_modified"])
+        self.assertFalse(r["owner_final"])
+
+    def test_drifted_word_disables_gap_mapping(self):
+        original = "Mỗi khi hè về.\u2026 Người phụ nữ bước tới."
+        m = {"source_sha256": utf8_sha(original), "segments": [
+            {"index": 0, "canonical_text": "Mỗi khi he về."},
+            {"index": 1, "canonical_text": "Người phụ nữ bước tới."},
+        ]}
+        r = audit(m, original.encode("utf-8"))
+        self.assertEqual(r["lexical_equivalence"], "REVIEW")
+        self.assertEqual(r["punctuation_difference_gaps"], [])
+        self.assertEqual(r["verified_source_span_count"], 0)
+        self.assertFalse(r["owner_final"])
+
     def test_wrong_source_hash_fails_closed(self):
         changed = copy.deepcopy(self.manifest)
         changed["source_sha256"] = "0" * 64
