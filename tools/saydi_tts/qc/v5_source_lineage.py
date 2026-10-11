@@ -7,6 +7,7 @@ text. Lexical equivalence is not independent spelling or listening approval.
 from __future__ import annotations
 
 import argparse
+import bisect
 import hashlib
 import json
 import os
@@ -55,6 +56,50 @@ def verify_source_hash(manifest: dict, source_bytes: bytes) -> tuple[str, str]:
                 return method, normalized.replace("\r\n", "\n")
             return method, normalized
     raise ValueError("SOURCE_SHA256_MISMATCH")
+
+
+def map_punctuation_gaps(source: str, segments: list[dict],
+                         words_match: bool) -> list[dict]:
+    """Report punctuation-only differences without exporting manuscript text.
+
+    Segment assignment is authoritative only if full lexical token order is
+    already verified. Punctuation normalization remains REVIEW, never auto-fix.
+    """
+    if not words_match:
+        return []
+    def gaps(text: str) -> list[str]:
+        matches = list(WORD_RE.finditer(unicodedata.normalize("NFC", text).casefold()))
+        result = []
+        start = 0
+        for match in matches:
+            result.append("".join(re.findall(r"[,.!?;:…]", text[start:match.start()])))
+            start = match.end()
+        result.append("".join(re.findall(r"[,.!?;:…]", text[start:])))
+        return result
+
+    rendered = " ".join(seg["canonical_text"] for seg in segments)
+    original_gaps, rendered_gaps = gaps(source), gaps(rendered)
+    if len(original_gaps) != len(rendered_gaps):
+        raise ValueError("PUNCTUATION_GAP_TOKEN_ALIGNMENT_INVALID")
+    ends = []
+    current = 0
+    for seg in segments:
+        current += len(token_matches(seg["canonical_text"]))
+        ends.append(current)
+    result = []
+    for gap, (original, canonical) in enumerate(zip(original_gaps, rendered_gaps)):
+        if original == canonical:
+            continue
+        seg_idx = min(bisect.bisect_right(ends, max(0, gap-1)), len(segments)-1)
+        result.append({
+            "gap_word_offset": gap,
+            "segment_index": seg_idx,
+            "source_punctuation": original,
+            "canonical_punctuation": canonical,
+            "at_segment_boundary": gap in ends,
+            "code": "PUNCTUATION_DIFFERENCE_REQUIRES_REVIEW",
+        })
+    return result
 
 
 def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None,
@@ -110,6 +155,7 @@ def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None,
                          "source_mark_count": len(source_punctuation),
                          "canonical_mark_count": len(rendered_punctuation),
                          "status": "REVIEW"})
+    punctuation_gaps = map_punctuation_gaps(source, segments, matched)
     first_mismatch = None
     if not matched:
         for pos in range(min(len(sw), len(current))):
@@ -176,6 +222,8 @@ def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None,
         "lexical_equivalence": "PASS" if matched else "REVIEW",
         "punctuation_equivalence": "PASS" if source_punctuation == rendered_punctuation else "REVIEW",
         "first_mismatch_source_word_offset": first_mismatch,
+        "punctuation_difference_gap_count": len(punctuation_gaps),
+        "punctuation_difference_gaps": punctuation_gaps,
         "verified_source_span_count": len(spans),
         "source_spans": spans,
         "legacy_status": legacy_status,
