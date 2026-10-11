@@ -6,6 +6,18 @@
 
 The user reported: abrupt/jerky joins; unclear, swallowed first words; unnatural segmentation of sentences and disrupted narration flow. **This is an explicit listening-quality failure and must override simple decoder/PCM/tests PASS.** Do not re-label it accepted based on ASR scores or SHA-only receipts.
 
+## 2026-10-11 field correction — exact first-word PCM proof (supersedes onset speculation)
+
+**Important corrective finding:** Exact interior PCM alignment of **all 440/440** raw and cleaned Ch04 WAVs proves **zero leading samples removed**, even where total WAV length shrank. The previously reported 134 clips shortened by >50ms were shortened **at the tail**, not the head. Therefore, energy-based trimming is **NOT evidenced as the mechanism deleting the first half of the first word**. Avoid claiming otherwise in automatic robot decisions.
+
+A **separate, now verified, head-of-waveform risk** is the current renderer's 12ms fade-in: 328/440 native raw WAVs have active audio within their first 12ms (RMS threshold). **255/328** have first-12ms RMS attenuated below **80%** in cleaned WAVs; median energy ratio ~**0.697** among active starts. This is a short-duration attenuation, **not proof that 50% of any entire word disappears**. If the native WAV itself already drops or garbles the first syllable, the renderer's lack of preceding sentence context/segmentation and VieNeu behavior must be tested via independent listening and grounded lexical/audio evidence.
+
+New source-only QC: `tools/saydi_tts/qc/v5_first_word_onset_gate.py` + `test_v5_first_word_onset_gate.py`. It verifies exact PCM sample alignment (not just total duration), distinguishes head vs tail trimming, detects fade overlap with active first-12ms sound, fails closed when alignment cannot be proven, never asserts phoneme/language correctness, and blocks automatic repair/promotion. **Real H4 result:** 440 exact aligned, 0 heads cut >50ms, 134 tails cut >50ms, 328 raw starts active, 255 attenuated, `REVIEW_ONLY_NO_VOICE_APPROVAL`. Metadata-only H4 local audit JSON: `D:\SAYDI\QC_STAGING\CI_H4_SAFE_2ee6d2_20261011\_field_p0\CH04_FIRST_WORD_ONSET_GATE_20261011.json`, SHA `5eb6c9d1dc2e13e1eb45e8eef125ba7470b6932041dbbd674489ef2b1b35266d`.
+
+**Controlled A/D head-only listening comparison:** 30 existing cleaned WAVs. A = existing 12ms fade-in. D = *only* the first 12ms PCM samples restored from original native WAVs, all later PCM samples, gap WAVs, timings, and stitching policy unchanged. **A and D durations both 142.010s**. D sample SHA `da8fb0837f1749724d66b2497e61d051ed80b294428e0a14e4876896051ffa8f`. No TTS invoked. The local `CH04_FIRST_WORD_FADE_ISOLATION.html` was launched from `D:\SAYDI\QC_STAGING\CI_H4_SAFE_2ee6d2_20261011\_field_p0\CH04_NO_TRIM_PAUSE_AB_20261011\`. This is a **hypothesis listening test**, not automatic release acceptance.
+
+**User-observed first-word loss remains OPEN** until independent A/D listening and raw WAV-vs-canonical-text phonetic QC; **do not apply blanket fades, time stretching, bulk regenerations or word fixes based solely on these metrics**.
+
 ## Verified field evidence — H4, private assets remain local
 
 - Uploaded \`CHUONG_04_OWNER_APPROVED_V5.REVIEW.mp3\` SHA-256 \`2ff41e5034a8dd3c4e7a695e02a8bccccd1e4c20071b2f278dbaf50f0e214b8a\` is identical to H4 production REVIEW file. **REVIEW name does not imply Owner approved the chapter:** H4 \`final=false\`, \`owner_approved=false\`, 440/440 segments, previous ASR \`review_count=176\`.
