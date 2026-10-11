@@ -1,0 +1,31 @@
+name: SAYDI002-003 Authenticated No-Generate Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi002003-recovered-profile
+  cancel-in-progress: false
+
+jobs:
+  preflight-on-recovered-runner:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 16
+    steps:
+      - name: Verify exact recovered profile host before any browser access
+        shell: powershell
+        run: |
+          if ($env:COMPUTERNAME -ne "DESKTOP-4K7IM13" -or $env:USERNAME -ne "DELL") {
+            throw "WRONG_RECOVERED_PROFILE_RUNNER: dispatch refused without accessing user profile"
+          }
+
+      - uses: actions/checkout@v4
+
+      - name: Authenticated SaydiVoice surface and catalog read-only preflight
+        shell: powershell
+        run: |
+          & "01_DISCOVERY\saydivoice\scripts\ci_saydi002003_preflight.ps1"
+          if ($LASTEXITCODE -ne 0) { throw "SAYDI002003_PREFLIGHT_FAILED" }

@@ -93,6 +93,19 @@ RESUME_WHEN=Owner records APPROVE or REJECT for the SG - Chí Đạt sample.
 NOTES=The prior HN - Mai Phương candidate was rejected by Owner preference because the narrator must be male and Southern Vietnamese. This OPEN owner-review blocker does not stop independent SAYDI002-003 preflight work.
 ```
 
+```text
+BLOCKER_ID=BLK-SAYDI002-003-002
+TASK_ID=SAYDI002-003
+STATUS=OPEN
+TYPE=ENVIRONMENT
+DETECTED_AT=2026-10-11
+SUMMARY=The recovered authenticated SaydiVoice Chrome profile is on DESKTOP-4K7IM13 as Windows user DELL, but that runner is not currently accessible through the connected Desktop Commander devices. The connected H4A16IL must NOT impersonate this profile. No current real auth/catalog/MP3 format observation on 4K7 has been obtained.
+OWNER_ACTION=Make DESKTOP-4K7IM13 accessible to the authorized runner or reconnect it in Desktop Commander; arrange execution of the isolated SAYDI002-003 non-generative field workflow on that exact host. Do not share credentials in chat.
+EVIDENCE=Original recovered profile PASS GitHub run 36974448969; Draft PR isolated SAYDI002-003 script+16 fail-closed offline tests PASS H4 (2026-10-11); negative wrong-host field probe exit 21 and no evidence file created; no Generate action, no audio, no profile changes.
+RESUME_WHEN=Exact recovered host/authenticated profile accessible, read-only field workflow returns all auth, SG - Chí Đạt voice, stability, speed, pause and MP3 gates PASS with zero Generate and no new audio.
+NOTES=Do not use Owner G background-music style approval as SAYDI002-005 narrator approval. Do not claim SAYDI002-003 DONE from offline tests or older 2026-10-02 auth profile observations.
+```
+
 ### Resolved blocker history
 
 ```text
@@ -203,7 +216,7 @@ Completion evidence:
 
 ### SAYDI002-003 — Authenticated non-generative SaydiVoice preflight
 
-Status: PENDING
+Status: **BLOCKED — isolated non-generative preflight code/test PASS; exact recovered runner field proof pending**
 
 Goal:
 Prove the production adapter can reach the authenticated SaydiVoice surface on the trusted runner before any live generation.
@@ -214,6 +227,11 @@ Required work:
 - verify required voice/catalog/settings/output-format controls;
 - prepare the exact bounded synthetic/public-domain sample request;
 - emit sanitized preflight evidence.
+
+Implementation progress 2026-10-11 (NOT field acceptance):
+- New local-only `saydivoice_discovery.saydi002_preflight` validates the authenticated catalog without setting voice/script, selecting Generate or opening native login. Fail-closed to recovered host DESKTOP-4K7IM13 / DELL.
+- Synthetic offline safety suite: 16/16 PASS on DESKTOP-H4A16IL (safe host-isolation tests only). Wrong-host probe returned code 21 without opening browser or creating evidence. PowerShell harness syntax parse 0 errors.
+- Dedicated Windows hosted CI and a separate manual field workflow prepared on an isolated Draft PR, no production activation. Final field PASS must come from the recovered host after it is reachable, not H4.
 
 Acceptance:
 - `AUTHENTICATED` gate PASS;
