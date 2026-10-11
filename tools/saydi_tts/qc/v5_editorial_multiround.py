@@ -37,7 +37,7 @@ def issue(pass_id: str, code: str, index: int | None = None,
 
 
 def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
-            legacy_audit: dict | None = None) -> dict:
+            legacy_audit: dict | None = None, source_lineage: dict | None = None) -> dict:
     items = manifest.get("segments")
     if not isinstance(items, list) or not items:
         raise ValueError("MISSING_SEGMENTS")
@@ -174,6 +174,30 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
             "independent_proof": False,
         }
 
+    lineage_summary = "NOT_SUPPLIED"
+    if source_lineage is not None:
+        if not isinstance(source_lineage, dict) or (
+            source_lineage.get("schema") != "saydi-v5-source-lineage-1"
+            or source_lineage.get("manifest_hash_method") != "RAW_MANIFEST_BYTES"
+            or source_lineage.get("manifest_sha256") != manifest_sha256
+            or source_lineage.get("source_sha256") != manifest.get("source_sha256")):
+            raise ValueError("STALE_OR_UNBOUND_SOURCE_LINEAGE")
+        spans = source_lineage.get("source_spans")
+        coverage = (isinstance(spans, list) and len(spans) == len(items)
+                    and all(isinstance(x, dict) and x.get("index") == i
+                            and x.get("verified") is True
+                            and isinstance(x.get("source_span_sha256"), str)
+                            and re.fullmatch(r"[a-f0-9]{64}", x["source_span_sha256"])
+                            for i, x in enumerate(spans)))
+        if source_lineage.get("lexical_equivalence") == "PASS" and coverage:
+            source_verified = len(items)
+            missing_source_provenance = 0
+            findings = [f for f in findings
+                        if f["code"] != "SOURCE_PROVENANCE_UNVERIFIED"]
+            lineage_summary = "SHA_BOUND_LEXICAL_EQUIVALENCE_PASS"
+        else:
+            findings.append(issue("FIDELITY", "SOURCE_LINEAGE_INCOMPLETE_OR_CHANGED"))
+            lineage_summary = "REVIEW_UNVERIFIED"
     # Separately produced editorial-verification receipts only; independence
     # cannot be inferred from repeating the same algorithm. No fake PASS.
     reviewer_status = "PENDING"
@@ -214,6 +238,7 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
         "missing_source_provenance_count": missing_source_provenance,
         "legacy_opaque_tts_hash_count": legacy_opaque_hashes,
         "legacy_editorial_audit": legacy_summary,
+        "source_lineage": lineage_summary,
         "passes": ["STRUCTURE", "ORTHOGRAPHY", "CONTINUITY", "FIDELITY",
                    "INDEPENDENT"],
         "finding_count": len(findings),
@@ -256,6 +281,7 @@ def main() -> int:
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--independent-reviews", type=Path)
     parser.add_argument("--legacy-editorial-audit", type=Path)
+    parser.add_argument("--source-lineage", type=Path)
     parser.add_argument("--enable-experimental-editorial-qc", action="store_true")
     args = parser.parse_args()
     if not args.enable_experimental_editorial_qc:
@@ -267,7 +293,10 @@ def main() -> int:
                if args.independent_reviews else None)
     legacy = (json.loads(args.legacy_editorial_audit.read_text(encoding="utf-8-sig"))
               if args.legacy_editorial_audit else None)
-    report = inspect(manifest, hashlib.sha256(raw).hexdigest(), reviews, legacy)
+    lineage = (json.loads(args.source_lineage.read_text(encoding="utf-8-sig"))
+               if args.source_lineage else None)
+    report = inspect(manifest, hashlib.sha256(raw).hexdigest(), reviews,
+                     legacy, lineage)
     write_report(args.report, report)
     print(json.dumps({"report": str(args.report), "status": report["status"],
                       "segments": report["segment_count"],
