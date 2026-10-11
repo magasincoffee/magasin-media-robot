@@ -90,6 +90,13 @@ class GuardTests(unittest.TestCase):
         x=snap();x["heavy_workers"]=[{"kind":"TTS"},{"kind":"ASR"}]
         self.assertIn("CONCURRENT_TTS_ASR_DETECTED",mod.evaluate(x,stage="ASR")["reasons"])
 
+    def test_wrapper_plus_asr_is_active_but_not_false_concurrent_tts(self):
+        x=snap();x["heavy_workers"]=[{"kind":"WRAPPER","pid":17268},{"kind":"ASR","pid":15680}]
+        r=mod.evaluate(x,stage="TTS")
+        self.assertIn("HEAVY_WORKER_ALREADY_ACTIVE",r["reasons"])
+        self.assertNotIn("CONCURRENT_TTS_ASR_DETECTED",r["reasons"])
+        self.assertFalse(r["approved_to_start"])
+
     def test_unrecognized_heavy_process_blocks(self):
         x=snap();x["heavy_workers"]=[{"kind":"UNKNOWN","pid":1}]
         self.assertIn("UNIDENTIFIED_HEAVY_WORKER",mod.evaluate(x,stage="TTS")["reasons"])
