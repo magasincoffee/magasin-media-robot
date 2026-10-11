@@ -44,9 +44,15 @@ def verify_source_hash(manifest: dict, source_bytes: bytes) -> tuple[str, str]:
         ("RAW_BYTES", digest(source_bytes)),
         ("NFC_UTF8", utf8_sha(normalized)),
         ("NFC_STRIPPED_UTF8", utf8_sha(normalized.strip())),
+        # Historical V5 manifests hash text with LF newlines while Windows
+        # source files may be CRLF. Match only if the entire chapter SHA agrees
+        # after that exact newline-only transformation; never fix words.
+        ("NFC_LF_UTF8", utf8_sha(normalized.replace("\r\n", "\n"))),
     )
     for method, actual in variants:
         if expected.lower() == actual:
+            if method == "NFC_LF_UTF8":
+                return method, normalized.replace("\r\n", "\n")
             return method, normalized
     raise ValueError("SOURCE_SHA256_MISMATCH")
 
