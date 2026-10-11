@@ -149,6 +149,21 @@ class SourceLineageTests(unittest.TestCase):
         self.assertEqual(r["verified_source_span_count"], 0)
         self.assertFalse(r["owner_final"])
 
+    def test_nfd_text_normalizes_before_punctuation_gap_offsets(self):
+        import unicodedata
+        original = "Người phụ nữ bước tới. Trời đổ mưa."
+        nfd = unicodedata.normalize("NFD", original)
+        m = {"source_sha256": utf8_sha(original), "segments": [
+            {"index": 0, "canonical_text": unicodedata.normalize("NFD", "Người phụ nữ bước tới.")},
+            {"index": 1, "canonical_text": unicodedata.normalize("NFD", "Trời đổ mưa.")},
+        ]}
+        r = audit(m, nfd.encode("utf-8"))
+        self.assertEqual(r["lexical_equivalence"], "PASS")
+        self.assertEqual(r["punctuation_equivalence"], "PASS")
+        self.assertEqual(r["punctuation_difference_gap_count"], 0)
+        self.assertEqual(r["verified_source_span_count"], 2)
+        self.assertFalse(r["owner_final"])
+
     def test_wrong_source_hash_fails_closed(self):
         changed = copy.deepcopy(self.manifest)
         changed["source_sha256"] = "0" * 64
