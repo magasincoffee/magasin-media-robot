@@ -28,7 +28,7 @@ BOOK
  -> Narration Director / Voice Casting
  -> Text Preview + Audio Sample Approval
  -> Segment Orchestrator
- -> Voice Engine (Local TTS + optional SaydiVoice)
+ -> Voice Engine (VieNeu local ONLY; legacy SaydiVoice retired)
  -> Audio Engine
  -> Alignment + Acoustic QA
  -> Export Engine
@@ -45,7 +45,7 @@ BOOK
 - download behavior;
 - privacy-safe evidence.
 
-That foundation is reused. It is not being rebuilt from zero.
+This is retired historical evidence only. SAYDI production does **not** use SaydiVoice Chrome, paid quota, cloud provider or any SaydiVoice generation task.
 
 ## Source of Truth
 
@@ -53,7 +53,7 @@ For any continuation, read:
 
 **`00_PROJECT/SOURCE_OF_TRUTH.md`**
 
-It is the single authoritative project state and task queue.
+It is the **only** authoritative Owner-policy, V6 24-step roadmap and task queue. The former three temporary Sources of Truth, separate implementation/status trackers, README and historic branch/PR notes are **not task authority**; never select a NEXT task from them.
 
 Supporting documents:
 
@@ -67,7 +67,7 @@ Historical notes remain useful evidence but do not override the Source of Truth.
 
 ## Current task
 
-**NEXT: SAYDI-002 — Executable vertical slice + provider/AI contracts.**
+**NEXT: SAYDI-002 — Executable vertical slice + provider/AI contracts. Active authorized subtask: SAYDI002-VN-001 IN_PROGRESS.** Only the canonical SOT on `main` can change this.
 
 ## Security / privacy
 
@@ -88,7 +88,7 @@ Default target:
 Rules + Local LLM + Local TTS + FFmpeg + SQLite
 ```
 
-SaydiVoice and cloud LLMs remain optional adapters.
+VieNeu ONNX is the sole active local TTS. Retired SaydiVoice is **not selectable or runnable**. Cloud LLMs are disabled by default and require explicit Owner authorization.
 
 ## Development method
 
