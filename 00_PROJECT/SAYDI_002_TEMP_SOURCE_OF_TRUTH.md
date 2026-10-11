@@ -1,430 +1,124 @@
-# SAYDI-002 Temporary Execution Source of Truth
+# SAYDI-002 Temporary Execution Source of Truth — VieNeu local only
 
-Last updated: 2026-10-02
+**Last updated:** 2026-10-11  
+**Current phase:** SAYDI-002 (NEXT at project level)  
+**Authoritative parent:** [SOURCE_OF_TRUTH.md](./SOURCE_OF_TRUTH.md) on main.  
+**Owner 2026-10-11 decision:** **RETIRE SAYDIVOICE COMPLETELY; USE LOCAL VIENEU EXCLUSIVELY** on DESKTOP-H4A16IL.
 
-## Purpose
+## Why this file was corrected
 
-This file is the temporary execution authority for decomposing and completing **SAYDI-002 — Executable vertical slice + provider/AI contracts**.
+This temporary queue was originally written 2026-10-02 when the project still investigated a paid/quota-limited SaydiVoice provider. Since 2026-10-03 the actual production work has moved to **VieNeu v3 Turbo / ONNX on H4**, and by 2026-10-11 the Owner explicitly cancelled ALL further SaydiVoice work.
 
-Project-level authority remains:
+**Old subtask IDs SAYDI002-001..006 have historical value only.** Their full previous text, proof and blockers are retained in Git history; they are not executable or eligibility requirements. In particular:
 
-`00_PROJECT/SOURCE_OF_TRUTH.md`
+- SAYDI002-001 original dedicated SaydiVoice Chrome auth on 4K7: **HISTORICAL / RETIRED** (previously DONE in old system).
+- SAYDI002-002 old SaydiVoice adapter: **HISTORICAL / RETIRED** (previously DONE in old system).
+- **SAYDI002-003** authenticated SaydiVoice preflight: **SUPERSEDED / CANCELLED**, not DONE, never retry.
+- SAYDI002-004 one paid bounded SaydiVoice sample: **SUPERSEDED / CANCELLED**, no duplicate Generate.
+- SAYDI002-005 narrator SG - Chí Đạt SaydiVoice voice-approval blocker: **SUPERSEDED / CANCELLED** by provider retirement; it is **NOT** the same as approving/changing the active VieNeu narrator.
+- SAYDI002-006 old SaydiVoice-centered closing gate: **SUPERSEDED / CANCELLED**.
 
-This temporary source MUST NOT redefine product architecture, scope, privacy policy, or the authoritative project task queue. It only decomposes the currently authoritative project task `SAYDI-002` into robot-executable steps.
+**DESKTOP-4K7IM13 is NOT needed.** No login to SaydiVoice, no quota-dependent provider call, no profile migration, no Chrome use, no generation, no external TTS artifact download. Historical credentials/profiles may be preserved untouched; do not delete these in this transition.
 
-When all tasks in this file are complete and `SAYDI-002` is closed in the main Source of Truth, this temporary file should be deleted to avoid stale parallel state.
+## Local VieNeu canonical baseline
 
-## Current verified state
-
-- Architecture generation: `SAYDI-AUDIOBOOK-V1.2`.
-- Main authoritative task: `SAYDI-002`.
-- Windows SAPI vertical workflow mechanics: PASS.
-- Windows SAPI production narration quality: REJECT.
-- Production-quality validation path: SaydiVoice.
-- Discovery Tests run `36755846022`: PASS.
-- SaydiVoice audiobook sample run `36755899556`: FAIL (historical pre-authentication failure).
-- Historical failure boundary: persistent SaydiVoice browser profile remained `auth=ANONYMOUS`; that failed run stopped before Generate and produced no MP3 transfer artifact.
-- SaydiVoice profile recovery run `36974448969`, attempt 2 / job `110799617483`: SUCCESS on `DESKTOP-4K7IM13`.
-- Persistent profile authentication: `TTS_READY / AUTHENTICATED_OR_HIDDEN`.
-- Browser-process restart persistence check: PASS.
-- Non-generative surface/catalog discovery gate: PASS.
-- Recovery evidence: `SAYDI_PROFILE_RECOVERY_RESULT=PASS`, `PERSISTENCE=PASS`, `AUTH_GATE=PASS`, `NATIVE_CHROME=PASS`, `GENERATE_CLICKS=0`.
-- Owner visually confirmed the dedicated SaydiVoice Chrome profile is signed in on 2026-10-02.
-- Related historical defect: `BUG-20260917-009 — Anonymous Saydi session bootstrap rejected before generation`; its authentication condition is no longer blocking SAYDI002-001.
+- TTS provider: **VieNeu v3 Turbo / ONNX (LOCAL)**, running on **DESKTOP-H4A16IL**.
+- Existing Owner-approved voice/reference: **SAYDI Nam Mien Nam**. Do not confuse this with the rejected/undecided legacy SaydiVoice SG - Chí Đạt sample.
+- Existing book/chapter/chunk state and durable checkpoints: local + Supabase-based progress model; use verified receipts rather than replaying heavy workers.
+- Ch04 G style: Owner **APPROVED HEADING AUDIO DESIGN**: original soft 2s instrumental before title, 160ms separation, ultra-low background only during title, never under ordinary narration. This is **NOT** a global human listening QC acceptance or FINAL permission.
+- Existing Chapter 2 V5 guarded checkpoints: **640 protected chunks**, approved MP3; recent stage PAUSED_RESOURCE/QC_NEEDS_FREE_RAM, ≥2.3 GiB available RAM was a historical safety gate. Never reset/revoice/double-QC/delete them without exact checkpoint/worker ownership verification.
+- Render/QC program is NOT yet proven to independently complete a new chapter with semantic preparation, local synthesis, bounded repairs, G mix, all-QC and Owner review; hosted unit tests/G media staging alone are insufficient.
 
 ## Execution rules
 
-1. Re-read this file from the beginning before every robot cycle.
-2. Re-read `00_PROJECT/SOURCE_OF_TRUTH.md` only when required to validate that `SAYDI-002` is still the project-level authoritative task.
-3. Execute exactly one task from the queue at a time.
-4. Respect task prerequisites. If the current task becomes blocked, persist the blocker in this file before leaving the cycle. Then continue with the earliest independent executable task whose prerequisites are satisfied. This is dependency-aware deferral, not arbitrary skipping.
-5. Do not rebuild already field-verified SaydiVoice discovery behavior from scratch.
-6. Keep provider/browser automation outside audiobook-domain logic.
-7. Keep browser profiles, credentials, generated audio, runtime state, and manuscript content out of Git.
-8. Use synthetic or public-domain text for live validation.
-9. No Generate action is allowed during authentication/profile recovery or preflight tasks.
-10. If a task requires owner interaction that the robot cannot perform safely (for example manual SaydiVoice login), mark that task `BLOCKED`, update the Blocker Register below with the exact minimum owner action, evidence, and resume condition, and commit the source update.
-11. A recorded blocker must not stop the robot when another independent task is executable. In that case, end the cycle with `STATUS=READY` and `NEXT_TASK_ID` set to the earliest independent executable task. Use machine `STATUS=BLOCKED` only when no independent executable task remains.
-12. Never fabricate completion to bypass a blocker. Blocked tasks remain incomplete until their resume condition is verified.
-13. A live Generate task must be bounded to exactly one intended sample. Do not blindly retry after an uncertain side effect.
-14. Never expose credentials, cookies, profile data, tokens, manuscript/private text, or unsafe browser evidence in GitHub logs/artifacts.
-15. Completion requires concrete evidence: test output, workflow run, persisted sanitized metadata, or equivalent inspectable proof.
-16. Do not mark `SAYDI-002` complete until all tasks in this temporary queue are DONE and the completion gate below is satisfied.
+1. Read main Source of Truth first, then this temp file. If main has newer conflicting instructions, follow main.
+2. Only execute the **one** currently authorized local VieNeu subtask from this file. Do not redirect to provider-specific legacy tasks.
+3. Preserve all source text/audio/profile/checkpoint/Supabase metadata. Do not publish protected book/voice reference to public CI.
+4. **No heavy VieNeu or Whisper start** during inventory or unit-test subtask. Running/starting heavy workers requires a valid Owner START / existing authorized phase plus resource preflight, 1-worker mutex, checkpoint ownership and no overlapping VieNeu+Whisper memory load.
+5. No provider switch or changed voice fingerprint without separate legitimate Owner sample approval. Do not infer SG - Chí Đạt approval from G style acceptance.
+6. Use local safe, synthetic source and test inputs for non-production QA, then field-verify real chapter bounded evidence when authorized. Treat repaired audio as REVIEW until meaningful audio QC and Owner listening exceptions are signed.
+7. STOP/Control Center lifecycle follows main SOT: after qualified cutover the robot boots OFF and stays OFF until Owner START; do not modify legacy scheduled tasks without reviewed cutover. No forced restart of paused or protected legacy QC.
+8. On block, create a sanitized and specific Blocker Register entry and continue only independent executable tasks. Never loop endlessly.
+9. All source edits on a Draft PR are **unmerged work** until a verified main update and corresponding exact-main test/receipt.
+10. Do not mark SAYDI-002 DONE until all *new* active VieNeu execution tasks and closure gate PASS; never use SaydiVoice historical proofs as substitutes.
 
-## Blocker Register
+## Active task queue — new IDs, no reassignment of old IDs
 
-This section is the Owner review queue. The robot MUST keep it current whenever execution reaches a genuine blocker.
+### SAYDI002-VN-001 — H4 read-only VieNeu inventory & freeze
 
-When a blocker is discovered, add one entry using this schema:
+**Status:** READY; NO HEAVY WORKER / NO PRODUCTION WRITE
+
+Inspect only on DESKTOP-H4A16IL: installed VieNeu version/provider adapter and source SHA; current Control Center status/Owner latch; job queue state; Chapter 2 protected 640 checkpoint+worker ownership, Chapters 1/3/4 existing stage/voice SHA; relevant scheduled tasks; available RAM/disk; active render/QC process ownership; existing approved narrator/fingerprint and G staging receipts. Record *sanitized* paths, existence, hashes, gates and outstanding missing evidence on a Draft PR. No Chrome, SaydiVoice or 4K7 calls.
+
+**Acceptance:** rechecked source/worker/checkpoint identity, no writes, no leaked private audio/text, durable metadata receipt and immediate next VieNeu task selection by evidence.
+
+### SAYDI002-VN-002 — Freeze/qualify local VieNeu VoiceProvider contract and narrator fingerprint
+
+**Status:** PENDING (after VN-001)
+
+Verify/reconcile local VieNeu adapter, versioned request/result schema, narrator identity and approved reference SHA, exact text provenance, deterministic local analysis fallback, schema validation, no cloud dependencies and explicit unsupported controls. Run synthetic contract/security/idempotency tests; preserve all existing approved source audio. No live TTS required.
+
+**Acceptance:** VieNeu local VoiceProvider/AI contracts, local fallback, normalized/spoken manifest lineage and fingerprint tests GREEN; no profile or private content in repo.
+
+### SAYDI002-VN-003 — Verify bounded local sample from existing evidence or safe authorized pilot
+
+**Status:** PENDING (after VN-002 and Owner/runtime gates)
+
+Prefer read-only verification of an **already rendered, exact-hash** local VieNeu sample and historical Owner-approved narrator. Only render a *new, isolated*, legally usable sample after a valid Owner START and checkpoint/resource/mutex preflight. Never re-render accepted 640 Chapter 2 chunks or regenerate an approved chapter merely for CI.
+
+**Acceptance:** one real local VieNeu sample with source/ref/voice/PCM/MP3 SHA, native onset and text/audio QC, true Owner narrator fingerprint approval and explicit REVIEW state; zero duplicate operations.
+
+### SAYDI002-VN-004 — Integrate staging G + QC receipts into idempotent local REVIEW path
+
+**Status:** PENDING (after VN-003; do not confuse G mixing with VieNeu generation)
+
+Use the G staging mixer only as a reference while integrating the production workflow: original/normalized/spoken text, semantic headings, corrected chunking, first-word QC, joins, bounded isolated repair, heading-only G prelude+duck, no music under body, chapter MP3 REVIEW + reproducible QC receipt. Run synthetic and limited local dry-run gates without touching existing WAV/checkpoint.
+
+**Acceptance:** exact voice WAV source identity, 100% expected heading IDs and 0 body leaks, no clipping or masked first phonemes, material join/word defects remain REVIEW, idempotent state transitions, no protected asset writes.
+
+### SAYDI002-VN-005 — Safe SAYDI-002 closure / handoff
+
+**Status:** PENDING (after VN-001..VN-004)
+
+Confirm runnable local VieNeu vertical slice, provider-neutral AI and Voice contracts, local analysis fallback, voice/text/audio approvals, privacy/duplicate guards, exact-head CI, H4 sample field evidence, G staging/QC readiness; report remaining downstream V6 quality gaps to SAYDI-003..011, not invented PASS.
+
+**Acceptance:** only then main SOT `SAYDI-002 = DONE`, `SAYDI-003 = NEXT`; exact-main readback and removal/archive of this TEMP SOT when authorized. Do not close on planning alone.
+
+## Open and historical blockers
+
+There is **no current SaydiVoice blocker**. Any legacy SaydiVoice Chrome/auth/quota or SG - Chí Đạt verdict blocker is **CANCELLED / RETIRED** by the Owner's 2026-10-11 decision, not resolved by a successful test.
+
+For active VieNeu tasks, update a new blocker using:
 
 ```text
-BLOCKER_ID=<stable id, e.g. BLK-SAYDI002-001-001>
-TASK_ID=<task id>
+BLOCKER_ID=<BLK-SAYDI002-VN-XXX>
+TASK_ID=<SAYDI002-VN-...>
 STATUS=OPEN
-TYPE=<OWNER_ACTION|EXTERNAL_PROVIDER|ENVIRONMENT|DEPENDENCY|OTHER>
-DETECTED_AT=<ISO-8601 timestamp or YYYY-MM-DD>
-SUMMARY=<short factual description>
-OWNER_ACTION=<exact minimum action required from Owner, or NONE>
-EVIDENCE=<sanitized run/log/commit reference>
-RESUME_WHEN=<objective condition that allows the task to resume>
-NOTES=<optional sanitized detail>
+TYPE=<OWNER_ACTION|RESOURCE|ENVIRONMENT|DEPENDENCY|OTHER>
+SUMMARY=<sanitized real boundary>
+OWNER_ACTION=<minimum real action or NONE>
+EVIDENCE=<timestamp/sha/log without secrets>
+RESUME_WHEN=<verifiable condition>
 ```
 
-Blocker lifecycle:
-- `OPEN` — unresolved and still prevents its task from completing.
-- `RESOLVED` — resume condition has been verified; include resolution evidence.
-- Never delete blocker history while this temporary execution source is active.
-- Never place secrets, cookies, tokens, credentials, private manuscript text, or browser-profile contents in this register.
-- If a task has an OPEN blocker but another task is independent and executable, continue the independent task.
-- If all remaining tasks depend directly or transitively on OPEN blockers, stop with machine `STATUS=BLOCKED`.
+Historic SaydiVoice blocker reports are preserved by prior Git commits, not destroyed as evidence.
 
-### Active blockers
+## SAYDI002 — project-level completion gate
 
-```text
-BLOCKER_ID=BLK-SAYDI002-005-002
-TASK_ID=SAYDI002-005
-STATUS=OPEN
-TYPE=OWNER_ACTION
-DETECTED_AT=2026-10-02
-SUMMARY=Owner requested a male Southern Vietnamese audiobook voice matching the pacing and expressive style of the supplied reference clip. A replacement SG - Chí Đạt sample has been generated once and recovered from Saydi history; it now requires the Owner listening verdict.
-OWNER_ACTION=Listen to the SG - Chí Đạt sample and record APPROVE or REJECT. If REJECT, state the audible change required (for example faster/slower, brighter/deeper, more/less expressive).
-EVIDENCE=Saydi generation run 37033072566; quota moved from 396 to 792 characters, proving one 396-character generation; Saydi history newest item SG - Chí Đạt at 2026-10-02 23:19:55 local; non-generative recovery run 37036310197 succeeded; recovered MP3 size=86061 bytes; SHA256=25b51daa26d83b393da0a478f7aa8f10b3eb24248415e7a3b226432a391165bd.
-RESUME_WHEN=Owner records APPROVE or REJECT for the SG - Chí Đạt sample.
-NOTES=The prior HN - Mai Phương candidate was rejected by Owner preference because the narrator must be male and Southern Vietnamese. This OPEN owner-review blocker does not stop independent SAYDI002-003 preflight work.
-```
-
-### Resolved blocker history
-
-```text
-BLOCKER_ID=BLK-SAYDI002-001-001
-TASK_ID=SAYDI002-001
-STATUS=RESOLVED
-TYPE=OWNER_ACTION
-DETECTED_AT=2026-10-02
-SUMMARY=Trusted Windows runner originally reached the SaydiVoice login surface while the persistent profile was not authenticated.
-OWNER_ACTION=NONE
-EVIDENCE=Initial failure: GitHub Actions run 36973063951 / job 110730948700; repeated state=LOGIN_REQUIRED auth=UNKNOWN; Generate disabled.
-RESUME_WHEN=SATISFIED
-RESOLUTION_EVIDENCE=GitHub Actions run 36974448969 attempt 2 / job 110799617483 succeeded on DESKTOP-4K7IM13 with TTS_READY, AUTHENTICATED_OR_HIDDEN, persistence across browser-process restart PASS, surface/catalog gate PASS, and GENERATE_CLICKS=0. Owner also visually confirmed the signed-in SaydiVoice UI on 2026-10-02.
-NOTES=Dedicated local MAGASIN Saydi profile remained local-only; no credentials, cookies, tokens, or profile files were committed.
-```
-
-```text
-BLOCKER_ID=BLK-SAYDI002-003-001
-TASK_ID=SAYDI002-003
-STATUS=RESOLVED
-TYPE=DEPENDENCY
-DETECTED_AT=2026-10-02
-SUMMARY=SAYDI002-003 was blocked only because SAYDI002-001 had not yet produced a verified authenticated persistent profile.
-OWNER_ACTION=NONE
-EVIDENCE=Dependency was SAYDI002-001.
-RESUME_WHEN=SATISFIED
-RESOLUTION_EVIDENCE=SAYDI002-001 authentication prerequisite is now verified by run 36974448969 attempt 2 / job 110799617483 with AUTHENTICATED_OR_HIDDEN, persistence PASS, surface/catalog gate PASS, and zero Generate clicks.
-NOTES=SAYDI002-003 is now executable and must remain non-generative.
-```
-
-## Task queue
-
-### SAYDI002-001 — Recover authenticated persistent SaydiVoice profile
-
-Status: **DONE**
-
-Goal:
-Restore the trusted Windows self-hosted runner's SaydiVoice persistent browser profile so the non-generative preflight can prove an authenticated session.
-
-Required work:
-- identify the exact profile path/account context used by the workflow;
-- use the installed Google Chrome executable on Windows;
-- perform Gmail/Google + SaydiVoice login bootstrap in a native Chrome process outside Playwright when authentication is missing;
-- use the dedicated local SAYDI profile at `%LOCALAPPDATA%\\MAGASIN\\MediaRobot\\saydivoice\\browser_profile` rather than the owner's everyday Chrome profile, avoiding lock/corruption risk;
-- after the native login window is closed, reopen the exact same profile under Playwright only for verification/automation;
-- remove any logic that accidentally creates/uses a fresh anonymous profile;
-- preserve the profile locally only;
-- after login state exists, verify the robot detects authenticated state without clicking Generate.
-
-Acceptance:
-- same trusted Windows runner;
-- native installed Chrome is used for interactive Google/SaydiVoice authentication;
-- credentials/OTP are entered only into the native Chrome UI and never GitHub/chat/logs;
-- persistent profile is reused across process restarts;
-- authenticated state is detected explicitly rather than inferred from page load alone;
-- voice/catalog surface needed by the adapter is accessible;
-- no Generate click;
-- no quota-consuming TTS side effect;
-- no cookies/tokens/profile files enter Git or artifacts;
-- sanitized evidence is recorded.
-
-If manual login is required:
-- mark `SAYDI002-001` as `BLOCKED`;
-- create/update its OPEN entry in the Blocker Register with exactly where and what the owner must do;
-- if `SAYDI002-002` or another independent task is executable, continue via the global blocker-deferral rules instead of stopping the robot;
-- after owner login, resume `SAYDI002-001` and verify persistence before it can be DONE.
-
-Completion evidence:
-- GitHub Actions run `36974448969`, attempt 2 / job `110799617483`: SUCCESS;
-- runner: `DESKTOP-4K7IM13`, Windows account `DELL`;
-- dedicated local Saydi profile reused;
-- `TTS_READY / AUTHENTICATED_OR_HIDDEN`: PASS;
-- authentication persistence across browser-process restart: PASS;
-- required non-generative surface/catalog discovery: PASS;
-- `SAYDI_PROFILE_RECOVERY_GENERATE_CLICKS=0`;
-- owner visually confirmed signed-in SaydiVoice UI on 2026-10-02.
-
-### SAYDI002-002 — Freeze SaydiVoice VoiceProvider adapter contract
-
-Status: **DONE**
-
-Goal:
-Place SaydiVoice behind the existing provider-neutral `VoiceProvider` boundary without leaking browser/provider mechanics into the audiobook core.
-
-Required work:
-- map provider-neutral request fields to only field-verified SaydiVoice controls;
-- map result/download metadata back into the provider-neutral result contract;
-- keep unsupported semantic controls explicitly unsupported rather than fabricated;
-- preserve narration fingerprint inputs relevant to SaydiVoice;
-- implement schema/contract validation and safe failure states;
-- add/update offline tests.
-
-Acceptance:
-- adapter can be exercised with mocked/non-live provider behavior;
-- audiobook core does not import browser-specific SaydiVoice details;
-- unsupported emotion/prosody controls are not invented;
-- unit/contract tests PASS;
-- no live Generate occurs in this task.
-
-Completion evidence:
-- implementation commit: `bf25f27cf57f4189379fdd4f6cfecfc33b068cad`;
-- GitHub Actions run `36978490431` (`SAYDI Core Tests`): SUCCESS;
-- compile: PASS;
-- unit/contract tests: 11 PASS;
-- offline runner smoke: PASS;
-- SaydiVoice adapter remains behind a data-only backend boundary with no browser import in audiobook core;
-- no live Generate occurred in this task.
-
-### SAYDI002-003 — Authenticated non-generative SaydiVoice preflight
-
-Status: PENDING
-
-Goal:
-Prove the production adapter can reach the authenticated SaydiVoice surface on the trusted runner before any live generation.
-
-Required work:
-- load the persistent authenticated profile from SAYDI002-001;
-- verify authenticated state;
-- verify required voice/catalog/settings/output-format controls;
-- prepare the exact bounded synthetic/public-domain sample request;
-- emit sanitized preflight evidence.
-
-Acceptance:
-- `AUTHENTICATED` gate PASS;
-- target voice/settings are resolvable;
-- requested output format is resolvable;
-- exactly zero Generate clicks;
-- exactly zero new audio results;
-- no secret/private content in logs/artifacts.
-
-### SAYDI002-004 — Run exactly one bounded SaydiVoice narration sample
-
-Status: **FIELD EVIDENCE PASS / FORMAL CLOSURE DEFERRED UNTIL PREREQUISITE RECONCILIATION**
-
-Owner-directed field evidence on 2026-10-02:
-- voice: `HN - Mai Phương`;
-- preset: `audiobook_bright`;
-- source: short excerpt from the Owner-provided `Doanh Nghiệp Tự Hành` PDF;
-- field run: `37031068928`;
-- the GitHub job concluded failure only because Windows console encoding raised `UnicodeEncodeError` after successful generation/download;
-- diagnostic run `37031455419` recovered the durable evidence and MP3;
-- `attempt_count=1`;
-- `generate_click_count=1`;
-- `download_click_count=1`;
-- Saydi `POST /api/tts = 200` with `audio/mpeg`;
-- sample generation consumed 396 characters;
-- MP3 size: `82125` bytes;
-- SHA256: `500e53e8bea25316b82b6b84855425a0cd55494e6bb85c6125e2dd1ad3cbb0cf`;
-- no duplicate Generate is authorized for this exact sample;
-- console UTF-8 fix committed in `80e7da9d63d54e36e34798426fdf0d6ad64258e7`.
-
-This evidence may satisfy the bounded live sample requirement after SAYDI002-002/003 are formally reconciled. Do not generate a duplicate merely to obtain a green workflow conclusion.
-
-Owner preference revision and replacement sample evidence on 2026-10-02:
-- Owner rejected the HN - Mai Phương narrator direction and specified: male, Southern Vietnamese, with pacing/expressive delivery modeled on the supplied reference clip;
-- replacement preset: `audiobook_south_male_clip`;
-- replacement voice: `SG - Chí Đạt`;
-- target delivery: forward-moving ~1.08x pacing, short ordinary pauses, occasional longer emphasis pauses, expressive but controlled;
-- replacement field run: `37033072566`;
-- quota changed from `396 / 50,000` to `792 / 50,000`, proving exactly one new 396-character Saydi generation occurred;
-- the run closed its page before transfer completion, so no automatic Generate retry was allowed;
-- Saydi history subsequently showed the new `SG - Chí Đạt` item at `2026-10-02 23:19:55` local time;
-- existing audio was recovered non-generatively from the Saydi history item by run `37036310197`;
-- recovery workflow: SUCCESS;
-- recovered MP3 size: `86061` bytes;
-- recovered MP3 SHA256: `25b51daa26d83b393da0a478f7aa8f10b3eb24248415e7a3b226432a391165bd`;
-- no duplicate generation was performed during recovery.
-
-The SG - Chí Đạt replacement sample is now the active operator-review candidate.
-
-Goal:
-Produce one controlled high-quality-provider audio sample through the production SaydiVoice adapter.
-
-Preconditions:
-- SAYDI002-001 DONE;
-- SAYDI002-002 DONE;
-- SAYDI002-003 DONE;
-- all offline tests PASS;
-- authenticated preflight PASS;
-- sample contains no sensitive/private manuscript content.
-
-Live side-effect boundary:
-- exactly one intended Generate action;
-- no automatic second Generate if completion state is uncertain;
-- if the provider response is ambiguous after the click, stop and report the observed state rather than retrying blindly.
-
-Acceptance:
-- one intended live generation side effect;
-- local audio file is obtained successfully;
-- sanitized result metadata and file hash are recorded;
-- transfer artifact may be uploaded only if it contains the authorized non-sensitive sample and no session/profile data;
-- operation ID is persisted so reruns do not duplicate a known-successful generation.
-
-### SAYDI002-005 — Operator audio approval gate
-
-Status: **BLOCKED — OWNER AUDIO VERDICT FOR SG - CHÍ ĐẠT SAMPLE**
-
-Goal:
-Evaluate the SaydiVoice sample as an audiobook narrator candidate using the existing human approval model.
-
-Evaluation dimensions:
-- naturalness;
-- emotional/expressive delivery;
-- pace;
-- intelligibility;
-- obvious pronunciation defects;
-- suitability for long-form listening.
-
-Robot responsibility:
-- present the produced sample/artifact and relevant settings/fingerprint;
-- do not invent an operator listening verdict.
-
-Acceptance:
-- owner records `APPROVE` or `REJECT`;
-- verdict is persisted with the narration fingerprint/sample identity;
-- if REJECT, record the precise rejection reasons and keep SAYDI-002 open;
-- if APPROVE, continue to SAYDI002-006.
-
-If owner listening/input is required:
-- return `BLOCKED` with the sample location and exact requested verdict.
-
-### SAYDI002-006 — Close SAYDI-002 and hand off to SAYDI-003
-
-Status: PENDING
-
-Goal:
-Reconcile evidence, close the executable vertical slice, and return authority to the main project Source of Truth.
-
-Required work:
-- verify all SAYDI002-001 through SAYDI002-005 are DONE;
-- verify VoiceProvider/provider isolation, approval state, privacy, schema tests, idempotency guard, and one bounded production-provider sample evidence;
-- update `00_PROJECT/SOURCE_OF_TRUTH.md` so `SAYDI-002` becomes DONE only if its acceptance criteria are actually satisfied;
-- promote `SAYDI-003` as the single authoritative NEXT project task;
-- update any status/changelog documents only if required and keep them subordinate to the main SOT;
-- delete this temporary execution source after the authoritative SOT update is committed and verified.
-
-Acceptance:
-- `SAYDI-002 = DONE` in the main Source of Truth;
-- `SAYDI-003 = NEXT`;
-- no unresolved blocker from SAYDI-002 is hidden;
-- main branch evidence is consistent;
-- this temporary file is removed after handoff.
-
-## Completion gate for SAYDI-002
-
-SAYDI-002 may close only when all of the following are true:
-
-- runnable operator-visible vertical slice exists;
-- provider-neutral AnalysisProvider and VoiceProvider contracts exist;
-- deterministic fallback works without an LLM;
-- local-LLM adapter boundary exists;
-- SaydiVoice production adapter is frozen behind VoiceProvider;
-- authenticated SaydiVoice preflight passes on the trusted runner;
-- narration fingerprint exists and is stable;
-- text-preview approval state exists;
-- audio-approval state exists;
-- idempotency/duplicate-operation guard exists;
-- privacy/schema/contract tests pass;
-- exactly one bounded production-provider sample has completed successfully;
-- operator has recorded the audio approval verdict;
-- no secrets/private runtime state are committed.
-
-
-## Owner directive — local VieNeu production/QC default (2026-10-03)
-
-This directive supplements the SAYDI-002 execution track and must be preserved during handoff to the main Source of Truth.
-
-Active field-validated local production path:
-
-- host: `DESKTOP-H4A16IL`;
-- TTS: VieNeu v3 Turbo / ONNX;
-- approved voice: `SAYDI Nam Mien Nam`;
-- durable Supabase-backed book/chapter/chunk progress;
-- Windows boot recovery validated;
-- checkpoint/resume validated;
-- FFmpeg chapter assembly validated.
-
-Owner decision:
-
-**Local audiobook QC is DEFAULT-ON. The Owner does not need to request it for each book or chapter.**
-
-Required default behavior after every chapter assembly:
-
-1. preserve invisible traceability metadata for book/chapter/chunk/source span/timecode;
-2. run structural/coverage checks;
-3. run acoustic + join-continuity checks;
-4. record chapter QC state: `pending | passed | review | failed`;
-5. when the local ASR/forced-alignment verifier is implemented and field-accepted, run it automatically as part of the same default chapter QC pass;
-6. report only exceptions with exact chapter + chunk/segment + timecode;
-7. repair/regenerate only affected units where safe, then rebuild the chapter.
-
-Never insert audible QC beeps/tones/spoken markers into listener audio.
-
-Owner experience requirement:
-
-- Owner listens for quality/enjoyment;
-- Owner is not expected to manually search for defects;
-- routine QC and defect localization are system responsibility;
-- Owner approval is required only for semantic ambiguity, low-confidence interpretation, or material narration/voice changes.
-
-Implementation boundary:
-
-- QC metadata/event storage is active;
-- full local ASR/forced-alignment verification is mandatory in the target default architecture but is not yet field-validated on H4A16IL;
-- do not claim full semantic audio QA until that module is implemented and accepted.
-
-This directive does not change the currently listed SAYDI002 task ordering by itself; robot execution must still obey the task-control section below unless the main SOT is deliberately advanced.
+No SaydiVoice login/call/generation requirement remains. Local VieNeu can close SAYDI-002 only after VN-001..005 exact task evidence, a runnable provider-neutral local sample workflow, approved voice reference and preview approvals, deterministic local analysis, stable SHA/invalidation model, idempotency, resource protection, privacy QA and human exception review routing. **Never call routine VieNeu AUTO-QC complete solely because it passed structural/Whisper or media-decode checks**; full semantic/audio hearing QC is still a quality target.
 
 ## Robot control protocol
 
-For discovery/bootstrap turns, do not execute project work. Identify exactly one authoritative next task from this temporary source.
-
-For execution turns, validate the requested task ID against this file and execute only that task.
-
-If execution discovers a blocker:
-1. update the affected task status to `BLOCKED`;
-2. append/update its Blocker Register entry and commit this source;
-3. identify the earliest independent executable task, if any;
-4. if one exists, end with `STATUS=READY` and that task in `NEXT_TASK_ID`;
-5. use `STATUS=BLOCKED` only if no independent executable work remains.
-
-Machine-readable ending:
+Use the existing MAGASIN task response contract but return the **current VieNeu-only** subtask; never return SAYDI002-003 as NEXT.
 
 ```text
 MAGASIN_TASK_CONTROL_V1
 STATUS=<READY|RUNNING|COMPLETE|BLOCKED|DONE>
-TASK_ID=<current task id or NONE>
-NEXT_TASK_ID=<next task id or NONE>
+TASK_ID=<current task ID or NONE>
+NEXT_TASK_ID=<one current VN task ID or NONE>
 CHECK_AFTER_SECONDS=<0-3600>
 END_MAGASIN_TASK_CONTROL_V1
 ```
 
-Authoritative next executable task:
-
-`SAYDI002-003`
+**Authoritative next executable subtask:** `SAYDI002-VN-001`  
+**Project-level SOT next task:** `SAYDI-002`.
