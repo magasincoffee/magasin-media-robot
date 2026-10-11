@@ -95,6 +95,31 @@ class SourceLineageTests(unittest.TestCase):
                       {x["code"] for x in result["findings"]})
         self.assertFalse(result["owner_final"])
 
+    def test_windows_crlf_file_matches_exact_lf_manifest_sha(self):
+        # Real H4 V5 source files contain CRLF; manifests pin LF UTF-8 bytes.
+        canonical = "Mỗi khi hè về,\nngười phụ nữ bước tới."
+        windows_source = canonical.replace("\n", "\r\n").encode("utf-8")
+        m = {"source_sha256": utf8_sha(canonical), "segments": [
+            {"index": 0, "canonical_text": "Mỗi khi hè về,"},
+            {"index": 1, "canonical_text": "người phụ nữ bước tới."},
+        ]}
+        out = audit(m, windows_source)
+        self.assertEqual(out["source_hash_method"], "NFC_LF_UTF8")
+        self.assertEqual(out["lexical_equivalence"], "PASS")
+        self.assertEqual(out["verified_source_span_count"], 2)
+        self.assertFalse(out["production_modified"])
+        self.assertFalse(out["owner_final"])
+
+    def test_crlf_normalization_does_not_hide_changed_word(self):
+        canonical = "Mỗi khi hè về,\nngười phụ nữ bước tới."
+        windows_source = canonical.replace("phụ nữ", "phụ nư").replace("\n", "\r\n").encode("utf-8")
+        m = {"source_sha256": utf8_sha(canonical), "segments": [
+            {"index": 0, "canonical_text": "Mỗi khi hè về,"},
+            {"index": 1, "canonical_text": "người phụ nữ bước tới."},
+        ]}
+        with self.assertRaisesRegex(ValueError, "SOURCE_SHA256_MISMATCH"):
+            audit(m, windows_source)
+
     def test_wrong_source_hash_fails_closed(self):
         changed = copy.deepcopy(self.manifest)
         changed["source_sha256"] = "0" * 64
