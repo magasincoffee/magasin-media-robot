@@ -78,10 +78,13 @@ def prepare(manifest: dict, audit: dict, worklist: dict,
         total_words = 0
         if verified_spans:
             for i, (span, item) in enumerate(zip(spans, items)):
-                words = re.findall(r"[^\\W_]+", item.get("canonical_text", ""), re.UNICODE)
+                canonical = item.get("canonical_text")
+                if not isinstance(canonical, str):
+                    verified_spans = False
+                    break
+                words = re.findall(r"[^\W_]+", canonical, re.UNICODE)
                 count = len(words)
                 if (not isinstance(span, dict)
-                        or type(item.get("canonical_text")) is not str
                         or span.get("index") != i
                         or span.get("verified") is not True
                         or type(span.get("word_count")) is not int
