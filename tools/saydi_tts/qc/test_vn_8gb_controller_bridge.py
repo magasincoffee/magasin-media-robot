@@ -1,4 +1,4 @@
-"""Isolated no-worker tests for legacy SAYDI Control integration.
+r"""Isolated no-worker tests for legacy SAYDI Control integration.
 
 Never imports the actual C:\SAYDI control script or calls VieNeu/Whisper.
 """
@@ -48,6 +48,38 @@ def execute_tick():
             p=subprocess.Popen(argv,
                 stdin=None)
 """.lstrip()
+
+import vn_8gb_sequential_dryrun as demo
+
+class TwoPhaseTests(unittest.TestCase):
+    def test_synthetic_two_phase_sequence_no_worker_started(self):
+        x=demo.synthetic_clean_snapshot()
+        result=demo.dry_run(x,dict(x),unload_verified=True)
+        self.assertEqual(result["status"],"SYNTHETIC_REVIEW_SEQUENCE_PASS")
+        self.assertEqual(result["trace"],list(demo.STEPS))
+        self.assertFalse(result["production_started"])
+        self.assertFalse(result["real_vieneu_loaded"])
+        self.assertFalse(result["real_whisper_loaded"])
+
+    def test_no_unload_barrier_refuses_asr(self):
+        x=demo.synthetic_clean_snapshot()
+        result=demo.dry_run(x,dict(x),unload_verified=False)
+        self.assertEqual(result["status"],"HOLD")
+        self.assertNotIn("WHISPER_CHECK",result["trace"])
+
+    def test_active_tts_worker_refuses_asr(self):
+        x=demo.synthetic_clean_snapshot()
+        a=dict(x);a["heavy_workers"]=[{"kind":"TTS","pid":3}]
+        result=demo.dry_run(x,a,unload_verified=True)
+        self.assertEqual(result["status"],"HOLD")
+        self.assertNotIn("ASR_SYNTHETIC_DONE",result["trace"])
+
+    def test_no_disk_headroom_holds_before_synthesis(self):
+        x=demo.synthetic_clean_snapshot();x["disk_c_free_gib"]=1.2
+        result=demo.dry_run(x,dict(x),unload_verified=True)
+        self.assertEqual(result["status"],"HOLD")
+        self.assertEqual(result["halt_at"],"TTS_HOLD")
+        self.assertFalse(result["audio_generated"])
 
 class BridgeTests(unittest.TestCase):
     def test_resource_green_never_dispatches_itself(self):
