@@ -94,6 +94,16 @@ def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None,
                              "index": offset, "status": "REVIEW"})
 
     matched = current == sw
+    # Punctuation affects spoken pauses and sentence continuity even when
+    # every lexical token is present. Only flag differences, never overwrite.
+    source_punctuation = re.findall(r"[,.!?;:…]", source)
+    rendered_punctuation = re.findall(
+        r"[,.!?;:…]", " ".join(s["canonical_text"] for s in segments))
+    if source_punctuation != rendered_punctuation:
+        findings.append({"code": "PUNCTUATION_ORDER_OR_COUNT_DIFF",
+                         "source_mark_count": len(source_punctuation),
+                         "canonical_mark_count": len(rendered_punctuation),
+                         "status": "REVIEW"})
     first_mismatch = None
     if not matched:
         for pos in range(min(len(sw), len(current))):
@@ -158,6 +168,7 @@ def audit(manifest: dict, source_bytes: bytes, legacy: dict | None = None,
         "source_token_count": len(sw),
         "canonical_token_count": len(current),
         "lexical_equivalence": "PASS" if matched else "REVIEW",
+        "punctuation_equivalence": "PASS" if source_punctuation == rendered_punctuation else "REVIEW",
         "first_mismatch_source_word_offset": first_mismatch,
         "verified_source_span_count": len(spans),
         "source_spans": spans,
