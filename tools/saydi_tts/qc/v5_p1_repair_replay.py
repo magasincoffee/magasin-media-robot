@@ -87,7 +87,7 @@ def fold(manifest_sha: str, source_sha: str, voice_sha: str, events: list[dict])
             else:
                 if previous["phase"] != "QC_REVIEW_REQUIRED":
                     raise ValueError("OWNER_APPROVAL_WITHOUT_REVIEW")
-                previous["phase"] = "SAMPLE_ACCEPTED_NOT_CHAPTER_FINAL"
+                previous["phase"] = "SAMPLE_RECEIPT_UNVERIFIED_NOT_FINAL"
         seen[event_id] = payload_hash
         unique += 1
     public = [dict(segment=idx, attempts_used=s["attempts_used"],
@@ -100,7 +100,7 @@ def fold(manifest_sha: str, source_sha: str, voice_sha: str, events: list[dict])
             "unique_event_count":unique,"exact_replay_count":replays,
             "segment_states":public,"status":"REVIEW_ONLY_NO_DISPATCH",
             "source_wav_modified":False,"worker_started":False,
-            "repair_dispatched":False,"owner_final":False}
+            "repair_dispatched":False,"owner_identity_verified":False,"owner_final":False}
 
 
 def main() -> int:
