@@ -78,7 +78,7 @@ def evaluate(snapshot: Mapping[str, Any], *, stage: str) -> dict[str, Any]:
                 worker_classes.append("UNKNOWN")
                 continue
             kind = worker.get("kind")
-            if kind not in ("TTS", "ASR", "MIXED", "UNKNOWN"):
+            if kind not in ("TTS", "ASR", "MIXED", "WRAPPER", "UNKNOWN"):
                 kind = "UNKNOWN"
             worker_classes.append(kind)
         check(not worker_classes, "HEAVY_WORKER_ALREADY_ACTIVE")
