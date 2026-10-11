@@ -114,11 +114,13 @@ def bounded_heading_gain(pcm: bytes, heading: bool) -> tuple[bytes, float]:
 
 
 def write_wav_new(path: Path, pcm: bytes) -> None:
-    with wave.open(str(path), "xb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(48000)
-        w.writeframes(pcm)
+    # Exclusive file creation; the wave module itself only accepts 'wb'.
+    with path.open("xb") as handle:
+        with wave.open(handle, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(48000)
+            w.writeframes(pcm)
 
 
 def safe_out_dir(path: Path, source_dir: Path) -> None:
