@@ -1,4 +1,4 @@
-"""Stage-only patch generator for existing SAYDI Control — NEVER installs live.
+r"""Stage-only patch generator for existing SAYDI Control — NEVER installs live.
 
 Copies the exact hash-pinned existing controller to a new D: staging file,
 inserting a fail-closed resource check before subprocess dispatch.
