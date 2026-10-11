@@ -85,6 +85,16 @@ class SourceLineageTests(unittest.TestCase):
         self.assertEqual(report["lexical_equivalence"], "PASS")
         self.assertEqual(len(report["source_spans"]), 2)
 
+    def test_punctuation_drift_is_review_even_when_words_match(self):
+        changed = copy.deepcopy(self.manifest)
+        changed["segments"][0]["canonical_text"] = "Mỗi khi hè về"
+        result = audit(changed, self.source)
+        self.assertEqual(result["lexical_equivalence"], "PASS")
+        self.assertEqual(result["punctuation_equivalence"], "REVIEW")
+        self.assertIn("PUNCTUATION_ORDER_OR_COUNT_DIFF",
+                      {x["code"] for x in result["findings"]})
+        self.assertFalse(result["owner_final"])
+
     def test_wrong_source_hash_fails_closed(self):
         changed = copy.deepcopy(self.manifest)
         changed["source_sha256"] = "0" * 64
