@@ -35,6 +35,7 @@ Owner supplies a legally usable book
 
 | Capability | Current status | Current evidence / limitation | Target behavior |
 |---|---|---|---|
+| SHA-bound manuscript-to-segment lexical provenance (V5 pilot) | 🟡 PARTIAL | PR #101 opt-in source-lineage audit checks UTF-8 source hash, ordered words, accents and punctuation; synthetic tests added 2026-10-11, host + CI verification pending; default OFF | Verify on H4 against original local chapter text, resolve provenance and legacy paraphrase exceptions before pre-render gate may pass |
 | Local VieNeu v3 Turbo production TTS | ✅ AVAILABLE | Field-used on Windows local worker | Remains default all-local TTS path |
 | Approved Southern male narrator profile | ✅ AVAILABLE | `SAYDI Nam Mien Nam` active local voice | Narrator identity remains stable across a book unless Owner changes it |
 | Automatic local worker / resume / checkpoints | ✅ AVAILABLE | Windows worker, durable queue/checkpoints and chapter assembly are field-used | Fully unattended normal operation |
