@@ -71,8 +71,8 @@ class EditorialStructureTests(unittest.TestCase):
     def test_standalone_numeric_line_requires_review(self):
         source,_=fixture("Bắt đầu.\n2024\nKết thúc.")
         m=copy.deepcopy(self.manifest)
-        m["source_sha256"]=hashlib.sha256(source.encode()).hexdigest()
-        r=self.run_gate(src=source.encode(),manifest=m)
+        m["source_sha256"]=hashlib.sha256(source).hexdigest()
+        r=self.run_gate(src=source,manifest=m)
         self.assertEqual(r["source_page_and_annotation_candidates"][0]["type"],
                          "AMBIGUOUS_STANDALONE_NUMBER_CANDIDATE")
         self.assertFalse(r["automatic_text_suppression_allowed"])
