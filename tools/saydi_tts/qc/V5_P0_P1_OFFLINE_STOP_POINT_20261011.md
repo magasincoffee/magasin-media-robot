@@ -9,7 +9,7 @@ Authority: **\`00_PROJECT/SOURCE_OF_TRUTH.md\` on \`main\`**. \`SAYDI-002\` rema
 | Vietnamese editorial drift triage, bounded and paginated | \`v5_editorial_review_triage.py\` | 16 synthetic tests |
 | SHA-pinned original/candidate WAV/neighbor technical QC | \`v5_p1_wav_candidate_gate.py\` | 17 synthetic tests |
 | Source-safe Owner chapter exception bundle with real/unknown timecodes | \`v5_p1_owner_review_bundle.py\` | 14 synthetic tests |
-| Retry journal deterministic replay safety, at most 2 attempts and sample-only acceptance | \`v5_p1_repair_replay.py\` | 19 synthetic tests |
+| Retry journal deterministic replay safety, at most 2 attempts and unverified sample receipt (NOT authenticated Owner acceptance) | \`v5_p1_repair_replay.py\` | 19 synthetic tests |
 
 **Test command:** \`python -m unittest discover -s <isolated-offhost-source-folder> -p "test_v5_*" -q\`
 
@@ -22,11 +22,12 @@ v5_p1_wav_candidate_gate.py        52ff704bfde9734644871427b6d7f6bf3c5200a7
 test_v5_p1_wav_candidate_gate.py   817e9c39ccbb2d07d6c41a374ded7325186d898b
 v5_p1_owner_review_bundle.py       12a6b400d933ddbcec39a59e32f1c027975ba4a8
 test_v5_p1_owner_review_bundle.py  9a66437f02d11e9acd3c80b09476ae54e1292e19
-v5_p1_repair_replay.py             9f59a1ad1d579c471fa118b39e5db28351419bf7
-test_v5_p1_repair_replay.py        c607563bc4b5111f18d302448c9323e4c1e115c1
+v5_p1_repair_replay.py             88dc72cd1985d2bbf8164587353b5f602b1daddc
+test_v5_p1_repair_replay.py        512e99a8574d1f9c5968969195f21fd0104386c0
 \`\`\`
 
-**Limit of this proof:** 66 cases cover only these four synthetic source-safe modules and do not include all existing SAYDI V5 regression fixtures, the prior P1 readiness module, production integration, hosted CI, speech/audio listening, original chapter text, or field checkpoints. Tests run off-host on synthetic PCM signals, **not** on the user's real WAVs.
+**Receipt safety:** A sample receipt containing a SHA-256 does NOT prove the Owner authored or approved it. The replay gate explicitly emits `owner_identity_verified=false`; event status `SAMPLE_RECEIPT_UNVERIFIED_NOT_FINAL` never grants approval or production action.
+\n**Limit of this proof:** 66 cases cover only these four synthetic source-safe modules and do not include all existing SAYDI V5 regression fixtures, the prior P1 readiness module, production integration, hosted CI, speech/audio listening, original chapter text, or field checkpoints. Tests run off-host on synthetic PCM signals, **not** on the user's real WAVs.
 
 ## What is still blocked for completion (not optional)
 
