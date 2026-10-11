@@ -183,12 +183,33 @@ def inspect(manifest: dict, manifest_sha256: str, reviews: dict | None = None,
             or source_lineage.get("source_sha256") != manifest.get("source_sha256")):
             raise ValueError("STALE_OR_UNBOUND_SOURCE_LINEAGE")
         spans = source_lineage.get("source_spans")
-        coverage = (isinstance(spans, list) and len(spans) == len(items)
-                    and all(isinstance(x, dict) and x.get("index") == i
-                            and x.get("verified") is True
-                            and isinstance(x.get("source_span_sha256"), str)
-                            and re.fullmatch(r"[a-f0-9]{64}", x["source_span_sha256"])
-                            for i, x in enumerate(spans)))
+        coverage = isinstance(spans, list) and len(spans) == len(items)
+        expected_start = 0
+        if coverage:
+            for i, (span, item) in enumerate(zip(spans, items)):
+                canonical = item.get("canonical_text")
+                expected_count = len(words(canonical)) if isinstance(canonical, str) else -1
+                if not (isinstance(span, dict)
+                        and span.get("index") == i
+                        and span.get("verified") is True
+                        and type(span.get("word_count")) is int
+                        and expected_count > 0
+                        and span["word_count"] == expected_count
+                        and span.get("source_word_start") == expected_start
+                        and span.get("source_word_end_exclusive") == expected_start + expected_count
+                        and span.get("canonical_sha256") == digest(canonical)
+                        and isinstance(span.get("source_span_sha256"), str)
+                        and re.fullmatch(r"[a-f0-9]{64}", span["source_span_sha256"])
+                        and span.get("previous_index") == (i-1 if i else None)
+                        and span.get("next_index") == (i+1 if i+1 < len(items) else None)):
+                    coverage = False
+                    break
+                expected_start += expected_count
+        coverage = (coverage
+                    and source_lineage.get("source_token_count") == expected_start
+                    and source_lineage.get("canonical_token_count") == expected_start
+                    and source_lineage.get("verified_source_span_count") == len(items)
+                    and source_lineage.get("first_mismatch_source_word_offset") is None)
         if source_lineage.get("lexical_equivalence") == "PASS" and coverage:
             source_verified = len(items)
             missing_source_provenance = 0
