@@ -15,6 +15,14 @@ Precedence:
 
 If another document conflicts with this file, this file wins until it is deliberately updated.
 
+## Owner confirmation 2026-10-11 — V6 is the latest upgrade TARGET, V5 remains protected baseline
+
+The Owner confirms: **use the latest V6 quality/automation specification to improve the existing VieNeu V5 robot, NOT rebuild V5 or substitute retired SaydiVoice.** Here **V6 means the target upgrade specification**, **not a deployed or accepted production release**. Preserve the Owner-approved V5 narrator/reference, previously rendered chapters, WAV/MP3, queues, checkpoints and local scripts unless a separately approved, reversible, evidence-backed migration permits changes. Do not automatically rerender an approved segment or upgrade the narrator fingerprint.
+
+The V6 target is local semantic editorial preparation -> approved reference sample -> sequential VieNeu render -> layered pronunciation/tone/prosody/acoustic and join QC -> SHA-matched bounded repairs -> chapter REVIEW/Owner exception approval -> validated exports, with clear read-only progress visible in MAGASIN Control Center. The canonical detailed requirements and existing subordinate work packages remain [SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md](./SAYDI_V6_NARRATION_QUALITY_EXECUTION_PLAN.md); the task queue below and its NEXT task **do not change**.
+
+First executable safety increment under **SAYDI-002 / SAYDI002-VN-001**: harden the *offline-only* H4 8GB read-only telemetry preflight against stale, missing, naive-time or future-dated snapshots; keep explicit Owner lifecycle witness, checkpoint ownership, disk and inner TTS-to-ASR unload-barrier gates unqualified until independently verified. This is V6-P0-06 prerequisite work and **does not install a new Control worker, enable production, mark VN-001 DONE or qualify V6 as released**. Subsequent V6 quality work remains under its existing SAYDI-004..010 owning tasks, with no bypass of current eligibility/Owner approval gates.
+
 ## Owner decision 2026-10-11 — SaydiVoice RETIRED; VieNeu local ONLY
 
 **This newer Owner decision supersedes all previous active, optional or prerequisite SaydiVoice directions, including the old `SAYDI002-003` login preflight, old SaydiVoice sample-generation task and old provider-specific SAYDI-002 completion gates.**

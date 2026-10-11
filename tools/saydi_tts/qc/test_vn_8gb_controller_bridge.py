@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib.util
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -26,6 +27,8 @@ import vn_8gb_stage_controller_patch as patcher
 
 def clean_snapshot():
     return {
+        "schema":"saydi-vn-8gb-h4-telemetry-v1",
+        "captured_at":datetime.now(timezone.utc).isoformat(),
         "host":"DESKTOP-H4A16IL", "physical_ram_gib":7.88,
         "cpu_logical_threads":4,"ram_samples_gib":[3.3,3.2,3.15,3.25,3.21],
         "disk_c_free_gib":5.0,"disk_d_free_gib":55.0,"temp_drive":"D:",
@@ -96,6 +99,14 @@ class BridgeTests(unittest.TestCase):
         result=bridge.evaluate_existing_job(j,clean_snapshot())
         self.assertEqual(result["decision"],"HOLD")
         self.assertIn("OWNER_START_WITNESS_UNVERIFIED",result["reasons"])
+
+    def test_stale_field_snapshot_cannot_be_reused_for_dispatch(self):
+        x=clean_snapshot();x["captured_at"]="2026-01-01T00:00:00+00:00"
+        r=bridge.evaluate_existing_job(clean_job(),x,authenticated_owner_start=True,
+                                       trusted_generation_witness=True)
+        self.assertIn("TELEMETRY_STALE_OR_UNVERIFIED",r["reasons"])
+        self.assertEqual(r["decision"],"HOLD")
+        self.assertFalse(r["approved_to_dispatch"])
 
     def test_wrong_host(self):
         x=clean_snapshot();x["host"]="DESKTOP-4K7IM13"

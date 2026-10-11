@@ -6,6 +6,7 @@ inputs; it CANNOT start a real worker, change Owner STOP, or write checkpoint.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 try:
@@ -18,6 +19,8 @@ STEPS = ("VIENEU_CHECK", "TTS_SYNTHETIC_DONE", "UNLOAD_BARRIER",
 
 def synthetic_clean_snapshot() -> dict:
     return {
+        "schema": "saydi-vn-8gb-h4-telemetry-v1",
+        "captured_at": datetime.now(timezone.utc).isoformat(),
         "host": "DESKTOP-H4A16IL", "physical_ram_gib": 7.88,
         "cpu_logical_threads": 4, "ram_samples_gib": [3.4, 3.35, 3.3, 3.38, 3.42],
         "disk_c_free_gib": 4.0, "disk_d_free_gib": 50.0, "temp_drive": "D:",
