@@ -10,8 +10,10 @@ on:
   push:
     branches:
       - main
+      - feat/saydi-v5-ch02-qc01-qc02-audit
     paths:
       - "02_SAYDI_CORE/**"
+      - "tools/saydi_tts/qc/**"
       - ".github/workflows/saydi-core-tests.yml"
 
 # Prevent unnecessary duplicate Windows runners on successive PR commits.
