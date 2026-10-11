@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SUT = Path(__file__).with_name("vn_8gb_resource_gate.py")
@@ -15,6 +16,8 @@ spec.loader.exec_module(mod)
 
 def snap():
     return dict(
+        schema="saydi-vn-8gb-h4-telemetry-v1",
+        captured_at=datetime.now(timezone.utc).isoformat(),
         host="DESKTOP-H4A16IL",
         physical_ram_gib=7.88,
         cpu_logical_threads=4,
@@ -36,6 +39,34 @@ class GuardTests(unittest.TestCase):
             self.assertFalse(result["approved_to_start"])
             self.assertFalse(result["approved_to_dispatch"])
             self.assertFalse(result["installed_in_production"])
+
+    def test_missing_telemetry_schema_fails_closed(self):
+        x=snap();x.pop("schema")
+        r=mod.evaluate(x,stage="TTS")
+        self.assertIn("TELEMETRY_SCHEMA_UNVERIFIED",r["reasons"])
+        self.assertFalse(r["approved_to_dispatch"])
+
+    def test_missing_capture_time_fails_closed(self):
+        x=snap();x.pop("captured_at")
+        self.assertIn("TELEMETRY_STALE_OR_UNVERIFIED",mod.evaluate(x,stage="ASR")["reasons"])
+
+    def test_stale_capture_fails_closed(self):
+        x=snap();x["captured_at"]=(datetime.now(timezone.utc)-timedelta(minutes=2)).isoformat()
+        self.assertIn("TELEMETRY_STALE_OR_UNVERIFIED",mod.evaluate(x,stage="TTS")["reasons"])
+
+    def test_future_capture_fails_closed(self):
+        x=snap();x["captured_at"]=(datetime.now(timezone.utc)+timedelta(minutes=2)).isoformat()
+        self.assertIn("TELEMETRY_STALE_OR_UNVERIFIED",mod.evaluate(x,stage="ASR")["reasons"])
+
+    def test_naive_capture_fails_closed(self):
+        x=snap();x["captured_at"]=datetime.now().isoformat()
+        self.assertIn("TELEMETRY_STALE_OR_UNVERIFIED",mod.evaluate(x,stage="TTS")["reasons"])
+
+    def test_fresh_capture_is_still_not_owner_start_proof(self):
+        r=mod.evaluate(snap(),stage="TTS")
+        self.assertEqual(r["resource_assessment"],"ELIGIBLE_FOR_SEPARATE_AUTHORIZED_CHECK")
+        self.assertFalse(r["approved_to_dispatch"])
+        self.assertLessEqual(r["telemetry_age_seconds"],30)
 
     def test_missing_owner_latch_blocks(self):
         x=snap();x["owner_stop_latch"]="UNKNOWN"
