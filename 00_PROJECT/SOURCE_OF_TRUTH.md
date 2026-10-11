@@ -27,6 +27,16 @@ If another document conflicts with this file, this file wins until it is deliber
 6. **SAYDI-002 VieNeu completion evidence:** verified provider-neutral Voice/AI interfaces, deterministic local fallback, approved narrator fingerprint, preflight of worker/RAM/checkpoint, reproducible one bounded local audible sample or existing exact-hash field receipts, text/audio approval status, idempotency/privacy tests and safe QC. No silent DONE based only on unit tests; do not skip SAYDI-003..011.
 7. All old SaydiVoice prose below is **historical and NON-EXECUTABLE** where it conflicts with this directive. PR #102 is closed unmerged and must not be used for automatic runner dispatch.
 
+## Owner decision 2026-10-11 — KEEP 8GB H4 / sequential VieNeu + Whisper
+
+The Owner chooses to **retain H4's installed 8 GB RAM** rather than require an upgrade. All SAYDI local production must optimize for sequential resource budgeting: **VieNeu TTS and Whisper/ASR may never load concurrently**; unload and verify one heavyweight model before the next, process small resumable batches, reuse audio/checkpoint and repeat QC only on changed/neighbor segments.
+
+- Measured 2026-10-11 on DESKTOP-H4A16IL: 7.88 GiB physical RAM visible; five short samples 2.19/2.27/2.17/2.21/2.33 GiB free. C: free only ~1.29 GiB while D: ~56.39 GiB. C: capacity is an immediate safety risk for caches, paging and temp; do not delete user files or globally redirect Windows caches without inventory and reversible Owner-authorized migration.
+- Observed Ch04 native VieNeu: 440 segments / 68.5min including resource pauses; Whisper QC approximately 6.55 chunks/min, 264 PASS / 176 REVIEW. **This is a historical workload, not a guaranteed ETA or FINAL**. Dynamic timing should use actual per-stage throughput and stop ETA progress during resource pauses.
+- Preserve current 640 Chapter 2 checkpoints and all approved WAV/MP3. Legacy local RAM gates vary (Control 1.5 GiB, VieNeu 1.9 GiB, Ch02 QC historical >=2.3 GiB): do not silently adopt the lowest. The read-only trial gate proposes conservative 2.1 GiB TTS and 2.5 GiB ASR minima over five samples, and at least 2 GiB C: headroom; those stricter proposed values require field testing before runtime integration.
+- Implementation/receipts: [SAYDI_VIENEU_8GB_SEQUENTIAL_RUNTIME_PLAN_20261011.md](./SAYDI_VIENEU_8GB_SEQUENTIAL_RUNTIME_PLAN_20261011.md). An offline probe on source does **not** install/update the production controller or authorize Owner START. Extend the existing coordinator and mutex only after separate qualified rollout, never create a competing watchdog. Owner STOP and future OFF-after-reboot policy remain authoritative.
+- Main SOT task stays **SAYDI-002 NEXT**; active subtask remains **SAYDI002-VN-001**, in progress pending protected checkpoint/worker ownership inventory. Continue VN-002+ in order; no previous SaydiVoice task is restored.
+
 ## Product identity
 
 **Product:** SAYDI Audiobook  
