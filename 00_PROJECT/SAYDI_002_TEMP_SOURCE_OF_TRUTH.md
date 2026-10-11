@@ -46,7 +46,20 @@ This temporary queue was originally written 2026-10-02 when the project still in
 
 ### SAYDI002-VN-001 — H4 read-only VieNeu inventory & freeze
 
-**Status:** READY; NO HEAVY WORKER / NO PRODUCTION WRITE
+**Status:** IN_PROGRESS / READ-ONLY BASELINE MEASURED / FINAL CHECKPOINT-OWNER RECONCILIATION PENDING; NO HEAVY WORKER / NO PRODUCTION WRITE
+
+**Owner decision 2026-10-11:** Keep H4 at 8 GB RAM. TTS VieNeu and Whisper ASR MUST run in distinct sequential phases, never together. Preserve existing source and checkpoint; any low RAM/disk check must pause instead of forcing start.
+
+**Read-only evidence from H4 (~20:58–21:02 ICT):**
+- CPU i5-6300U 2 cores/4 logical threads; 8GB installed, 7.88 GiB OS-visible.
+- RAM five-sample min 2.17 GiB; C: free ~1.29 GiB (urgent low headroom); D: free ~56.39 GiB. No user files cleaned/moved.
+- CH02 640/640 and CH04 440/440 are REVIEW_READY, not FINAL. Control Job Guardian Running; CH02 QC Guardian and two V4 restore/watchdog tasks Disabled. No new worker started.
+- Existing local controller already caps CPU threads to 1 and uses mutex/process exclusion. However live RAM thresholds differ across scripts (1.5, 1.9 and historical CH02 protected 2.3 GiB). Proposed *offline* trial floor is 2.1 GiB TTS / 2.5 GiB ASR based on a five-sample minimum, C: 2 GiB, D: 10 GiB; these are conservative proposed gate values not yet installed.
+- Ch04 log: VieNeu 440 chunks in approximately 68.5 minutes with resource pauses; ASR checks ~6.55 chunks/min; 264 basic PASS and 176 REVIEW.
+- Read-only collector, fail-closed offline resource assessor and synthetic tests are being staged on a Draft PR. Source file: SAYDI_VIENEU_8GB_SEQUENTIAL_RUNTIME_PLAN_20261011.md. Does not change Owner START/STOP, live control job or production assets.
+
+**Still needed to mark VN-001 DONE:** exact protected model/voice/checkpoint hashes, trustworthy live PID/mutex and durable STOP owner witness, C: disk-consumer inventory, verified read-only H4 probe and exact-head offline Windows CI. Do not claim COMPLETE from a few RAM samples.
+
 
 Inspect only on DESKTOP-H4A16IL: installed VieNeu version/provider adapter and source SHA; current Control Center status/Owner latch; job queue state; Chapter 2 protected 640 checkpoint+worker ownership, Chapters 1/3/4 existing stage/voice SHA; relevant scheduled tasks; available RAM/disk; active render/QC process ownership; existing approved narrator/fingerprint and G staging receipts. Record *sanitized* paths, existence, hashes, gates and outstanding missing evidence on a Draft PR. No Chrome, SaydiVoice or 4K7 calls.
 
