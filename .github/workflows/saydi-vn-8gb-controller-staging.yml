@@ -1,0 +1,38 @@
+name: SAYDI VN8GB Controller Staging QA
+
+on:
+  pull_request:
+    paths:
+      - "tools/saydi_tts/qc/vn_8gb_controller_bridge.py"
+      - "tools/saydi_tts/qc/vn_8gb_sequential_dryrun.py"
+      - "tools/saydi_tts/qc/vn_8gb_stage_controller_patch.py"
+      - "tools/saydi_tts/qc/test_vn_8gb_controller_bridge.py"
+      - ".github/workflows/saydi-vn-8gb-controller-staging.yml"
+      - "00_PROJECT/SAYDI_002_TEMP_SOURCE_OF_TRUTH.md"
+  push:
+    branches:
+      - main
+    paths:
+      - "tools/saydi_tts/qc/vn_8gb_controller_bridge.py"
+      - "tools/saydi_tts/qc/vn_8gb_sequential_dryrun.py"
+      - "tools/saydi_tts/qc/vn_8gb_stage_controller_patch.py"
+      - "tools/saydi_tts/qc/test_vn_8gb_controller_bridge.py"
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-no-worker:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax and no-dispatch bridge tests
+        shell: powershell
+        run: |
+          python -m py_compile tools/saydi_tts/qc/vn_8gb_controller_bridge.py tools/saydi_tts/qc/vn_8gb_stage_controller_patch.py tools/saydi_tts/qc/vn_8gb_sequential_dryrun.py
+          python -m unittest discover -s tools/saydi_tts/qc -p test_vn_8gb_controller_bridge.py -v
+          python tools/saydi_tts/qc/vn_8gb_sequential_dryrun.py
