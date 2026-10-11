@@ -68,13 +68,14 @@ def map_punctuation_gaps(source: str, segments: list[dict],
     if not words_match:
         return []
     def gaps(text: str) -> list[str]:
-        matches = list(WORD_RE.finditer(unicodedata.normalize("NFC", text).casefold()))
+        normalized = unicodedata.normalize("NFC", text).casefold()
+        matches = list(WORD_RE.finditer(normalized))
         result = []
         start = 0
         for match in matches:
-            result.append("".join(re.findall(r"[,.!?;:…]", text[start:match.start()])))
+            result.append("".join(re.findall(r"[,.!?;:…]", normalized[start:match.start()])))
             start = match.end()
-        result.append("".join(re.findall(r"[,.!?;:…]", text[start:])))
+        result.append("".join(re.findall(r"[,.!?;:…]", normalized[start:])))
         return result
 
     rendered = " ".join(seg["canonical_text"] for seg in segments)
