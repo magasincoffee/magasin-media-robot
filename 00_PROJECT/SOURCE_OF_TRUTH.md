@@ -1,6 +1,6 @@
 # SAYDI Audiobook — Source of Truth
 
-Last updated: 2026-10-04
+Last updated: 2026-10-11
 
 ## Authority
 
@@ -15,15 +15,27 @@ Precedence:
 
 If another document conflicts with this file, this file wins until it is deliberately updated.
 
+## Owner decision 2026-10-11 — SaydiVoice RETIRED; VieNeu local ONLY
+
+**This newer Owner decision supersedes all previous active, optional or prerequisite SaydiVoice directions, including the old `SAYDI002-003` login preflight, old SaydiVoice sample-generation task and old provider-specific SAYDI-002 completion gates.**
+
+1. **Sole active TTS:** VieNeu v3 Turbo / ONNX on **DESKTOP-H4A16IL**, using the existing approved local narrator/reference `SAYDI Nam Mien Nam`. No cloud/paid SaydiVoice TTS requirement. DESKTOP-4K7IM13 is not a prerequisite.
+2. **Disable execution:** Never dispatch SaydiVoice browser authentication, preflight, Generate, catalog, profile recovery, external provider API or SaydiVoice voice-sample approval tasks. Legacy SaydiVoice repository code and historic evidence may remain as an **inactive archive**; do not delete private browser profiles or old logs as part of this documentation transition.
+3. **Current task remains `SAYDI-002: NEXT`** — it must now be closed against verified local VieNeu evidence, *not* the retired SaydiVoice gates. Historical task IDs `SAYDI002-003..006` tied to SaydiVoice are **SUPERSEDED / NOT EXECUTABLE**, **not DONE**; follow **`SAYDI002-VN-001`** in updated `00_PROJECT/SAYDI_002_TEMP_SOURCE_OF_TRUTH.md`. Never reuse an old legacy task ID for a different operation.
+4. **Style G is Owner-approved for title signal**: original soft instrumental 2s prelude, 160ms separation and very quiet voice-ducked bed during structural headings only, never during body narration. Style approval **does not** approve the entire chapter, original first-word pronunciation, material joins, a changed narrator fingerprint or FINAL release.
+5. **Preserve protected assets and control:** no modification to Chapter 2's protected 640 chunks/checkpoints, previously approved MP3/WAV/book/manifests, worker ownership, Windows scheduled tasks or Control Center cutover. Do not start heavy VieNeu/Whisper solely because of a SOT edit. Owner STOP and post-cutover OFF-after-reboot policy remain authoritative.
+6. **SAYDI-002 VieNeu completion evidence:** verified provider-neutral Voice/AI interfaces, deterministic local fallback, approved narrator fingerprint, preflight of worker/RAM/checkpoint, reproducible one bounded local audible sample or existing exact-hash field receipts, text/audio approval status, idempotency/privacy tests and safe QC. No silent DONE based only on unit tests; do not skip SAYDI-003..011.
+7. All old SaydiVoice prose below is **historical and NON-EXECUTABLE** where it conflicts with this directive. PR #102 is closed unmerged and must not be used for automatic runner dispatch.
+
 ## Product identity
 
 **Product:** SAYDI Audiobook  
 **Repository:** `magasincoffee/magasin-media-robot`  
 **Operating model:** local-first Windows audiobook production with replaceable AI/TTS providers and no mandatory paid/cloud dependency.  
 **AI policy:** deterministic rules first; local LLM is the default semantic-analysis path; ChatGPT/other cloud LLMs are optional fallbacks only when explicitly enabled by the owner.  
-**Voice policy:** provider-neutral Voice Engine; the final V1 must have an all-local TTS path. SaydiVoice remains a field-verified optional provider and is the fastest real provider for early workflow validation.
+**Voice policy:** provider-neutral Voice Engine with VieNeu v3 Turbo / ONNX as the ONLY active local production TTS. Retired SaydiVoice is historical reference only.
 
-The previous social-video product direction is paused. Existing SaydiVoice discovery work is retained because it is reusable production evidence for the audiobook voice layer.
+The previous social-video product direction is paused. Old SaydiVoice discovery is retained as historical evidence only; its runtime is retired.
 
 ## Product goal
 
@@ -68,8 +80,8 @@ Import book
 - Optional ChatGPT/cloud-LLM fallback that is disabled by default and must never receive manuscript text without explicit operator enablement.
 - **Rule Engine + Local LLM + Human Approval** authority model.
 - Provider-neutral Voice Engine with both:
-  - SaydiVoice production adapter;
-  - an all-local TTS provider path before V1 production acceptance.
+  - VieNeu v3 Turbo / ONNX all-local production adapter;
+  - inactive legacy SaydiVoice code solely for audit/history, not a selectable provider.
 - Local audio processing with FFmpeg/FFprobe.
 - Chapter assembly and book-level mastering.
 - Text-to-audio coverage QA and acoustic QA.
@@ -89,7 +101,7 @@ Import book
 
 ## Existing verified foundation
 
-The repository already contains field-verified SaydiVoice discovery under `01_DISCOVERY/saydivoice`.
+The repository retains historical, retired SaydiVoice discovery under `01_DISCOVERY/saydivoice`. This section records OLD evidence, not active authorization.
 
 Verified capabilities include:
 
@@ -112,7 +124,7 @@ Observed result: the sample was intelligible and proved the end-to-end local wor
 - Windows SAPI remains an infrastructure/test provider only;
 - it must not be treated as a production audiobook narrator;
 - successful SAPI execution proves plumbing, state, conversion and delivery mechanics only;
-- production audio approval now requires a higher-quality provider sample, starting with the verified SaydiVoice path;
+- production audio approval now uses a rights-authorized **local VieNeu** narrator/reference and listening acceptance;
 - any later all-local TTS candidate must be benchmarked separately for Vietnamese naturalness and expressive narration before V1 production acceptance.
 
 Known provider boundary:
@@ -169,7 +181,7 @@ Segment Job Orchestrator
 Voice Provider API
    |
    +--> Local TTS (required all-local V1 path)
-   +--> SaydiVoice (verified optional provider)
+   +--> SaydiVoice (RETIRED, never dispatch)
    |
    v
 Audio Processing / Assembly
@@ -631,7 +643,7 @@ A production export requires all applicable gates:
 
 **Architecture generation:** SAYDI-AUDIOBOOK-V1.3  
 **Current phase:** SAYDI-002 executable vertical slice implementation.  
-**SaydiVoice discovery:** retained and considered the verified provider foundation.  
+**SaydiVoice discovery:** RETIRED / historical; current active narrator path is VieNeu on H4.  
 **Audiobook production implementation:** STARTED. The first core runner now has provider-neutral contracts, rules analysis, local Ollama adapter boundary, narration fingerprint, representative sample selection, text approval, local prototype voice provider, audio approval state and duplicate-operation guard.
 
 ## Authoritative task queue
@@ -654,7 +666,7 @@ Only one task should be treated as NEXT at a time.
 
 **SAYDI-002 — Executable vertical slice + provider/AI contracts.**
 
-It must create the first runnable operator-visible path, establish provider-neutral AI/Voice contracts, preserve the field-verified SaydiVoice behavior behind an adapter, and prove a real sample-generation/approval flow before broader implementation.
+It must verify a runnable local VieNeu vertical slice, provider-neutral AI/Voice contracts, the existing Owner-approved narrator fingerprint, idempotent synthesis/checkpoint and a bounded audible sample/QC flow. No SaydiVoice access is required.
 
 Required SAYDI-002 evidence:
 
@@ -664,17 +676,21 @@ Required SAYDI-002 evidence:
 - versioned structured contracts for AI analysis and VoiceProvider;
 - deterministic fallback behavior when no LLM is available;
 - local-LLM adapter boundary (model may be selected/benchmarked during implementation);
-- SaydiVoice production adapter or equivalent real provider path for the first audible sample;
+- local VieNeu v3 Turbo/ONNX adapter and approved narrator reference with auditable fingerprint;
 - sample narration fingerprint;
 - text-preview and audio-approval state;
 - tests for idempotency/privacy/schema validation;
 - one bounded real audible sample run after offline gates pass. **PASS — local Windows SAPI WAV produced on trusted runner in run 36745274726**
 
+### 2026-10-11 — Active SAYDI-002 closure reinterpretation
+
+The older provider-specific completion terms are historical and non-executable. Do not substitute retired SaydiVoice auth/sample evidence for local VieNeu evidence; do not mark `SAYDI-002 DONE` prematurely. The new subordinate VieNeu tasks, explicitly approved by the Owner's provider-retirement directive, are maintained in `00_PROJECT/SAYDI_002_TEMP_SOURCE_OF_TRUTH.md`, with `SAYDI002-VN-001` as the next read-only task. Only an exact-main, gate-verified handoff can advance the main task to `SAYDI-003`.
+
 ## Completion definition for the project
 
 SAYDI Audiobook V1 is production-ready when a clean supported Windows machine can:
 
-1. complete one-time setup and SaydiVoice authentication;
+1. complete local VieNeu environment, resource and approved narrator preflight on H4 without paid-provider login;
 2. import a supported book;
 3. validate/adjust chapter structure, OCR exceptions, annotations, punctuation interpretation and pronunciation;
 4. approve a narrator sample that demonstrates the active prosody/emotion policy;
@@ -690,7 +706,7 @@ SAYDI Audiobook V1 is production-ready when a clean supported Windows machine ca
 
 A full-book production acceptance is forbidden until `SAYDI-003`, `SAYDI-004`, and `SAYDI-005` satisfy their gates.
 
-`SAYDI-002` remains the immediate NEXT task because the project must become runnable before the deeper modules are built. It must establish provider-neutral AI/Voice boundaries and a bounded audible sample workflow. Punctuation repair, annotation policy, book intelligence, emotion and prosody remain upstream audiobook-domain logic rather than hard-wired into SaydiVoice browser automation.
+`SAYDI-002` remains the immediate NEXT task because the project must become runnable before the deeper modules are built. It must establish provider-neutral AI/Voice boundaries and a bounded audible sample workflow. Punctuation repair, annotation policy, book intelligence, emotion and prosody remain upstream audiobook-domain logic rather than hard-wired into any TTS-provider/browser automation.
 
 
 ## Owner decision 2026-10-09 — SAYDI operations move into one MAGASIN Control Center (future cutover policy)
