@@ -61,7 +61,7 @@ class RepairReadinessTests(unittest.TestCase):
 
     def test_strict_dryrun_no_worker_even_with_source_lineage(self):
         r=self.run_case()
-        self.assertEqual(r["p0_source_lineage_status"],"LEXICAL_AND_PUNCTUATION_SCREEN_PASS")
+        self.assertEqual(r["p0_source_lineage_status"],"P0_LINEAGE_RECEIPT_SCREEN_ONLY")
         self.assertEqual(r["state"],"REVIEW_ONLY_NO_RUNTIME_PERMISSION")
         self.assertEqual(r["intents"][0]["attempts_remaining"],1)
         self.assertFalse(r["intents"][0]["approved_to_dispatch"])
@@ -110,6 +110,16 @@ class RepairReadinessTests(unittest.TestCase):
     def test_production_promoted_worklist_refused(self):
         def mutate(m,a,w,l):w["integration_status"]="PRODUCTION_ENABLED"
         with self.assertRaisesRegex(ValueError,"UNSAFE_WORKLIST_PRODUCTION_STATE"):
+            self.run_case(mutate)
+
+    def test_unconfirmed_defect_code_rejected(self):
+        def mutate(m,a,w,l):w["confirmed_actions"][0]["code"]="ASR_ONLY_MISMATCH"
+        with self.assertRaisesRegex(ValueError,"UNSUPPORTED_CONFIRMED_DEFECT_CODE"):
+            self.run_case(mutate)
+
+    def test_reordered_manifest_segment_fails_closed(self):
+        def mutate(m,a,w,l):m["segments"][0]["index"]=1
+        with self.assertRaisesRegex(ValueError,"MANIFEST_SEGMENT_INDEX_CHANGED"):
             self.run_case(mutate)
 
     def test_tampered_tts_hash_rejected(self):
