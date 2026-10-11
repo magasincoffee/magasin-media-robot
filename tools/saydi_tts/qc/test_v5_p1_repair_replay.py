@@ -39,8 +39,9 @@ class ReplayTests(unittest.TestCase):
             event(5,"OWNER_SAMPLE_ACCEPTED",2,W2)]
         r=check(ev)
         self.assertEqual(r["segment_states"][0]["attempts_remaining"],0)
-        self.assertEqual(r["segment_states"][0]["phase"],"SAMPLE_ACCEPTED_NOT_CHAPTER_FINAL")
+        self.assertEqual(r["segment_states"][0]["phase"],"SAMPLE_RECEIPT_UNVERIFIED_NOT_FINAL")
         self.assertFalse(r["owner_final"])
+        self.assertFalse(r["owner_identity_verified"])
 
     def test_duplicate_event_replay_is_idempotent(self):
         a=event(1,"CANDIDATE_STAGED")
