@@ -46,6 +46,21 @@ If another document conflicts with this file, this file wins until it is deliber
 
 **Existing evidence (not closure):** PR #104 / #105 merged H4 read-only collector, resource diagnostics, protected checkpoint/temp inventory, D: staged *inactive* controller bridge; H4 synthetic sequence and 21/21 tests PASS without VieNeu/Whisper model load. PR #106 hardened read-only fresh H4 telemetry; Windows checks PASS on exact main. **This is NOT live integration**; C: headroom, authenticated Owner witness, full fingerprint/checkpoint ownership and internal unload barrier remain blockers. On block, log `BLOCKER_ID, TASK_ID, STATUS, TYPE, SUMMARY, OWNER_ACTION, EVIDENCE, RESUME_WHEN` in this SOT; no infinite wait/repair loops.
 
+### 2026-10-12 execution receipt — V6 step 1.1, protected read-only inventory
+
+**Task:** SAYDI-002 / SAYDI002-VN-001 / checklist 1.1, still **IN_PROGRESS**. Added `tools/saydi_tts/qc/vn001_v5_readonly_inventory.py` and synthetic unit tests/Windows+Linux hosted CI. Inventory accepts explicitly verified local roots and outputs only bounded file class/count/metadata identity; optional small SHA256 batches use anonymous file IDs. It never writes local audio/book, changes a checkpoint, starts any worker or authenticates Owner. CLI is host-guarded to `DESKTOP-H4A16IL`, and output always denies START/DISPATCH. A metadata fingerprint or partial hashes alone DO NOT prove full approved WAV/reference provenance or durable STOP. Real H4 read-only source/voice/checkpoint hashing remains mandatory.
+
+**Actual H4 access attempt 2026-10-12:** Desktop Commander listed H4 ONLINE, but a read-only `C:\SAYDI` directory request remained pending and a separate aggregated no-write PowerShell RAM/disk/process query timed out without device response. No trustworthy **fresh** file/process/disk observation was returned. Do not recycle historical 2026-10-11 checks as current evidence; no real worker, model, audio or checkpoint was touched.
+
+**BLOCKER_ID=BLK-SAYDI-V6-11-REMOTE**
+- TASK_ID=SAYDI002-VN-001; STATUS=OPEN; TYPE=ENVIRONMENT.
+- SUMMARY=H4 remote filesystem/PowerShell evidence not returned; read-only 1.1 inventory cannot be marked complete.
+- OWNER_ACTION=NONE unless authorized local MCP/remote connection fails on a later recheck.
+- EVIDENCE=H4 device listed Online; directory request pending; process query timeout; no output or write proof.
+- RESUME_WHEN=verified responding H4 read-only local or Remote MCP, fresh PID/STOP/checkpoint/voice identity and bounded SHA inventory with sanitized receipts. Never force restart a live chapter QC job just to inspect.
+
+**Status discipline:** PR/CI code may be merged when offline tests GREEN; checklist 1.1 and VN-001 stay IN_PROGRESS until real local receipts, exact checkpoint ownership and Owner control gates are verified. Do not start SAYDI002-VN-002 or V6 quality rendering prematurely.
+
 ### Owner-approved V6 upgrade — 6 phases / 24 small jobs
 
 Each checkbox starts TODO unless complete acceptance is proven (having a V5 implementation only means baseline exists). Report task proof: merged commit, exact-head+exact-main CI, sanitized H4 receipts, Owner listening when needed. Stages are roughly **3–5, 4–6, 4–7, 5–8, 4–7, 4–7 workdays** respectively; estimated **24–40 workdays** total, not a delivery promise. Sequential stages and dependency gates still apply.
