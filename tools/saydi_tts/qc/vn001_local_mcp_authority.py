@@ -116,6 +116,9 @@ def verify_current_main(
     except Exception as exc:
         raise VerificationHold("GITHUB_VERIFIER_UNAVAILABLE") from exc
 
+    # Text checks are newline-agnostic. Cryptographic evidence above always
+    # uses the exact raw GitHub bytes, never this normalized text.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     if not text.startswith("# SAYDI Audiobook — Source of Truth\n"):
         raise VerificationHold("SOT_CANONICAL_HEADER_MISSING")
     if (text.count(ANCHOR) != 1 or text.count(END) < 1 or
