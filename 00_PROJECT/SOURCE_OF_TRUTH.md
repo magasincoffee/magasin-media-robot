@@ -1,6 +1,6 @@
 # SAYDI Audiobook — Source of Truth
 
-Last updated: 2026-10-11
+Last updated: 2026-10-12
 
 ## Authority
 
@@ -58,6 +58,10 @@ If another document conflicts with this file, this file wins until it is deliber
 - OWNER_ACTION=NONE unless authorized local MCP/remote connection fails on a later recheck.
 - EVIDENCE=H4 device listed Online; directory request pending; process query timeout; no output or write proof.
 - RESUME_WHEN=verified responding H4 read-only local or Remote MCP, fresh PID/STOP/checkpoint/voice identity and bounded SHA inventory with sanitized receipts. Never force restart a live chapter QC job just to inspect.
+
+**Follow-up 2026-10-12 ~10:03 ICT:** The registered H4 device was explicitly **OFFLINE** (last seen ~2 hours earlier). A single ping returned `No Desktop Commander device is currently online`; no file/worker probe was attempted after this finding. The earlier pending/timeout remains historical evidence, not a successful fresh snapshot. If this persists, Owner or an authorized operator must bring the existing remote agent back online on H4; do not reboot or remotely override STOP/worker merely to fix connectivity.
+
+**Offline step 1.1 hardening:** `vn001_v5_readonly_inventory.py` initial proof only hashed the first bounded 16 candidate files per call. Extend that same *read-only* CLI with deterministic `--hash-offset`, `--expected-metadata-sha256` per-batch consistency, fail-closed unreadable-directory detection and an explicit `hash_page_final` flag (which **never** claims global acceptance after the last page without all earlier receipts). Validate on hosted Windows/Linux synthetic CI. Example usage pattern for an Owner-verified local root: metadata first; then `--mode hash --hash-offset 0`, record its metadata fingerprint locally; repeat with each `next_hash_offset` and `--expected-metadata-sha256 <first_digest>`. Abort on `METADATA_FINGERPRINT_CHANGED`, `BATCH_LIMIT_NO_PROGRESS` or unreadable files. These paged receipts still do not attest the correct narrator, protected full checkpoint set, active worker owner, STOP or backup copy; independent H4 confirmation is mandatory before 1.1 DONE.
 
 **Status discipline:** PR/CI code may be merged when offline tests GREEN; checklist 1.1 and VN-001 stay IN_PROGRESS until real local receipts, exact checkpoint ownership and Owner control gates are verified. Do not start SAYDI002-VN-002 or V6 quality rendering prematurely.
 
