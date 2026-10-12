@@ -75,6 +75,64 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(a["hashed_files"], 0)
         self.assertEqual(a["unhashed_files"], 3)
 
+    def test_paged_hashes_cover_each_candidate_without_claiming_full_from_last_page(self):
+        first = mod.inventory(self.root, scope="audio", mode="hash", max_hash_files=1)
+        self.assertEqual(first["hash_batch_offset"], 0)
+        self.assertEqual(first["next_hash_offset"], 1)
+        self.assertFalse(first["complete_file_hash_inventory"])
+        sha = first["metadata_fingerprint_sha256"]
+        result_pages = [first]
+        for offset in (1, 2):
+            page = mod.inventory(self.root, scope="audio", mode="hash",
+                                 hash_offset=offset, expected_metadata_sha256=sha,
+                                 max_hash_files=1)
+            result_pages.append(page)
+            self.assertEqual(page["metadata_fingerprint_sha256"], sha)
+        self.assertTrue(result_pages[-1]["hash_page_final"])
+        self.assertIsNone(result_pages[-1]["next_hash_offset"])
+        self.assertFalse(result_pages[-1]["complete_file_hash_inventory"])
+        self.assertEqual(
+            len({row["anonymous_file_id"] for p in result_pages
+                 for row in p["individual_hashes"]}), 3
+        )
+        self.assertEqual(sum(p["hashed_files"] for p in result_pages), 3)
+        self.assertFalse(any(p["approved_to_dispatch"] for p in result_pages))
+
+    def test_paged_hash_halts_if_metadata_changes_mid_scan(self):
+        first = mod.inventory(self.root, scope="audio", mode="hash",
+                              max_hash_files=1)
+        (self.root / "chapterA" / "segment.wav").write_bytes(b"modified on disk")
+        with self.assertRaisesRegex(mod.InventoryHold, "METADATA_FINGERPRINT_CHANGED"):
+            mod.inventory(self.root, scope="audio", mode="hash", hash_offset=1,
+                          expected_metadata_sha256=first["metadata_fingerprint_sha256"])
+
+    def test_paged_hash_out_of_range_fails_closed(self):
+        with self.assertRaisesRegex(mod.InventoryHold, "HASH_OFFSET_OUT_OF_RANGE"):
+            mod.inventory(self.root, scope="audio", mode="hash", hash_offset=4)
+
+    def test_invalid_expected_digest_fails_closed(self):
+        with self.assertRaises(ValueError):
+            mod.inventory(self.root, scope="audio", mode="hash",
+                          expected_metadata_sha256="incorrect digest")
+
+    def test_zero_hash_budget_reports_no_progress_and_cannot_loop_silently(self):
+        x = mod.inventory(self.root, scope="audio", mode="hash", max_hash_bytes=0)
+        self.assertEqual(x["next_hash_offset"], 0)
+        self.assertEqual(x["hash_blocked_reason"], "BATCH_LIMIT_NO_PROGRESS")
+        self.assertFalse(x["hash_page_final"])
+
+    def test_unreadable_subdirectory_must_hold_not_claim_inventory_done(self):
+        original_walk = mod.os.walk
+
+        def failing_walk(*args, **kwargs):
+            kwargs["onerror"](PermissionError("denied"))
+            yield from ()
+
+        with patch.object(mod.os, "walk", side_effect=failing_walk):
+            with self.assertRaisesRegex(mod.InventoryHold, "DIRECTORY_SCAN_FAILED"):
+                mod.inventory(self.root, scope="audio")
+        self.assertIsNotNone(original_walk)
+
     def test_scan_limit_fails_closed(self):
         with self.assertRaisesRegex(mod.InventoryHold, "SCAN_LIMIT_EXCEEDED"):
             mod.inventory(self.root, scope="audio", max_scan=2)
