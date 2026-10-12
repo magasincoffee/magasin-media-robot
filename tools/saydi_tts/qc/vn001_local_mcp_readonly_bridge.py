@@ -148,10 +148,13 @@ def handle_inventory(
         if not _root_is_allowed(root):
             raise LocalReadRejected("ROOT_OUTSIDE_APPROVED_SAYDI_TREE")
         scanner = _inventory_module()
-        receipt = scanner.inventory(
-            root, scope=scope, mode=request["mode"], hash_offset=offset,
-            expected_metadata_sha256=expected,
-        )
+        try:
+            receipt = scanner.inventory(
+                root, scope=scope, mode=request["mode"], hash_offset=offset,
+                expected_metadata_sha256=expected,
+            )
+        except scanner.InventoryHold as exc:
+            raise LocalReadRejected(str(exc)) from exc
         # Deliberately no local report file or full private filepath.
         return {
             **deny, "status": "READ_ONLY_RECEIPT_UNATTESTED",
