@@ -65,6 +65,21 @@ If another document conflicts with this file, this file wins until it is deliber
 
 **Status discipline:** PR/CI code may be merged when offline tests GREEN; checklist 1.1 and VN-001 stay IN_PROGRESS until real local receipts, exact checkpoint ownership and Owner control gates are verified. Do not start SAYDI002-VN-002 or V6 quality rendering prematurely.
 
+### 2026-10-12 Owner direction — Prefer existing H4 local MCP for SAYDI VN-001 read-only inventory
+
+**Owner selected local MCP as the preferred future H4 task transport over repeated Remote Desktop Commander calls.** This is permission to build/test a non-actuating bridge, **NOT** proof that this chat has a connected MCP tool, that local MCP service/runner is online, or that Supervisor business dispatch has passed its own authority gates.
+
+**Implemented source-only integration candidate:** `tools/saydi_tts/qc/vn001_local_mcp_readonly_bridge.py` exports `handle_inventory()` for an **already trusted local MCP service**; it does not create/install a new MCP server, listener, task queue or startup service. Request contract is `MAGASIN_SAYDI_VN001_MCP_READONLY_V1`, exact `task_id=SAYDI002-VN-001`, `target=saydi`, `action=inventory_v5_readonly`, locally configured root key and only `metadata` or bounded `hash` modes. All other command types (START, STOP, render, EXECUTE, project switch, shell scripts) are rejected. Request never carries a file path, executable or credential.
+
+**Mandatory independent gates before any future H4 invocation:**
+1. H4 host is exactly `DESKTOP-H4A16IL`. Only approved C:\SAYDI or D:\SAYDI canonical roots; do not permit private arbitrary host paths, junction escape or user-provided root paths. Locally configured allowlist is admin-controlled.
+2. Existing local MCP transport must independently authenticate the caller. The separately trusted local SOT verifier must freshly confirm `magasincoffee/magasin-media-robot`, `00_PROJECT/SOURCE_OF_TRUTH.md` on exact live `main` commit and `SAYDI002-VN-001=IN_PROGRESS`, with production dispatch unauthorized. Neither the request body nor old chat supplies these proofs.
+3. Execute only the pure file inventory already implemented: bounded, paginated SHA, fail closed if metadata drifts or files are unreadable. The response includes no manuscript, filenames or full local paths, no persistent write, no job launch. Every response has `approved_to_start=false`, `approved_to_dispatch=false`, `worker_started=false`, `task_completed=false`. A successful read is not a checkpoint ownership, STOP attestation or V6 step 1.1 DONE receipt.
+4. Supervisor SOT is independent and controls its own P1 (source/QA-only), later P2 (MCP transport acceptance) and P3 (Business Executor) gates. Do **not** call its `C:\MAGASIN_MCP\dispatch_gateway.py` generic `MAGASIN_DISPATCH_V1/action=execute_task`, create a GitHub dispatch issue, replay an existing Issue, clear STOP or install this bridge into Supervisor pending independent qualification/Owner cutover approval.
+5. Actual MCP wiring/H4 live root allowlist, fresh worker/voice/checkpoint identity, reliable local transport and read-only receipts remain **BLOCKED** until H4 is reachable through a qualified connected channel. The last 2026-10-12 check reported Remote Desktop Commander H4 OFFLINE; whether a different MCP local daemon runs cannot be inferred. Do not equate source CI with a local installation.
+
+**Work status:** Task `SAYDI002-VN-001` / step **1.1 stays IN_PROGRESS**. Source tests/PR may be marked CODE_READY only after exact-head and exact-main GREEN. No V5 asset change, no production render or Supervisor activation; don't advance to 1.2 solely due to this adapter.
+
 ### Owner-approved V6 upgrade — 6 phases / 24 small jobs
 
 Each checkbox starts TODO unless complete acceptance is proven (having a V5 implementation only means baseline exists). Report task proof: merged commit, exact-head+exact-main CI, sanitized H4 receipts, Owner listening when needed. Stages are roughly **3–5, 4–6, 4–7, 5–8, 4–7, 4–7 workdays** respectively; estimated **24–40 workdays** total, not a delivery promise. Sequential stages and dependency gates still apply.
