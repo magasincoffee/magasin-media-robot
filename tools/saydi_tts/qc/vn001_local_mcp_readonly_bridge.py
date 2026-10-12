@@ -206,6 +206,8 @@ def handle_inventory(
     }
     if transport_authenticated is not True:
         return {**block, "reason": "MCP_TRANSPORT_NOT_AUTHENTICATED"}
+    if not _is_h4():
+        return {**block, "reason": "WRONG_HOST"}
     if type(request) is not dict:
         return {**block, "reason": "REQUEST_SCHEMA_NOT_ALLOWLISTED"}
     # Perform basic request-shape checks *before* any authenticated SOT GET.
