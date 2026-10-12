@@ -46,8 +46,10 @@ class Vn001McpTests(unittest.TestCase):
         self.roots = {"chapter2": {"path": str(self.root), "scope": "audio"}}
 
     def invoke(self, request=None, trusted=True, given_authority=None):
-        with patch.object(bridge, "_is_h4", return_value=True), \\
-             patch.object(bridge, "_root_is_allowed", return_value=True):
+        with (
+            patch.object(bridge, "_is_h4", return_value=True),
+            patch.object(bridge, "_root_is_allowed", return_value=True),
+        ):
             return bridge.handle_inventory(
                 envelope() if request is None else request,
                 verified_sot=authority() if given_authority is None else given_authority,
