@@ -110,7 +110,7 @@ def _inventory_module():
     return module
 
 
-def handle_inventory(
+def _read_inventory_with_verified_sot(
     request: Any,
     *,
     verified_sot: Any = None,
@@ -180,3 +180,63 @@ def handle_inventory(
         }:
             safe = "SAFE_INVENTORY_NOT_QUALIFIED"
         return {**deny, "reason": safe}
+
+def handle_inventory(
+    request: Any,
+    *,
+    transport_authenticated: bool = False,
+    locally_approved_roots: Any = None,
+    trusted_fetch_json=None,
+    github_token: str | None = None,
+) -> dict[str, Any]:
+    """MCP-facing entrypoint: always read and verify live GitHub main first.
+
+    A local MCP server must expose ONLY `request` in its tool schema.
+    The transport authorization and configured root map must be provided by
+    the H4-local trusted server, never the MCP client. The injected fetcher
+    exists exclusively for tests/host-trusted transports; it must never be
+    accessible from a client payload.
+    """
+    block = {
+        "schema": SCHEMA, "task_id": TASK, "status": "BLOCKED",
+        "approved_to_start": False, "approved_to_dispatch": False,
+        "production_modified": False, "worker_started": False,
+        "project_switch_allowed": False, "owner_stop_changed": False,
+        "task_completed": False,
+    }
+    if transport_authenticated is not True:
+        return {**block, "reason": "MCP_TRANSPORT_NOT_AUTHENTICATED"}
+    if not _is_h4():
+        return {**block, "reason": "WRONG_HOST"}
+    if type(request) is not dict:
+        return {**block, "reason": "REQUEST_SCHEMA_NOT_ALLOWLISTED"}
+    # Perform basic request-shape checks *before* any authenticated SOT GET.
+    # This never authorizes a file read; exact content is validated again
+    # after the independent main authority receipt is created.
+    if (set(request) != FIELDS or request.get("schema") != SCHEMA or
+            request.get("task_id") != TASK or request.get("target") != "saydi" or
+            request.get("action") != "inventory_v5_readonly"):
+        return {**block, "reason": "REQUEST_ACTION_NOT_ALLOWLISTED"}
+    revision = request.get("expected_main_sha")
+    if type(revision) is not str or SOT_SHA.fullmatch(revision) is None:
+        return {**block, "reason": "MAIN_REVISION_INVALID"}
+    try:
+        path = Path(__file__).with_name("vn001_local_mcp_authority.py")
+        spec = importlib.util.spec_from_file_location("saydi_vn001_local_main_verifier", path)
+        if spec is None or spec.loader is None:
+            raise LocalReadRejected("SOT_VERIFIER_MISSING")
+        verifier = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(verifier)
+        receipt = verifier.verify_current_main(
+            expected_sha=revision,
+            fetch_json=trusted_fetch_json,
+            token=github_token,
+        )
+    except Exception:
+        # Fail closed without echoing network, token, or private content.
+        return {**block, "reason": "SOT_MAIN_AUTHORITY_UNVERIFIED"}
+    return _read_inventory_with_verified_sot(
+        request, verified_sot=receipt,
+        transport_authenticated=transport_authenticated,
+        locally_approved_roots=locally_approved_roots,
+    )

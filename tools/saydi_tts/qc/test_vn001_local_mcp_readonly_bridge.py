@@ -50,7 +50,7 @@ class Vn001McpTests(unittest.TestCase):
             patch.object(bridge, "_is_h4", return_value=True),
             patch.object(bridge, "_root_is_allowed", return_value=True),
         ):
-            return bridge.handle_inventory(
+            return bridge._read_inventory_with_verified_sot(
                 envelope() if request is None else request,
                 verified_sot=authority() if given_authority is None else given_authority,
                 transport_authenticated=trusted,
@@ -58,14 +58,14 @@ class Vn001McpTests(unittest.TestCase):
             )
 
     def test_deny_by_default_no_auth_or_sot(self):
-        actual = bridge.handle_inventory(envelope())
+        actual = bridge._read_inventory_with_verified_sot(envelope())
         self.assertEqual(actual["status"], "BLOCKED")
         self.assertEqual(actual["reason"], "MCP_TRANSPORT_NOT_AUTHENTICATED")
         self.assertFalse(actual["approved_to_dispatch"])
         self.assertFalse(actual["owner_stop_changed"])
 
     def test_rejected_without_trusted_main_authority(self):
-        out = bridge.handle_inventory(envelope(), transport_authenticated=True)
+        out = bridge._read_inventory_with_verified_sot(envelope(), transport_authenticated=True)
         self.assertEqual(out["reason"], "SOT_MAIN_AUTHORITY_UNVERIFIED")
 
     def test_rejected_on_wrong_main_revision(self):
@@ -92,13 +92,13 @@ class Vn001McpTests(unittest.TestCase):
 
     def test_wrong_host_and_unapproved_roots_hold(self):
         with patch.object(bridge, "_is_h4", return_value=False):
-            resp = bridge.handle_inventory(
+            resp = bridge._read_inventory_with_verified_sot(
                 envelope(), verified_sot=authority(),
                 transport_authenticated=True, locally_approved_roots=self.roots)
             self.assertEqual(resp["reason"], "WRONG_HOST")
         self.assertFalse(bridge._root_is_allowed(self.root))
         with patch.object(bridge, "_is_h4", return_value=True):
-            resp = bridge.handle_inventory(
+            resp = bridge._read_inventory_with_verified_sot(
                 envelope(), verified_sot=authority(),
                 transport_authenticated=True, locally_approved_roots=self.roots)
             self.assertEqual(resp["reason"], "ROOT_OUTSIDE_APPROVED_SAYDI_TREE")
