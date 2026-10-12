@@ -1,0 +1,35 @@
+name: SAYDI VN001 V5 Read-only Inventory QA
+
+on:
+  pull_request:
+    paths:
+      - "tools/saydi_tts/qc/vn001_v5_readonly_inventory.py"
+      - "tools/saydi_tts/qc/test_vn001_v5_readonly_inventory.py"
+      - ".github/workflows/saydi-vn001-v5-readonly-inventory.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/saydi_tts/qc/vn001_v5_readonly_inventory.py"
+      - "tools/saydi_tts/qc/test_vn001_v5_readonly_inventory.py"
+      - ".github/workflows/saydi-vn001-v5-readonly-inventory.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-no-worker:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax and bounded read-only inventory tests
+        run: |
+          python -m py_compile tools/saydi_tts/qc/vn001_v5_readonly_inventory.py tools/saydi_tts/qc/test_vn001_v5_readonly_inventory.py
+          python -m unittest discover -s tools/saydi_tts/qc -p test_vn001_v5_readonly_inventory.py -v
