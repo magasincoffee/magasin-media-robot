@@ -45,6 +45,12 @@ Expanded the existing **synthetic-only** `test_vn001_h4_c_storage_readonly.py` t
 
 **Gate status:** A (issue-bound Owner authority + STOP/replay) NOT IMPLEMENTED; B (Windows directory-handle/no-follow guarantee) NOT IMPLEMENTED, with live H4 entrypoint explicitly blocked; C (additional offline negative fixture tests) IN PROGRESS until exact-head CI and independent review; D (one-shot H4 read) NOT AUTHORIZED. Existing tests that demonstrate no recursive descent are not a substitute for a real Windows directory handle. Do not use a chat acknowledgment, an Online Desktop Commander status or passing CI to infer A/B/D acceptance.
 
+### Codex P2 repair verification (source-only)
+
+Codex's independent review of PR #116 at `d4fcb318c4b1fabb7fedf1e6dcd3347e5b730dbb` identified two P2 testing defects: a mocked reparse classifier did not exercise the actual Windows reparse-attribute bitmask, and assertions of exception-message redaction did not cover formatted chained tracebacks. Subsequent source-only repairs now provide a synthetic `st_file_attributes` reparse bit to the **real** classifier, prohibit traversal when that root is marked, suppress raw `OSError` context in formatted `AuditHold` traces and assert the full formatted exception excludes injected private path tokens. This does **not** certify every possible logger; future adapters must serialize only allowlisted status codes and never debug-log exception objects/contexts.
+
+All this is offline test work, not an H4 field trial, and it does not provide Windows handle-bound TOCTOU guarantees, authenticated Owner issue approval or any permission to inspect C: on H4. The same A/B/D gates remain not qualified. Final acceptance requires exact-head CI, final-head independent re-review, merge and exact-main CI.
+
 ## Gate D — separately approved H4 observation
 
 Only after A/B/C are qualified, obtain a fresh, explicitly scoped Owner approval for a single read-only on-host observation. No repeats, scheduling, generalized GitHub Issue dispatch, new tunnel, API credits or production changes. Verify true H4 routing **before any local read** and archive a sanitized receipt. Distinguish C: logical allocated-space estimates, skipped directories, checkpoint SHA, worker identity and Owner lifecycle: one cannot substitute for another.
