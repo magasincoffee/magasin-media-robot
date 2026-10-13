@@ -106,7 +106,10 @@ def scan_scope(
             raise AuditHold("DIRECTORY_UNREADABLE_NO_COMPLETE_CLAIM") from exc
 
     return {
-        "status": "READ_ONLY_METADATA_COMPLETE",
+        # A skipped junction/symlink can conceal more files. Never assert
+        # completeness or capacity provenance for an incomplete subtree.
+        "status": ("READ_ONLY_METADATA_PARTIAL_REPARSE_SKIPPED"
+                   if skipped_reparse else "READ_ONLY_METADATA_COMPLETE"),
         "file_count": total_files,
         "subdirectory_count": dirs,
         "logical_bytes": total_bytes,
