@@ -72,6 +72,7 @@ class H4StorageAuditTests(unittest.TestCase):
         result = sut.scan_scope(self.root, now=self.now)
         self.assertEqual(result["file_count"], 3)
         self.assertGreaterEqual(result["skipped_reparse_entries"], 1)
+        self.assertEqual(result["status"], "READ_ONLY_METADATA_PARTIAL_REPARSE_SKIPPED")
 
     def test_root_symlink_is_rejected(self):
         alias = self.root.parent / (self.root.name + "-alias")
