@@ -1,12 +1,14 @@
-"""Offline synthetic tests: file-content access and modifications are forbidden."""
+"""Offline negative and positive tests: never use H4 production data."""
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import os
 import tempfile
 import time
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -29,87 +31,119 @@ class H4StorageAuditTests(unittest.TestCase):
         (self.root / "private-manuscript.txt").write_bytes(b"none of this is real")
         self.now = time.time()
 
-    def test_stats_without_reading_content_or_changing_anything(self):
-        before = {str(x): (x.stat().st_size, x.stat().st_mtime_ns)
+    def test_only_root_metadata_without_file_content_reads_or_mutation(self):
+        before = {(str(x), x.stat().st_size, x.stat().st_mtime_ns)
                   for x in self.root.rglob("*") if x.is_file()}
-        with patch.object(Path, "open", side_effect=AssertionError("file bytes read")):
+        with patch.object(Path, "open", side_effect=AssertionError("bytes must not be read")):
             result = sut.scan_scope(self.root, now=self.now)
-        after = {str(x): (x.stat().st_size, x.stat().st_mtime_ns)
+        after = {(str(x), x.stat().st_size, x.stat().st_mtime_ns)
                  for x in self.root.rglob("*") if x.is_file()}
         self.assertEqual(before, after)
-        self.assertEqual(result["file_count"], 3)
+        self.assertEqual(result["file_count"], 2)  # child WAV intentionally NOT scanned
+        self.assertEqual(result["skipped_subdirectory_count"], 1)
+        self.assertEqual(result["status"], "READ_ONLY_METADATA_PARTIAL_SKIPPED")
+        self.assertFalse(result["complete_tree_inventory"])
         self.assertEqual(result["older_than_7d_file_count"], 1)
         self.assertEqual(result["older_than_7d_logical_bytes"], len(b"older-test"))
         self.assertFalse(result["safe_to_delete_verified"])
         self.assertFalse(result["checkpoint_owner_verified"])
-        text = json.dumps(result)
-        self.assertNotIn("private-manuscript", text)
-        self.assertNotIn(str(self.root), text)
-        self.assertNotIn("segment.wav", text)
+        dump = json.dumps(result)
+        for sensitive in ("private-manuscript", "segment.wav", str(self.root)):
+            self.assertNotIn(sensitive, dump)
 
-    def test_budget_fails_closed_not_partial_success(self):
+    def test_single_level_fixture_without_children_is_complete_only_for_that_level(self):
+        shallow = self.root / "child"
+        r = sut.scan_scope(shallow)
+        self.assertEqual(r["file_count"], 1)
+        self.assertEqual(r["skipped_subdirectory_count"], 0)
+        self.assertTrue(r["complete_tree_inventory"])
+        self.assertEqual(r["status"], "READ_ONLY_METADATA_TOP_LEVEL_COMPLETE")
+
+    def test_no_directory_queue_even_if_child_can_be_replaced_with_junction(self):
+        original = sut.os.scandir
+        targets = []
+        def bounded(path):
+            targets.append(str(path))
+            if Path(path) != self.root:
+                raise AssertionError("nested scan: TOCTOU reparse escape")
+            return original(path)
+        with patch.object(sut.os, "scandir", side_effect=bounded):
+            r = sut.scan_scope(self.root)
+        self.assertEqual(targets, [str(self.root)])
+        self.assertEqual(r["skipped_subdirectory_count"], 1)
+        self.assertFalse(r["complete_tree_inventory"])
+
+    def test_file_budget_fail_closed(self):
         with self.assertRaisesRegex(sut.AuditHold, "FILE_BUDGET_EXCEEDED"):
-            sut.scan_scope(self.root, max_files=2)
-        with self.assertRaises(ValueError):
-            sut.scan_scope(self.root, max_files=99999999)
+            sut.scan_scope(self.root, max_files=1)
+        for bad in (0, True, 30001):
+            with self.assertRaises(ValueError):
+                sut.scan_scope(self.root, max_files=bad)
 
-    def test_depth_limit_fails_closed(self):
-        (self.root / "child" / "deep").mkdir()
-        with self.assertRaisesRegex(sut.AuditHold, "DEPTH_BUDGET_EXCEEDED"):
-            sut.scan_scope(self.root, max_depth=1)
-
-    def test_timeout_fails_closed(self):
-        times = iter([1000, 1002])
+    def test_timeout_fail_closed(self):
+        samples = iter([1000, 1002])
         with self.assertRaisesRegex(sut.AuditHold, "TIME_BUDGET_EXCEEDED"):
-            sut.scan_scope(self.root, monotonic=lambda: next(times), max_seconds=1)
+            sut.scan_scope(self.root, monotonic=lambda: next(samples), max_seconds=1)
 
-    def test_reparse_or_symlink_excluded(self):
-        link = self.root / "linked"
+    def test_symlink_skipped_and_incompleteness_visible(self):
         try:
-            link.symlink_to(self.root / "old.tmp")
+            (self.root / "linked").symlink_to(self.root / "old.tmp")
         except (OSError, NotImplementedError):
-            self.skipTest("symlink creation requires platform permission")
-        result = sut.scan_scope(self.root, now=self.now)
-        self.assertEqual(result["file_count"], 3)
-        self.assertGreaterEqual(result["skipped_reparse_entries"], 1)
-        self.assertEqual(result["status"], "READ_ONLY_METADATA_PARTIAL_REPARSE_SKIPPED")
+            self.skipTest("Symlink creation unavailable on this hosted Windows runner")
+        r = sut.scan_scope(self.root, now=self.now)
+        self.assertEqual(r["file_count"], 2)
+        self.assertGreaterEqual(r["skipped_reparse_entries"], 1)
+        self.assertEqual(r["status"], "READ_ONLY_METADATA_PARTIAL_SKIPPED")
+        self.assertFalse(r["complete_tree_inventory"])
 
-    def test_root_symlink_is_rejected(self):
+    def test_root_symlink_rejected_without_following(self):
         alias = self.root.parent / (self.root.name + "-alias")
         try:
             alias.symlink_to(self.root, target_is_directory=True)
         except (OSError, NotImplementedError):
-            self.skipTest("symlink creation requires platform permission")
+            self.skipTest("Symlink creation unavailable on hosted Windows runner")
         self.addCleanup(alias.unlink)
         with self.assertRaisesRegex(sut.AuditHold, "ROOT_MISSING_OR_UNSAFE"):
             sut.scan_scope(alias)
 
-    def test_wrong_host_never_inspects_paths(self):
-        with patch.object(sut.platform, "node", return_value="DESKTOP-4K7IM13"), \
-             patch.object(sut, "scan_scope", side_effect=AssertionError("must not scan")):
+    def test_p1_real_h4_gate_precedes_even_root_metadata(self):
+        with patch.object(sut, "_is_h4", return_value=True), \
+             patch.object(Path, "is_dir", side_effect=AssertionError("root touched")), \
+             patch.object(sut.os, "scandir", side_effect=AssertionError("scan touched")):
+            with self.assertRaisesRegex(sut.AuditHold, "LIVE_H4_SCAN_NOT_AUTHORIZED"):
+                sut.scan_scope(self.root)
+
+    def test_p1_no_direct_executable_path_even_with_a_fake_correct_host(self):
+        with patch.object(sut, "_is_h4", return_value=True), \
+             patch.object(sut, "scan_scope", side_effect=AssertionError("scan touched")):
+            receipt = sut.run_h4()
+            stream = io.StringIO()
+            with redirect_stdout(stream):
+                status = sut.main()
+        self.assertEqual(status, 21)
+        self.assertEqual(json.loads(stream.getvalue()), receipt)
+        self.assertEqual(receipt["status"], "BLOCKED")
+        self.assertEqual(receipt["scopes"], {})
+        self.assertFalse(receipt["approved_to_dispatch"])
+        self.assertFalse(receipt["approved_to_start"])
+        self.assertFalse(receipt["task_completed"])
+
+    def test_wrong_host_also_blocks_direct_executable(self):
+        with patch.object(sut.platform, "node", return_value="DESKTOP-4K7IM13"):
             r = sut.run_h4()
         self.assertEqual(r["status"], "BLOCKED")
         self.assertFalse(r["worker_started"])
-        self.assertFalse(r["approved_to_dispatch"])
-        self.assertFalse(r["safe_to_delete_verified"])
 
-    def test_unreadable_roots_redacted_and_no_claim_of_success(self):
-        with patch.object(sut, "_is_h4", return_value=True), \
-             patch.dict(sut.SCOPES, {"user_temp": self.root / "missing",
-                                     "saydi_output": self.root / "missing"}, clear=True):
-            r = sut.run_h4()
-        self.assertEqual(r["status"], "READ_ONLY_PARTIAL_UNATTESTED")
-        self.assertEqual(r["scopes"]["user_temp"]["status"], "BLOCKED")
-        self.assertNotIn(str(self.root), json.dumps(r))
-        self.assertFalse(r["audio_sha_verified"])
-
-    def test_no_cli_path_input_or_mutations_in_module(self):
-        source = SCRIPT.read_text(encoding="utf-8")
+    def test_no_unsafe_mutation_or_network_in_source(self):
+        code = SCRIPT.read_text(encoding="utf-8")
         for forbidden in ("subprocess.run", "subprocess.Popen",
                           "shutil.rmtree", "os.remove(", "os.unlink(",
                           "os.rename(", "os.replace(", "os.makedirs(",
-                          "Path.write_bytes", "Path.write_text", "urllib"):
-            self.assertNotIn(forbidden, source)
+                          "Path.write_bytes", "Path.write_text", "urllib",
+                          "os.walk(", "os.fwalk(", "stack.append("):
+            self.assertNotIn(forbidden, code)
+        self.assertIn('"LIVE_H4_SCAN_NOT_AUTHORIZED"', code)
+        self.assertIn("return 21", code)
 
 
 if __name__ == "__main__":
