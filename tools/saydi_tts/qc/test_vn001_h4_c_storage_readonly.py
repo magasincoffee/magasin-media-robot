@@ -54,12 +54,14 @@ class H4StorageAuditTests(unittest.TestCase):
             sut.scan_scope(self.root, max_files=99999999)
 
     def test_depth_limit_fails_closed(self):
+        (self.root / "child" / "deep").mkdir()
         with self.assertRaisesRegex(sut.AuditHold, "DEPTH_BUDGET_EXCEEDED"):
             sut.scan_scope(self.root, max_depth=1)
 
     def test_timeout_fails_closed(self):
+        times = iter([1000, 1002])
         with self.assertRaisesRegex(sut.AuditHold, "TIME_BUDGET_EXCEEDED"):
-            sut.scan_scope(self.root, monotonic=lambda: 1000, max_seconds=1)
+            sut.scan_scope(self.root, monotonic=lambda: next(times), max_seconds=1)
 
     def test_reparse_or_symlink_excluded(self):
         link = self.root / "linked"
@@ -91,8 +93,7 @@ class H4StorageAuditTests(unittest.TestCase):
         self.assertFalse(r["safe_to_delete_verified"])
 
     def test_unreadable_roots_redacted_and_no_claim_of_success(self):
-        with patch.object(sut.os, "name", "nt"), \
-             patch.object(sut.platform, "node", return_value=sut.H4), \
+        with patch.object(sut, "_is_h4", return_value=True), \
              patch.dict(sut.SCOPES, {"user_temp": self.root / "missing",
                                      "saydi_output": self.root / "missing"}, clear=True):
             r = sut.run_h4()
