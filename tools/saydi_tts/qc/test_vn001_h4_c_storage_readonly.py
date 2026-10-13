@@ -5,11 +5,14 @@ import importlib.util
 import io
 import json
 import os
+import stat
+import traceback
 import tempfile
 import time
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 SCRIPT = Path(__file__).with_name("vn001_h4_c_storage_readonly.py")
@@ -144,12 +147,23 @@ class H4StorageAuditTests(unittest.TestCase):
                 sut.scan_scope(self.root)
         self.assertEqual(str(error.exception), "ROOT_METADATA_UNREADABLE")
         self.assertNotIn("PRIVATE_ROOT", str(error.exception))
+        self.assertTrue(error.exception.__suppress_context__)
+        self.assertNotIn("PRIVATE_ROOT", "".join(traceback.format_exception(error.exception)))
 
     def test_root_reparse_attribute_is_rejected_before_enumeration(self):
-        with patch.object(sut, "_reparse", return_value=True), \
+        # Exercise REAL _reparse bitmask, not a mock of the implementation.
+        metadata = SimpleNamespace(
+            st_mode=(stat.S_IFDIR | 0o755),
+            st_file_attributes=sut.REPARSE_POINT,
+        )
+        with patch.object(Path, "is_symlink", return_value=False), \
+             patch.object(Path, "is_dir", return_value=True), \
+             patch.object(Path, "lstat", return_value=metadata), \
              patch.object(sut.os, "scandir", side_effect=AssertionError("opened root")):
             with self.assertRaisesRegex(sut.AuditHold, "ROOT_REPARSE_REJECTED"):
                 sut.scan_scope(self.root)
+        self.assertTrue(sut._reparse(metadata))
+        self.assertFalse(sut._reparse(SimpleNamespace(st_file_attributes=0)))
 
     def test_directory_enumeration_permission_error_is_sanitized(self):
         with patch.object(sut.os, "scandir", side_effect=PermissionError("PRIVATE_FOLDER")):
@@ -157,6 +171,8 @@ class H4StorageAuditTests(unittest.TestCase):
                 sut.scan_scope(self.root)
         self.assertEqual(str(error.exception), "DIRECTORY_UNREADABLE_NO_COMPLETE_CLAIM")
         self.assertNotIn("PRIVATE_FOLDER", str(error.exception))
+        self.assertTrue(error.exception.__suppress_context__)
+        self.assertNotIn("PRIVATE_FOLDER", "".join(traceback.format_exception(error.exception)))
 
     def test_child_entry_metadata_error_is_sanitized(self):
         class BadEntry:
@@ -178,6 +194,8 @@ class H4StorageAuditTests(unittest.TestCase):
                 sut.scan_scope(self.root)
         self.assertEqual(str(error.exception), "ENTRY_METADATA_UNREADABLE")
         self.assertNotIn("PRIVATE_FILE_NAME", str(error.exception))
+        self.assertTrue(error.exception.__suppress_context__)
+        self.assertNotIn("PRIVATE_FILE_NAME", "".join(traceback.format_exception(error.exception)))
 
     def test_time_budget_out_of_range_fails_closed(self):
         for bad in (0, 26, True, 1.5, "25"):
