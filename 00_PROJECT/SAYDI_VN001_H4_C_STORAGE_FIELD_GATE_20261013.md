@@ -38,6 +38,13 @@ Negative tests MUST exercise: unauthenticated or stale Owner approval; wrong Git
 
 Positive tests must use synthetic, controlled Windows fixtures (plus Linux pure-unit tests where applicable) and produce sanitized, deterministic receipts. All relevant exact-head CI, independent Codex review, reviewed PR merge and post-merge exact-main checks must be GREEN. **Do not activate a one-shot H4 job merely because source is merged**.
 
+
+## Source-only QA increment — 2026-10-13 (no H4 invocation)
+
+Expanded the existing **synthetic-only** `test_vn001_h4_c_storage_readonly.py` tests for missing and unreadable roots, reparse-marked root refusal, directory enumeration failure, entry metadata failure, strict time-bound validation, partial-report and blocked-direct-entrypoint safety, and sanitization of private paths in error messages. These tests do **not** inspect the H4 filesystem and are not proof of an authorized live scanner.
+
+**Gate status:** A (issue-bound Owner authority + STOP/replay) NOT IMPLEMENTED; B (Windows directory-handle/no-follow guarantee) NOT IMPLEMENTED, with live H4 entrypoint explicitly blocked; C (additional offline negative fixture tests) IN PROGRESS until exact-head CI and independent review; D (one-shot H4 read) NOT AUTHORIZED. Existing tests that demonstrate no recursive descent are not a substitute for a real Windows directory handle. Do not use a chat acknowledgment, an Online Desktop Commander status or passing CI to infer A/B/D acceptance.
+
 ## Gate D — separately approved H4 observation
 
 Only after A/B/C are qualified, obtain a fresh, explicitly scoped Owner approval for a single read-only on-host observation. No repeats, scheduling, generalized GitHub Issue dispatch, new tunnel, API credits or production changes. Verify true H4 routing **before any local read** and archive a sanitized receipt. Distinguish C: logical allocated-space estimates, skipped directories, checkpoint SHA, worker identity and Owner lifecycle: one cannot substitute for another.
