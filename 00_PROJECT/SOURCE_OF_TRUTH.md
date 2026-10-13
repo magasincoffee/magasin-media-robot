@@ -116,6 +116,12 @@ If another document conflicts with this file, this file wins until it is deliber
 
 **STATUS: SAYDI-002 NEXT; SAYDI002-VN-001 IN_PROGRESS, C: capacity HOLD; no Owner intervention requested during source-only QA.**
 
+### 2026-10-13 VN-001 C: live-read field gate — next qualified work
+
+**Authoritative task remains `SAYDI002-VN-001 IN_PROGRESS`, parent `SAYDI-002 NEXT`.** The PR #114 source-only storage-audit script on `main` is deliberately **BLOCKED on real H4** after Codex P1 (missing fresh Owner/SOT authorization) and P2 (mutable Windows junction-path traversal). Neither CI GREEN nor an Online self-hosted runner is field authorization. This turn reviewed the exact-main SOT, Supervisor STOP boundary and local bridge contracts. An attempt to introduce new approval-handler code was blocked by the execution safety check; do not circumvent it, infer that any source was deployed or create an issue dispatch to substitute for it.
+
+**Next accepted implementation boundary:** `00_PROJECT/SAYDI_VN001_H4_C_STORAGE_FIELD_GATE_20261013.md` is a subordinate checklist: fresh exact-main project SOT, independently verified issue-bound Owner approval, immutable GitHub owner identity, durable STOP and replay proof, H4-only routing before any local read; Windows handle-bound/no-follow reparse-safe traversal (or explicitly **partial nonrecursive** fallback), negative security tests, separate exact-head PR+main CI and Owner-approved one-shot field run. If the independent proof is absent, scanner must remain BLOCKED. Never delete/move C: files, inspect private manuscripts in public CI, activate workers, restore paid Secure MCP Tunnel or start V6 1.2/VN-002. Previous 2026-10-12 disk telemetry is historical only. **No H4 run or production change has occurred under this checklist.**
+
 ### Owner-approved V6 upgrade — 6 phases / 24 small jobs
 
 Each checkbox starts TODO unless complete acceptance is proven (having a V5 implementation only means baseline exists). Report task proof: merged commit, exact-head+exact-main CI, sanitized H4 receipts, Owner listening when needed. Stages are roughly **3–5, 4–6, 4–7, 5–8, 4–7, 4–7 workdays** respectively; estimated **24–40 workdays** total, not a delivery promise. Sequential stages and dependency gates still apply.
