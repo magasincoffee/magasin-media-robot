@@ -1,6 +1,6 @@
 # SAYDI Audiobook — Source of Truth
 
-Last updated: 2026-10-12
+Last updated: 2026-10-13
 
 ## Authority
 
@@ -105,6 +105,16 @@ If another document conflicts with this file, this file wins until it is deliber
 **Field gate (NOT YET PASSED):** Desktop Commander reported `DESKTOP-H4A16IL` **Offline**, last seen ~4 hours earlier at this check. No alternative H4 MCP connector exists in this chat. The H4 Owner or approved operator must separately create/authorize tunnel in official Platform settings and securely inject the runtime key on H4; confirm on-host `tunnel-client doctor` and manual authenticated connection, no exposed ports. Independently prove exact installed stdio module checksum/allowed roots/worker ownership/STOP/CLI transport, then discover exactly one ChatGPT custom tool, run metadata only, and review Owner-approved receipts. Supervisor SC-013 P1/P2/P3 are independent and remain blocked. **DO NOT** create an unreviewed GitHub Issue dispatch or deploy generic Business Executor. The private tunnel is NOT a way around Owner STOP or missing Supervisor project selection.
 
 **Current status:** `SAYDI-002 NEXT`, `SAYDI002-VN-001 IN_PROGRESS`, V6 step **1.1 IN_PROGRESS**. Source/QA may pass without H4; **the tunnel is not yet activated**, not qualified for phone use or 24/7 operations, and no V5 SHA inventory has been executed on the real machine. Separate H4 evidence + explicit deployment gates are mandatory before DONE.
+
+### 2026-10-13 SAYDI002-VN-001 — protected C: storage consumer audit, source/QA stage only
+
+**Field evidence available, no new H4 job:** [Supervisor H4 one-shot read-only receipt 38243025301](https://github.com/magasincoffee/magasin-supervisor/actions/runs/38243025301) from **2026-10-12 18:30 ICT**, runner host `DESKTOP-H4A16IL`, returned free RAM **2.47 GiB**, C: free **1.20 GiB**, D: free **55.89 GiB**, 10 generic Python/FFmpeg process candidates, `STOP=PRESENT`, `AUTOSTART_DISABLED=PRESENT`, MCP Python/Gateway/SQLite presence and C:/D: SAYDI roots present. This is an earlier **read-only observation**, not verified live 2026-10-13 conditions, a verified MCP transport, Owner authenticated lifecycle, worker identity or checkpoint/waveform SHA.
+
+**Source/QA security repairs for PR #114 — P1 / P2 (2026-10-13):** Independent Codex review identified two actionable issues: P1 allowed direct host-name-gated C: reads without a fresh canonical SOT and independent Owner authorization; P2 permitted recursive directory queues to be replaced with Windows junctions between stat and a later scandir. The code is now **explicitly NON-OPERATIONAL on real H4**: `scan_scope()` immediately raises `LIVE_H4_SCAN_NOT_AUTHORIZED` before touching a root when it detects `DESKTOP-H4A16IL`; `run_h4()` and direct Python CLI always return `BLOCKED` / exit 21 without any C: scan, regardless of hostname. The offline fixture helper performs **only a single-root directory level** (no recursive descent or queued child directory), with a `PARTIAL_SKIPPED` report whenever subdirectories, symlinks or junctions are encountered. It never asserts a full directory-tree inventory if any entries were skipped. This resolves exposure in the **source-only candidate**; it does **not** qualify a production H4 scanner or provide a current C: capacity result. Later on-host operation requires a separately reviewed implementation with fresh exact-main SOT checks, independent Owner issue-bound approval, trustworthy directory-handle-bound traversal on Windows (or safe nonrecursive partial semantics), verified worker/STOP state and a new Owner-approved one-shot gate. Synthetic CI does not substitute for those gates.
+
+**Remaining field gate:** do not use GitHub Issue `execute_task`, auto launch new H4 workflow, run a model/ASR process, change STOP or delete/move any files. A **separately qualified and Owner-authorized one-shot H4 read-only collection**, routed through reviewed source-pinned job/runner host guard and independent SC-013 request/approval gates, is required before claiming fresh C: consumer sizes or suggesting any reversible relocation. The new tool is not installed on H4 and is not allowed to launch via the existing generic Gateway. MCP transport/auth, worker PIDs/mutex, authenticated Owner generation, approved voice/source/model/checkpoint SHA and internal VieNeu-unload/Whisper barrier remain **UNVERIFIED**. Do not advance to 1.2, VN-002 or mark VN-001 done.
+
+**STATUS: SAYDI-002 NEXT; SAYDI002-VN-001 IN_PROGRESS, C: capacity HOLD; no Owner intervention requested during source-only QA.**
 
 ### Owner-approved V6 upgrade — 6 phases / 24 small jobs
 
