@@ -7,7 +7,7 @@
 - SAYDI-002 remains NEXT and SAYDI002-VN-001 remains IN_PROGRESS.
 - Source-only fail-closed C: scanner landed via PR #114, merge `636a0eef231497945d95715b02d55dbbdb180d15`; direct H4 scanner is intentionally BLOCKED.
 - Prior H4-only read-only observation: https://github.com/magasincoffee/magasin-supervisor/actions/runs/38243025301 ; 2026-10-12 18:30 ICT C: 1.20 GiB free, D: 55.89 GiB, RAM 2.47 GiB, STOP/AUTOSTART_DISABLED PRESENT. Historical observation **is not current telemetry or authentication**.
-- Desktop Commander connection has been Offline; it does not prove the GitHub runner is offline. No live C: TEMP or SAYDI output contents verified by this task.
+- Desktop Commander Remote connectivity was restored and checked from ChatGPT on 2026-10-13 (device listed ONLINE and ping returned). Connectivity is **not** independent Owner approval, project authority for a local scan, STOP/worker attestation, or evidence of current C: directory sizes. No C: TEMP, protected SAYDI output or checkpoint files were scanned or moved in this verification.
 - Existing `vn001_local_mcp_authority.py` verifies fresh exact-main SAYDI SOT for its existing tool, but it does **not** independently attest Owner approval for a C: scan. Never substitute a client-provided Boolean for that authority.
 
 ## Gate A — authenticated read-only intent; source/QA only
