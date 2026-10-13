@@ -118,6 +118,10 @@ def scan_scope(
     }
 
 
+def _is_h4() -> bool:
+    return os.name == "nt" and platform.node().upper() == H4
+
+
 def run_h4() -> dict[str, Any]:
     receipt: dict[str, Any] = {
         "schema": SCHEMA,
@@ -133,7 +137,7 @@ def run_h4() -> dict[str, Any]:
         "audio_sha_verified": False,
         "scopes": {},
     }
-    if os.name != "nt" or platform.node().upper() != H4:
+    if not _is_h4():
         return {**receipt, "status": "BLOCKED", "reason": "WRONG_HOST"}
     for name, root in SCOPES.items():
         try:
