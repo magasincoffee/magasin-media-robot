@@ -5,11 +5,14 @@ import importlib.util
 import io
 import json
 import os
+import stat
+import traceback
 import tempfile
 import time
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 SCRIPT = Path(__file__).with_name("vn001_h4_c_storage_readonly.py")
@@ -133,6 +136,85 @@ class H4StorageAuditTests(unittest.TestCase):
             r = sut.run_h4()
         self.assertEqual(r["status"], "BLOCKED")
         self.assertFalse(r["worker_started"])
+
+    def test_missing_root_fails_without_claiming_inventory(self):
+        with self.assertRaisesRegex(sut.AuditHold, "ROOT_MISSING_OR_UNSAFE"):
+            sut.scan_scope(self.root / "nonexistent-root")
+
+    def test_unreadable_root_fails_closed_without_leaking_path(self):
+        with patch.object(Path, "is_dir", side_effect=PermissionError("PRIVATE_ROOT")):
+            with self.assertRaises(sut.AuditHold) as error:
+                sut.scan_scope(self.root)
+        self.assertEqual(str(error.exception), "ROOT_METADATA_UNREADABLE")
+        self.assertNotIn("PRIVATE_ROOT", str(error.exception))
+        self.assertTrue(error.exception.__suppress_context__)
+        self.assertNotIn("PRIVATE_ROOT", "".join(traceback.format_exception(error.exception)))
+
+    def test_root_reparse_attribute_is_rejected_before_enumeration(self):
+        # Exercise REAL _reparse bitmask, not a mock of the implementation.
+        metadata = SimpleNamespace(
+            st_mode=(stat.S_IFDIR | 0o755),
+            st_file_attributes=sut.REPARSE_POINT,
+        )
+        with patch.object(Path, "is_symlink", return_value=False), \
+             patch.object(Path, "is_dir", return_value=True), \
+             patch.object(Path, "lstat", return_value=metadata), \
+             patch.object(sut.os, "scandir", side_effect=AssertionError("opened root")):
+            with self.assertRaisesRegex(sut.AuditHold, "ROOT_REPARSE_REJECTED"):
+                sut.scan_scope(self.root)
+        self.assertTrue(sut._reparse(metadata))
+        self.assertFalse(sut._reparse(SimpleNamespace(st_file_attributes=0)))
+
+    def test_directory_enumeration_permission_error_is_sanitized(self):
+        with patch.object(sut.os, "scandir", side_effect=PermissionError("PRIVATE_FOLDER")):
+            with self.assertRaises(sut.AuditHold) as error:
+                sut.scan_scope(self.root)
+        self.assertEqual(str(error.exception), "DIRECTORY_UNREADABLE_NO_COMPLETE_CLAIM")
+        self.assertNotIn("PRIVATE_FOLDER", str(error.exception))
+        self.assertTrue(error.exception.__suppress_context__)
+        self.assertNotIn("PRIVATE_FOLDER", "".join(traceback.format_exception(error.exception)))
+
+    def test_child_entry_metadata_error_is_sanitized(self):
+        class BadEntry:
+            def is_symlink(self):
+                return False
+
+            def stat(self, *, follow_symlinks=True):
+                raise PermissionError("PRIVATE_FILE_NAME")
+
+        class FakeScan:
+            def __enter__(self):
+                return iter([BadEntry()])
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+        with patch.object(sut.os, "scandir", return_value=FakeScan()):
+            with self.assertRaises(sut.AuditHold) as error:
+                sut.scan_scope(self.root)
+        self.assertEqual(str(error.exception), "ENTRY_METADATA_UNREADABLE")
+        self.assertNotIn("PRIVATE_FILE_NAME", str(error.exception))
+        self.assertTrue(error.exception.__suppress_context__)
+        self.assertNotIn("PRIVATE_FILE_NAME", "".join(traceback.format_exception(error.exception)))
+
+    def test_time_budget_out_of_range_fails_closed(self):
+        for bad in (0, 26, True, 1.5, "25"):
+            with self.subTest(value=bad):
+                with self.assertRaises(ValueError):
+                    sut.scan_scope(self.root, max_seconds=bad)
+
+    def test_entry_budget_and_partial_report_cannot_approve_cleanup(self):
+        receipt = sut.scan_scope(self.root, now=self.now)
+        self.assertFalse(receipt["complete_tree_inventory"])
+        self.assertFalse(receipt["safe_to_delete_verified"])
+        self.assertFalse(receipt["checkpoint_owner_verified"])
+        self.assertNotIn("approved_to_dispatch", receipt)
+        blocked = sut.run_h4()
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertFalse(blocked["approved_to_start"])
+        self.assertFalse(blocked["approved_to_dispatch"])
+        self.assertFalse(blocked["safe_to_delete_verified"])
+        self.assertFalse(blocked["task_completed"])
 
     def test_no_unsafe_mutation_or_network_in_source(self):
         code = SCRIPT.read_text(encoding="utf-8")

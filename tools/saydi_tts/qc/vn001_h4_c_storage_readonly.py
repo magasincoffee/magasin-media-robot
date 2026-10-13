@@ -74,8 +74,8 @@ def scan_scope(
         root_stat = root.lstat()
         if _reparse(root_stat) or not stat.S_ISDIR(root_stat.st_mode):
             raise AuditHold("ROOT_REPARSE_REJECTED")
-    except OSError as exc:
-        raise AuditHold("ROOT_METADATA_UNREADABLE") from exc
+    except OSError:
+        raise AuditHold("ROOT_METADATA_UNREADABLE") from None
 
     cutoff = (time.time() if now is None else now) - DAYS_7_SECONDS
     deadline = monotonic() + max_seconds
@@ -105,10 +105,10 @@ def scan_scope(
                     if st.st_mtime <= cutoff:
                         old_files += 1
                         old_bytes += st.st_size
-                except OSError as exc:
-                    raise AuditHold("ENTRY_METADATA_UNREADABLE") from exc
-    except OSError as exc:
-        raise AuditHold("DIRECTORY_UNREADABLE_NO_COMPLETE_CLAIM") from exc
+                except OSError:
+                    raise AuditHold("ENTRY_METADATA_UNREADABLE") from None
+    except OSError:
+        raise AuditHold("DIRECTORY_UNREADABLE_NO_COMPLETE_CLAIM") from None
 
     partial = skipped_directories > 0 or skipped_reparse > 0
     return {
