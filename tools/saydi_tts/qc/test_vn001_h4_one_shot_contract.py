@@ -33,6 +33,7 @@ def fixtures():
         "h4_root_identity_verified": False,
         "replay_guard_verified": False, "can_read_v5": False,
         "approved_to_dispatch": False, "approved_to_start": False,
+        "worker_started": False, "task_completed": False,
         "production_modified": False,
     }
     stop = {
@@ -91,17 +92,24 @@ class TestOneShotContract(unittest.TestCase):
             ("owner_one_shot_consumed", True), ("replay_guard_verified", True),
             ("h4_stop_generation_verified", True), ("can_read_v5", True),
             ("approval_nonce_sha256", "secret"), ("approval_comment_id", 0),
-            ("issue_number", True), ("production_modified", True),
+            ("issue_number", True), ("worker_started", True),
+            ("worker_started", None), ("task_completed", True),
+            ("task_completed", "false"), ("production_modified", True),
         ):
             with self.subTest(key=key):
                 o = copy.deepcopy(self.owner)
                 o[key] = value
                 self.assert_hold("OWNER_LIVE_INTENT_NOT_PROVEN", owner=o)
-        for key in ("approval_nonce_sha256", "issue_body_sha256", "owner_claims_match"):
+        for key in ("approval_nonce_sha256", "issue_body_sha256",
+                    "owner_claims_match", "worker_started", "task_completed"):
             with self.subTest(missing=key):
                 o = copy.deepcopy(self.owner)
                 del o[key]
                 self.assert_hold("OWNER_LIVE_INTENT_NOT_PROVEN", owner=o)
+
+    def test_producer_owner_schema_never_tolerates_unexpected_fields(self):
+        o = dict(self.owner, skip_worker_check=True)
+        self.assert_hold("OWNER_LIVE_INTENT_NOT_PROVEN", owner=o)
 
     def test_stop_autostart_generation_and_host_fail_closed(self):
         for key, value in (
