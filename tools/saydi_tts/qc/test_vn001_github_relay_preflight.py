@@ -101,6 +101,12 @@ class RelayUntrustedTests(unittest.TestCase):
         self.check_hold(issue(body=json.dumps(request(scope=["audio"]))),
                         "ISSUE_REQUEST_NOT_ALLOWLISTED")
 
+    def test_duplicate_json_keys_fail_closed(self):
+        ordinary = json.dumps(request())
+        duplicated = ordinary.replace('"scope": "audio"', '"scope": "audio", "scope": "audio"')
+        self.assertNotEqual(ordinary, duplicated)
+        self.check_hold(issue(body=duplicated), "ISSUE_BODY_INVALID")
+
     def test_missing_main_and_missing_fields(self):
         self.check_hold(issue(), "MAIN_COMMIT_UNVERIFIED", sha="wrong")
         req = request()
