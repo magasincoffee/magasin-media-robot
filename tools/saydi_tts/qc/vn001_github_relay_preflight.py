@@ -90,8 +90,13 @@ def inspect_untrusted_issue(issue: Any, *, expected_main_sha: str) -> dict[str, 
                 issuer.get("type") != "User"):
             raise RelayHold("ISSUE_CLAIMED_OWNER_MISMATCH")
         body = issue.get("body")
-        if (type(body) is not str or
-                len(body.encode("utf-8")) > MAX_BODY_BYTES):
+        if type(body) is not str:
+            raise RelayHold("ISSUE_BODY_INVALID")
+        try:
+            body_bytes = body.encode("utf-8")
+        except UnicodeError:
+            raise RelayHold("ISSUE_BODY_INVALID") from None
+        if len(body_bytes) > MAX_BODY_BYTES:
             raise RelayHold("ISSUE_BODY_INVALID")
         try:
             command = json.loads(body, object_pairs_hook=_reject_duplicate_keys)
