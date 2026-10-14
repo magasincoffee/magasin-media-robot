@@ -14,7 +14,7 @@ def fixture():
          "candidate_files": 3, "candidate_bytes": 24, "kinds": {"audio": 3},
          "metadata_fingerprint_sha256": "a" * 64, "hash_batch_offset": 0,
          "complete_file_hash_inventory": False, "source_and_audio_changed": False,
-         "worker_started": False, "approved_to_start": False, "approved_to_dispatch": False}
+         "production_modified": False, "worker_started": False, "approved_to_start": False, "approved_to_dispatch": False}
     pages = []
     for off, sizes in ((0, [6, 8]), (2, [10])):
         p = dict(m)
