@@ -130,7 +130,7 @@ class StdioReadOnlyTests(unittest.TestCase):
             raise OSError("PRIVATE_PATH_C:/hidden")
         result = server.dispatch(
             message("tools/call", params={"name": server.TOOL, "arguments": ARGS}),
-            inventory_call=bad
+            inventory_call=bad, trusted_transport_authenticated=True
         )
         self.assertTrue(result["result"]["isError"])
         self.assertNotIn("PRIVATE_PATH", json.dumps(result))
