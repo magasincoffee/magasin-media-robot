@@ -34,6 +34,15 @@ class RelayHold(ValueError):
     """Fixed error tokens only. Never echo Issue body or private content."""
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    item = {}
+    for key, value in pairs:
+        if key in item:
+            raise ValueError("DUPLICATE_KEY")
+        item[key] = value
+    return item
+
+
 def inspect_untrusted_issue(issue: Any, *, expected_main_sha: str) -> dict[str, Any]:
     """Inspect an *untrusted*, caller-provided Issue snapshot, not GitHub auth.
 
@@ -69,7 +78,7 @@ def inspect_untrusted_issue(issue: Any, *, expected_main_sha: str) -> dict[str, 
                 issue.get("state") != "open" or "pull_request" in issue):
             raise RelayHold("ISSUE_NOT_OPEN_REQUEST")
         url = issue.get("html_url")
-        if type(url) is not str or (match := ISSUE_URL.fullmatch(url)) is None:
+        if type(url) is not str or len(url) > 170 or (match := ISSUE_URL.fullmatch(url)) is None:
             raise RelayHold("ISSUE_URL_INVALID")
         if int(match.group(1)) != issue["number"]:
             raise RelayHold("ISSUE_URL_NUMBER_MISMATCH")
@@ -85,7 +94,7 @@ def inspect_untrusted_issue(issue: Any, *, expected_main_sha: str) -> dict[str, 
                 len(body.encode("utf-8")) > MAX_BODY_BYTES):
             raise RelayHold("ISSUE_BODY_INVALID")
         try:
-            command = json.loads(body)
+            command = json.loads(body, object_pairs_hook=_reject_duplicate_keys)
         except (ValueError, UnicodeError):
             raise RelayHold("ISSUE_BODY_INVALID") from None
         if type(command) is not dict or set(command) != BODY_FIELDS:
@@ -94,7 +103,7 @@ def inspect_untrusted_issue(issue: Any, *, expected_main_sha: str) -> dict[str, 
                 command["target"] != "saydi" or
                 command["action"] != "inventory_v5_readonly" or
                 command["mode"] != "metadata" or
-                command["scope"] not in SCOPE or
+                type(command["scope"]) is not str or command["scope"] not in SCOPE or
                 type(command["root_key"]) is not str or
                 ROOT_KEY.fullmatch(command["root_key"]) is None or
                 command["expected_main_sha"] != expected_main_sha):
