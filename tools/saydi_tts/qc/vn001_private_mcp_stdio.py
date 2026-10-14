@@ -2,6 +2,7 @@
 
 SOURCE / QA CANDIDATE ONLY. This is not an installer, service or general shell.
 No network listener is opened, and this process never edits local files.
+The standalone stdio process is unauthenticated by default and refuses all inventory calls.
 The trusted H4 operator must explicitly approve a tunnel-client source-only
 deployment, authenticate the OpenAI tunnel/workspace, and bind local roots
 before connecting a private ChatGPT plugin. Never attach a generic runner.
@@ -112,6 +113,7 @@ def dispatch(
     message: Any, *,
     inventory_call: Callable[..., dict] | None = None,
     root_config: dict | None = None,
+    trusted_transport_authenticated: bool = False,
 ) -> dict | None:
     """Single stdin JSON-RPC message; no arbitrary dispatch methods."""
     if type(message) is not dict or message.get("jsonrpc") != "2.0":
@@ -145,10 +147,24 @@ def dispatch(
         args = params["arguments"]
         if set(args) != FIELDS or any(key in args for key in SENSITIVE):
             return _error(request_id, -32602, "UNAUTHORIZED_TOOL_ARGUMENTS")
+        # A JSON-RPC pipe is NOT evidence of authentication. Only a separate
+        # qualified H4 host wrapper may supply this non-request parameter.
+        # The standalone stdio CLI stays inspection-only and fails CLOSED.
+        if trusted_transport_authenticated is not True:
+            receipt = {
+                "schema": MCP_SCHEMA, "task_id": TASK_ID, "status": "BLOCKED",
+                "reason": "MCP_TRANSPORT_NOT_AUTHENTICATED",
+                "approved_to_start": False, "approved_to_dispatch": False,
+                "worker_started": False, "task_completed": False,
+            }
+            return _result(request_id, {
+                "content": [{"type": "text", "text": json.dumps(receipt, ensure_ascii=True, sort_keys=True)}],
+                "isError": True,
+            })
         scanner = inventory_call if inventory_call is not None else _load_bridge().handle_inventory
         try:
-            # Trust originates at the manually reviewed local tunnel-client
-            # stdin pipe, not the caller's JSON. Never expose these kwargs.
+            # Trust was established OUTSIDE the stdin request by an independently
+            # qualified host wrapper; never by pipe existence or client JSON.
             receipt = scanner(
                 args,
                 transport_authenticated=True,
