@@ -18,6 +18,16 @@ TASK = "SAYDI002-VN-001"
 HOST = "DESKTOP-H4A16IL"
 HEX40 = re.compile(r"[a-f0-9]{40}\Z")
 HEX64 = re.compile(r"[a-f0-9]{64}\Z")
+EXPECTED_OWNER_FIELDS = frozenset({
+    "schema", "task_id", "status", "issue_number", "issue_id",
+    "approval_comment_id", "issue_body_sha256", "approval_nonce_sha256",
+    "main_sha_observed", "owner_claims_match", "github_live_https_observed",
+    "owner_one_shot_consumed", "owner_issue_approval_verified_for_h4",
+    "h4_stop_generation_verified", "h4_root_identity_verified",
+    "replay_guard_verified", "can_read_v5", "approved_to_dispatch",
+    "approved_to_start", "worker_started", "task_completed",
+    "production_modified",
+})
 MAX_LEDGER_RECORDS = 128
 STATES = frozenset({"RESERVED", "CONSUMED", "HOLD"})
 
@@ -41,6 +51,7 @@ def _hex64(value: Any) -> bool:
 def _owner_receipt(value: Any, expected_main_sha: str) -> tuple[int, int, int, str]:
     if (
         type(value) is not dict
+        or set(value) != EXPECTED_OWNER_FIELDS
         or value.get("schema") != OWNER_SCHEMA
         or value.get("task_id") != TASK
         or value.get("status") != "OWNER_INTENT_MATCHED_NON_EXECUTABLE"
@@ -60,6 +71,8 @@ def _owner_receipt(value: Any, expected_main_sha: str) -> tuple[int, int, int, s
         or value.get("can_read_v5") is not False
         or value.get("approved_to_start") is not False
         or value.get("approved_to_dispatch") is not False
+        or value.get("worker_started") is not False
+        or value.get("task_completed") is not False
         or value.get("production_modified") is not False
     ):
         raise ContractHold("OWNER_LIVE_INTENT_NOT_PROVEN")
