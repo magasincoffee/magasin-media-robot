@@ -15,6 +15,8 @@ on:
       - "tools/saydi_tts/qc/test_vn001_h4_c_storage_readonly.py"
       - "tools/saydi_tts/qc/vn001_private_mcp_stdio.py"
       - "tools/saydi_tts/qc/test_vn001_private_mcp_stdio.py"
+      - "tools/saydi_tts/qc/vn001_github_relay_preflight.py"
+      - "tools/saydi_tts/qc/test_vn001_github_relay_preflight.py"
       - ".github/workflows/saydi-vn001-v5-readonly-inventory.yml"
   push:
     branches: [main]
@@ -31,6 +33,8 @@ on:
       - "tools/saydi_tts/qc/test_vn001_h4_c_storage_readonly.py"
       - "tools/saydi_tts/qc/vn001_private_mcp_stdio.py"
       - "tools/saydi_tts/qc/test_vn001_private_mcp_stdio.py"
+      - "tools/saydi_tts/qc/vn001_github_relay_preflight.py"
+      - "tools/saydi_tts/qc/test_vn001_github_relay_preflight.py"
       - ".github/workflows/saydi-vn001-v5-readonly-inventory.yml"
 
 permissions:
@@ -52,6 +56,7 @@ jobs:
       - name: Syntax and bounded read-only inventory tests
         run: |
           python -m py_compile tools/saydi_tts/qc/vn001_v5_hash_page_reconcile.py tools/saydi_tts/qc/test_vn001_v5_hash_page_reconcile.py
+          python -m py_compile tools/saydi_tts/qc/vn001_github_relay_preflight.py tools/saydi_tts/qc/test_vn001_github_relay_preflight.py
           python -m py_compile tools/saydi_tts/qc/vn001_v5_readonly_inventory.py tools/saydi_tts/qc/test_vn001_v5_readonly_inventory.py tools/saydi_tts/qc/vn001_local_mcp_readonly_bridge.py tools/saydi_tts/qc/test_vn001_local_mcp_readonly_bridge.py tools/saydi_tts/qc/vn001_local_mcp_authority.py tools/saydi_tts/qc/test_vn001_local_mcp_authority.py tools/saydi_tts/qc/vn001_private_mcp_stdio.py tools/saydi_tts/qc/test_vn001_private_mcp_stdio.py tools/saydi_tts/qc/vn001_h4_c_storage_readonly.py tools/saydi_tts/qc/test_vn001_h4_c_storage_readonly.py
           python -m unittest discover -s tools/saydi_tts/qc -p test_vn001_v5_readonly_inventory.py -v
           python -m unittest discover -s tools/saydi_tts/qc -p test_vn001_v5_hash_page_reconcile.py -v
@@ -59,3 +64,4 @@ jobs:
           python -m unittest discover -s tools/saydi_tts/qc -p test_vn001_local_mcp_authority.py -v
           python -m unittest discover -s tools/saydi_tts/qc -p test_vn001_h4_c_storage_readonly.py -v
           python -m unittest discover -s tools/saydi_tts/qc -p test_vn001_private_mcp_stdio.py -v
+          python -m unittest discover -s tools/saydi_tts/qc -p test_vn001_github_relay_preflight.py -v
