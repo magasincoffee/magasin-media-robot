@@ -95,6 +95,8 @@ class RelayUntrustedTests(unittest.TestCase):
 
     def test_malformed_or_oversized_body_blocks_without_leakage(self):
         self.check_hold(issue(body="not-json secret-token-123"), "ISSUE_BODY_INVALID")
+        self.check_hold(issue(body=chr(0xD800)), "ISSUE_BODY_INVALID")
+        self.check_hold(issue(body=chr(0xDFFF)), "ISSUE_BODY_INVALID")
         self.check_hold(issue(body="x" * (sut.MAX_BODY_BYTES + 1)),
                         "ISSUE_BODY_INVALID")
         self.check_hold(issue(body="[]"), "ISSUE_REQUEST_FIELDS_INVALID")
