@@ -14,7 +14,10 @@ def fixture():
          "candidate_files": 3, "candidate_bytes": 24, "kinds": {"audio": 3},
          "metadata_fingerprint_sha256": "a" * 64, "hash_batch_offset": 0,
          "complete_file_hash_inventory": False, "source_and_audio_changed": False,
-         "production_modified": False, "worker_started": False, "approved_to_start": False, "approved_to_dispatch": False}
+         "production_modified": False, "worker_started": False,
+         "owner_latch_verified": False, "checkpoint_ownership_verified": False,
+         "narrator_identity_verified": False,
+         "approved_to_start": False, "approved_to_dispatch": False}
     pages = []
     for off, sizes in ((0, [6, 8]), (2, [10])):
         p = dict(m)
@@ -45,7 +48,7 @@ class ReconciliationTests(unittest.TestCase):
         result = sut.reconcile_pages(self.meta, self.pages)
         self.assertEqual(result["status"], "HASH_PAGES_RECONCILED_UNATTESTED")
         self.assertEqual((result["file_count"], result["hashed_bytes"]), (3, 24))
-        for key in ("approved_v5_asset_set_verified", "checkpoint_ownership_verified",
+        for key in ("approved_v5_asset_set_verified", "owner_latch_verified", "checkpoint_ownership_verified",
                     "narrator_identity_verified", "owner_authorization_verified",
                     "live_h4_inventory_verified", "v6_step_1_1_done",
                     "approved_to_dispatch", "approved_to_start", "production_modified"):
@@ -88,6 +91,27 @@ class ReconciliationTests(unittest.TestCase):
         missing = dict(self.meta)
         del missing["production_modified"]
         self.hold("METADATA_READONLY_POLICY_INVALID", meta=missing)
+
+    def test_all_ownership_attestations_must_be_false_on_every_receipt(self):
+        for field in ("owner_latch_verified", "checkpoint_ownership_verified",
+                      "narrator_identity_verified"):
+            for invalid in (True, None, "false", 1):
+                with self.subTest(field=field, invalid=invalid, source="metadata"):
+                    metadata = dict(self.meta)
+                    metadata[field] = invalid
+                    self.hold("METADATA_READONLY_POLICY_INVALID", meta=metadata)
+                for index in (0, 1):
+                    with self.subTest(field=field, invalid=invalid, source=index):
+                        pages = copy.deepcopy(self.pages)
+                        pages[index][field] = invalid
+                        self.hold("HASH_PAGE_POLICY_OR_BLOCKER_INVALID", pages)
+            metadata = dict(self.meta)
+            del metadata[field]
+            self.hold("METADATA_READONLY_POLICY_INVALID", meta=metadata)
+            for index in (0, 1):
+                pages = copy.deepcopy(self.pages)
+                del pages[index][field]
+                self.hold("HASH_PAGE_POLICY_OR_BLOCKER_INVALID", pages)
 
     def test_forged_dispatch_or_worker_flags_hold(self):
         for key in ("worker_started", "production_modified", "approved_to_start",
