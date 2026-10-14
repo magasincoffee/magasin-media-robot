@@ -57,6 +57,7 @@ def reconcile_pages(metadata: dict[str, Any], pages: Sequence[dict[str, Any]]) -
             metadata["hash_batch_offset"] != 0 or
             metadata.get("complete_file_hash_inventory") is not False or
             metadata.get("source_and_audio_changed") is not False or
+            metadata.get("production_modified") is not False or
             metadata.get("worker_started") is not False or
             metadata.get("approved_to_start") is not False or
             metadata.get("approved_to_dispatch") is not False):
