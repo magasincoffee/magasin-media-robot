@@ -80,6 +80,15 @@ class ReconciliationTests(unittest.TestCase):
         p[1]["individual_hashes"][0]["bytes"] = 9
         self.hold("HASH_PAGES_INCOMPLETE_OR_BYTES_DRIFT", p)
 
+    def test_modified_or_malformed_metadata_must_hold(self):
+        for value in (True, None, "false", 1):
+            with self.subTest(metadata_production_modified=value):
+                modified = dict(self.meta, production_modified=value)
+                self.hold("METADATA_READONLY_POLICY_INVALID", meta=modified)
+        missing = dict(self.meta)
+        del missing["production_modified"]
+        self.hold("METADATA_READONLY_POLICY_INVALID", meta=missing)
+
     def test_forged_dispatch_or_worker_flags_hold(self):
         for key in ("worker_started", "production_modified", "approved_to_start",
                     "approved_to_dispatch", "source_and_audio_changed"):
