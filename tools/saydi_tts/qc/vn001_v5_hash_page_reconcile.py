@@ -58,6 +58,9 @@ def reconcile_pages(metadata: dict[str, Any], pages: Sequence[dict[str, Any]]) -
             metadata.get("complete_file_hash_inventory") is not False or
             metadata.get("source_and_audio_changed") is not False or
             metadata.get("production_modified") is not False or
+            metadata.get("owner_latch_verified") is not False or
+            metadata.get("checkpoint_ownership_verified") is not False or
+            metadata.get("narrator_identity_verified") is not False or
             metadata.get("worker_started") is not False or
             metadata.get("approved_to_start") is not False or
             metadata.get("approved_to_dispatch") is not False):
@@ -87,6 +90,9 @@ def reconcile_pages(metadata: dict[str, Any], pages: Sequence[dict[str, Any]]) -
         if (page.get("hash_blocked_reason") is not None or
                 page.get("source_and_audio_changed") is not False or
                 page.get("production_modified") is not False or
+                page.get("owner_latch_verified") is not False or
+                page.get("checkpoint_ownership_verified") is not False or
+                page.get("narrator_identity_verified") is not False or
                 page.get("worker_started") is not False or
                 page.get("approved_to_start") is not False or
                 page.get("approved_to_dispatch") is not False or
@@ -124,7 +130,7 @@ def reconcile_pages(metadata: dict[str, Any], pages: Sequence[dict[str, Any]]) -
         "status": "HASH_PAGES_RECONCILED_UNATTESTED", "scope": scope,
         "file_count": count, "page_count": len(pages),
         "hashed_bytes": hashed_bytes, "metadata_fingerprint_sha256": fingerprint,
-        "approved_v5_asset_set_verified": False,
+        "approved_v5_asset_set_verified": False, "owner_latch_verified": False,
         "checkpoint_ownership_verified": False, "narrator_identity_verified": False,
         "owner_authorization_verified": False, "live_h4_inventory_verified": False,
         "v6_step_1_1_done": False, "approved_to_dispatch": False,
