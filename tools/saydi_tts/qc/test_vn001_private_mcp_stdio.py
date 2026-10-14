@@ -76,13 +76,54 @@ class StdioReadOnlyTests(unittest.TestCase):
                     "task_completed": False}
         x = server.dispatch(
             message("tools/call", params={"name": server.TOOL, "arguments": ARGS}),
-            inventory_call=fake, root_config={}
+            inventory_call=fake, root_config={},
+            trusted_transport_authenticated=True,
         )
         self.assertFalse(x["result"]["isError"])
         self.assertEqual(len(calls), 1)
         self.assertTrue(calls[0][1]["transport_authenticated"])
         self.assertEqual(calls[0][1]["locally_approved_roots"], {})
         self.assertFalse(json.loads(x["result"]["content"][0]["text"])["task_completed"])
+
+    def test_stdin_alone_never_establishes_mcp_authentication(self):
+        called = []
+        def scanner(*args, **kwargs):
+            called.append(True)
+            raise AssertionError("SCANNER_MUST_NOT_RUN")
+        result = server.dispatch(
+            message("tools/call", params={"name": server.TOOL, "arguments": ARGS}),
+            inventory_call=scanner, root_config={"chapter2": {"scope": "audio", "path": "C:/SAYDI"}},
+        )
+        self.assertEqual(called, [])
+        self.assertTrue(result["result"]["isError"])
+        payload = json.loads(result["result"]["content"][0]["text"])
+        self.assertEqual(payload["reason"], "MCP_TRANSPORT_NOT_AUTHENTICATED")
+        self.assertFalse(payload["approved_to_start"])
+        self.assertFalse(payload["approved_to_dispatch"])
+
+    def test_client_cannot_inject_trust_as_tool_argument(self):
+        args = dict(ARGS, trusted_transport_authenticated=True)
+        result = server.dispatch(message(
+            "tools/call", params={"name": server.TOOL, "arguments": args}
+        ))
+        self.assertEqual(result["error"]["message"], "UNAUTHORIZED_TOOL_ARGUMENTS")
+
+    def test_actual_stdio_valid_tool_call_fails_closed(self):
+        requests = [message("initialize"), message("tools/call",
+            params={"name": server.TOOL, "arguments": ARGS})]
+        process = subprocess.run(
+            [sys.executable, str(SUT)],
+            input="\n".join(json.dumps(x) for x in requests) + "\n",
+            capture_output=True, encoding="utf-8", timeout=8,
+            env={**os.environ, server.ROOT_CONFIG_ENV: ""},
+        )
+        self.assertEqual(process.returncode, 0, process.stderr)
+        replies = [json.loads(line) for line in process.stdout.splitlines()]
+        self.assertEqual(len(replies), 2)
+        self.assertTrue(replies[1]["result"]["isError"])
+        receipt = json.loads(replies[1]["result"]["content"][0]["text"])
+        self.assertEqual(receipt["reason"], "MCP_TRANSPORT_NOT_AUTHENTICATED")
+        self.assertFalse(receipt["worker_started"])
 
     def test_unhandled_adapter_exception_redacted_and_blocked(self):
         def bad(*args, **kwargs):
