@@ -18,7 +18,7 @@ ID = 789123
 COMMENT = 567890
 ISSUE_URL = sut.API + "/issues/" + str(I)
 COMMENT_URL = sut.API + "/issues/comments/" + str(COMMENT)
-MAIN_URL = sut.API + "/commits/main"
+MAIN_URL = sut.API + "/git/ref/heads/main"
 
 
 def snapshots():
@@ -57,13 +57,15 @@ def snapshots():
     return issue, approval
 
 
-def read_fixture(issue, approval, *, tail_issue=None, tail_main=None):
+def read_fixture(issue, approval, *, tail_issue=None, tail_approval=None, tail_main=None):
     ordered = [
-        (MAIN_URL, {"sha": SHA}),
+        (MAIN_URL, {"ref": "refs/heads/main", "object": {"type": "commit", "sha": SHA}}),
         (ISSUE_URL, issue),
         (COMMENT_URL, approval),
         (ISSUE_URL, copy.deepcopy(issue) if tail_issue is None else tail_issue),
-        (MAIN_URL, {"sha": SHA} if tail_main is None else tail_main),
+        (COMMENT_URL, copy.deepcopy(approval) if tail_approval is None else tail_approval),
+        (MAIN_URL, {"ref": "refs/heads/main", "object": {"type": "commit", "sha": SHA}}
+         if tail_main is None else tail_main),
     ]
     calls = []
 
@@ -82,11 +84,12 @@ class OwnerEvidenceTests(unittest.TestCase):
         self.issue, self.approval = snapshots()
 
     def check_hold(self, code, issue=None, approval=None,
-                   tail_issue=None, tail_main=None):
+                   tail_issue=None, tail_approval=None, tail_main=None):
         get, calls = read_fixture(
             self.issue if issue is None else issue,
             self.approval if approval is None else approval,
-            tail_issue=tail_issue, tail_main=tail_main,
+            tail_issue=tail_issue, tail_approval=tail_approval,
+            tail_main=tail_main,
         )
         with self.assertRaisesRegex(sut.EvidenceHold, "^" + code + "$"):
             sut.observe_owner_readonly_intent(
@@ -101,7 +104,8 @@ class OwnerEvidenceTests(unittest.TestCase):
             issue_number=I, approval_comment_id=COMMENT,
             expected_main_sha=SHA, fetch_json=getter,
         )
-        self.assertEqual(calls, [MAIN_URL, ISSUE_URL, COMMENT_URL, ISSUE_URL, MAIN_URL])
+        self.assertEqual(calls, [MAIN_URL, ISSUE_URL, COMMENT_URL,
+                                 ISSUE_URL, COMMENT_URL, MAIN_URL])
         self.assertEqual(result["status"], "OWNER_INTENT_MATCHED_NON_EXECUTABLE")
         self.assertTrue(result["owner_claims_match"])
         self.assertEqual(result["issue_body_sha256"],
@@ -143,7 +147,24 @@ class OwnerEvidenceTests(unittest.TestCase):
         self.check_hold("ISSUE_CHANGED_DURING_OBSERVATION", tail_issue=changed)
 
     def test_main_changes_mid_approval_observation(self):
-        self.check_hold("GITHUB_MAIN_DRIFT", tail_main={"sha": "b" * 40})
+        self.check_hold("GITHUB_MAIN_DRIFT", tail_main={
+            "ref": "refs/heads/main", "object": {"type": "commit", "sha": "b" * 40}
+        })
+        self.check_hold("GITHUB_MAIN_DRIFT", tail_main={"sha": SHA})
+
+    def test_approval_mutated_or_deleted_during_read_is_hold(self):
+        modified = copy.deepcopy(self.approval)
+        modified["body"] += " "
+        self.check_hold("APPROVAL_CHANGED_DURING_OBSERVATION",
+                        tail_approval=modified)
+        modified = copy.deepcopy(self.approval)
+        modified["updated_at"] = "2026-10-14T08:06:00Z"
+        self.check_hold("APPROVAL_CHANGED_DURING_OBSERVATION",
+                        tail_approval=modified)
+        self.check_hold("APPROVAL_CHANGED_DURING_OBSERVATION",
+                        tail_approval={"error": "not found"})
+        self.check_hold("APPROVAL_API_SHAPE_INVALID",
+                        tail_approval="GONE")
 
     def test_approval_must_have_independent_owner_and_issue_link(self):
         bad = copy.deepcopy(self.approval)
