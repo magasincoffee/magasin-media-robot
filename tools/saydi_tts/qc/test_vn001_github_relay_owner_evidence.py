@@ -110,6 +110,9 @@ class OwnerEvidenceTests(unittest.TestCase):
         self.assertTrue(result["owner_claims_match"])
         self.assertEqual(result["issue_body_sha256"],
                          hashlib.sha256(self.issue["body"].encode()).hexdigest())
+        self.assertEqual(result["approval_nonce_sha256"],
+                         hashlib.sha256(("1" * 32).encode("ascii")).hexdigest())
+        self.assertNotIn("1" * 32, json.dumps(result))
         for key in ("github_live_https_observed", "owner_one_shot_consumed",
                     "owner_issue_approval_verified_for_h4",
                     "h4_stop_generation_verified", "h4_root_identity_verified",
