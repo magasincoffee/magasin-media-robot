@@ -3,6 +3,8 @@ Date: 2026-10-12 (Asia/Ho_Chi_Minh)
 Authority: **00_PROJECT/SOURCE_OF_TRUTH.md** on `main` — this file provides operational instructions ONLY, not a second SOT or executable task queue.
 Current state: SOURCE/QA candidate. **H4 install, tunnel activation, ChatGPT plugin registration, and actual V5 field inventory are NOT DONE.**
 
+**2026-10-14 security clarification (SOURCE/QA only):** The generic JSON-RPC stdin stream does **not** prove tunnel identity, Owner authorization, or trusted host routing. The reviewed candidate `vn001_private_mcp_stdio.py` now refuses inventory by default with `MCP_TRANSPORT_NOT_AUTHENTICATED` even if a valid-looking `tools/call` arrives over stdio. Only a future separately tested local wrapper may supply `trusted_transport_authenticated=True` as a non-request Python argument after independently validating the actual host transport and Owner issue-specific one-shot permission. **Do not follow the older direct `tunnel-client --mcp-command python .../vn001_private_mcp_stdio.py` example as an executable live field acceptance path**: it only produces BLOCKED until that wrapper and credentials are qualified. Never turn authentication on via the JSON request, a caller-controlled environment Boolean or pipe existence. No H4 installation, tunnel credentials, private files, worker or STOP changed by this clarification.
+
 ## Selected transport
 
 Use OpenAI **Secure MCP Tunnel** for an outbound-only private connection. Do not open H4 firewall/router inbound ports, use anonymous public Cloudflare quick tunnels, publish an unauthenticated raw shell MCP, or write secrets to GitHub. Reuse H4 and the SOT-gated `SAYDI002-VN-001` read-only inventory tool. No paid voice inference API replaces VieNeu. The tunnel itself requires a Platform tunnel ID and a **runtime API key** for transport authentication; this is not automatically cost-free and must not be confused with VieNeu narration usage.
@@ -23,7 +25,7 @@ Official current instructions:
 
 1. In **OpenAI Platform Tunnels settings**, Owner creates or selects a tunnel, associates it to the correct ChatGPT workspace, and provides `tunnel-client` runtime key through the platform credential channel **only**, never through ChatGPT messages, PRs, shell history, a tracked `.env`, or Control Center UI.
 2. Download the current official `openai/tunnel-client` release on H4 and verify source/signature using the official distribution workflow. **Do not automatically download or execute from a GitHub commit**.
-3. For one explicitly reviewed *manual test*, configure `tunnel-client` using the official CLI, with a private `--mcp-command` pointing at the reviewed Python stdio tool:
+3. **HOLD before a real tunnel run** until a separately reviewed H4 host wrapper can independently attest trusted tunnel identity and Owner issue-specific permission. For synthetic protocol inspection ONLY, a `--mcp-command` may point to the following Python stdio candidate, which deliberately refuses all actual inventory requests:
    `python -u <verified-absolute-path>\tools\saydi_tts\qc\vn001_private_mcp_stdio.py`
    This process is only an MCP JSON-RPC stdio endpoint, not VieNeu or Whisper. It exposes exactly `saydi_vn001_inventory_readonly`.
 4. The stdio endpoint reads the **H4-admin-controlled** `SAYDI_VN001_ROOTS_JSON` process-environment variable. Example for an existing Owner-verified audio folder only (EXAMPLE, not a known real H4 location):
