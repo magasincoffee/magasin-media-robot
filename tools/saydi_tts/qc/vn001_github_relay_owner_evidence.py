@@ -38,7 +38,7 @@ class _NoRedirect(HTTPRedirectHandler):
 
 def _read_live_json(url: str, *, token: str | None = None, opener=None) -> dict:
     if not re.fullmatch(
-        re.escape(API) + r"/(?:commits/main|issues/[1-9][0-9]*|issues/comments/[1-9][0-9]*)",
+        re.escape(API) + r"/(?:git/ref/heads/main|issues/[1-9][0-9]*|issues/comments/[1-9][0-9]*)",
         url,
     ):
         raise EvidenceHold("GITHUB_ENDPOINT_NOT_ALLOWED")
@@ -99,7 +99,15 @@ def _owner(user: Any) -> bool:
 
 
 def _pinned_sha(record: Any, expected: str) -> bool:
-    return type(record) is dict and record.get("sha") == expected
+    if type(record) is not dict or record.get("ref") != "refs/heads/main":
+        return False
+    obj = record.get("object")
+    return (
+        type(obj) is dict
+        and obj.get("type") == "commit"
+        and type(obj.get("sha")) is str
+        and obj["sha"] == expected
+    )
 
 
 def observe_owner_readonly_intent(
@@ -128,7 +136,7 @@ def observe_owner_readonly_intent(
 
     issue_url = API + "/issues/" + str(issue_number)
     approval_url = API + "/issues/comments/" + str(approval_comment_id)
-    main_url = API + "/commits/main"
+    main_url = API + "/git/ref/heads/main"
     get = (
         (lambda url: _read_live_json(url, token=token))
         if fetch_json is None else fetch_json
@@ -138,6 +146,7 @@ def observe_owner_readonly_intent(
         first_issue = get(issue_url)
         approval = get(approval_url)
         second_issue = get(issue_url)
+        confirmed_approval = get(approval_url)
         last_main = get(main_url)
     except EvidenceHold:
         raise
@@ -148,6 +157,10 @@ def observe_owner_readonly_intent(
         raise EvidenceHold("GITHUB_MAIN_DRIFT")
     if type(first_issue) is not dict or type(second_issue) is not dict:
         raise EvidenceHold("ISSUE_API_SHAPE_INVALID")
+    if type(approval) is not dict or type(confirmed_approval) is not dict:
+        raise EvidenceHold("APPROVAL_API_SHAPE_INVALID")
+    if approval != confirmed_approval:
+        raise EvidenceHold("APPROVAL_CHANGED_DURING_OBSERVATION")
 
     # Match the complete relevant immutable approval subject before and after
     # observing the comment. An edited/closed Issue cannot silently pass.
