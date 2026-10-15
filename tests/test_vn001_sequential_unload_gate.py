@@ -47,6 +47,13 @@ class TestSequentialUnload(unittest.TestCase):
     def test_owner_stop(self): self.check_block("OWNER_STOP_ACTIVE_OR_UNKNOWN", owner_stop=True)
     def test_no_start_generation(self): self.check_block("OWNER_START_NOT_ATTESTED", owner_start_attested=False)
     def test_changed_generation(self): self.check_block("GENERATION_UNVERIFIED_OR_CHANGED", asr_generation="another")
+    def test_nonstring_asr_generation_cannot_override_equality(self):
+        class MaliciousMatcher:
+            def __eq__(self, other):
+                raise AssertionError("Untrusted equality executed")
+        self.check_block("GENERATION_UNVERIFIED_OR_CHANGED", asr_generation=MaliciousMatcher())
+    def test_nonstring_tts_generation_rejected(self):
+        self.check_block("GENERATION_UNVERIFIED_OR_CHANGED", tts_generation=123)
     def test_stale_snapshot(self): self.check_block("TRANSITION_STALE_OR_OUT_OF_ORDER", current_ms=17000)
     def test_out_of_order(self): self.check_block("TRANSITION_STALE_OR_OUT_OF_ORDER", asr_observed_ms=9990)
     def test_missing_checkpoint(self): self.check_block("CHECKPOINT_OWNERSHIP_UNVERIFIED", checkpoint_owner_attested=False)
