@@ -23,6 +23,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify checkout is exact candidate head
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: python -c "import os, subprocess; actual=subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(); assert actual == os.environ['EXPECTED_SHA'], 'NOT_EXACT_HEAD'; print('EXACT_HEAD_OK', actual[:12])"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
