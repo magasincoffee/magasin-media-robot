@@ -178,7 +178,9 @@ def read_project_grant_child(
     block = {"schema": SCHEMA, "task_id": TASK, "status": "BLOCKED",
              "field_accepted": False, "worker_started": False,
              "approved_to_start": False, "approved_to_dispatch": False,
-             "production_modified": False, "task_completed": False}
+             "production_modified": False, "task_completed": False,
+             "child_consumed": False}
+    consumed = False
     try:
         if not callable(host_verify) or not callable(host_read_metadata):
             raise Hold("HOST_CALLBACK_MISSING")
@@ -198,6 +200,7 @@ def read_project_grant_child(
             raise Hold("CHILD_SCOPE_EXCEEDED")
         fingerprint = _binding(first)
         _journal(host_journal, first, fingerprint, child_index, child_id, consume=True)
+        consumed = True
         prior = _trusted_call(host_verify)
         _validate(prior, now())
         if prior != first:
@@ -211,7 +214,7 @@ def read_project_grant_child(
         _journal(host_journal, first, fingerprint, child_index, child_id, consume=False)
         safe = _sanitized_metadata(candidate, first)
         return {**block, "status": "SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED",
-                "grant_reusable_for_remaining_children": True,
+                "grant_reusable_for_remaining_children": child_index + 1 < first.max_operations,
                 "child_consumed": True, "child_index": child_index,
                 "metadata": safe}
     except Hold as e:
@@ -226,6 +229,7 @@ def read_project_grant_child(
             "CHILD_SCOPE_EXCEEDED", "STOP_OR_GRANT_CHANGED",
         ))
         val = e.args[0] if type(e) is Hold and len(e.args) == 1 and type(e.args[0]) is str else None
-        return {**block, "reason": val if val in allowed else "HOST_CALLBACK_FAILED"}
+        return {**block, "child_consumed": consumed,
+                "reason": val if val in allowed else "HOST_CALLBACK_FAILED"}
     except BaseException:
-        return {**block, "reason": "HOST_CALLBACK_FAILED"}
+        return {**block, "child_consumed": consumed, "reason": "HOST_CALLBACK_FAILED"}
