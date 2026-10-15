@@ -102,8 +102,12 @@ class TestOneShot(unittest.TestCase):
         self.assertEqual(self.reads,1)
     def test_modified_journal_mid_scan_blocks_receipt(self):
         def tamper():
-            with sqlite3.connect(self.db) as db:
+            db = sqlite3.connect(self.db)
+            try:
                 db.execute("UPDATE used SET state='ALTERED'")
+                db.commit()
+            finally:
+                db.close()
             return metadata()
         self.blocked(self.run_gate(read=tamper), "JOURNAL_CHANGED_DURING_READ")
     def test_untrusted_raw_path_is_not_returned(self):
