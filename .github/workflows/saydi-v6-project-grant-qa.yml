@@ -1,0 +1,37 @@
+name: SAYDI V6 Project Grant Gate QA
+on:
+  pull_request:
+    paths:
+      - 'tools/saydi_tts/qc/vn001_v6_project_grant_gate.py'
+      - 'tests/test_vn001_v6_project_grant_gate.py'
+      - '.github/workflows/saydi-v6-project-grant-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/saydi_tts/qc/vn001_v6_project_grant_gate.py'
+      - 'tests/test_vn001_v6_project_grant_gate.py'
+      - '.github/workflows/saydi-v6-project-grant-qa.yml'
+permissions:
+  contents: read
+jobs:
+  fixture:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Pin exact commit
+        env:
+          EXPECTED: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: python -c "import os,subprocess; assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==os.environ['EXPECTED']"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline authorization and STOP fixture suite
+        run: python -m unittest discover -s tests -p test_vn001_v6_project_grant_gate.py -v
