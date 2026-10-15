@@ -69,7 +69,7 @@ def binding(w: TrustedWitness) -> str:
     return hashlib.sha256(json.dumps(parts, separators=(",", ":")).encode()).hexdigest()
 
 def _journal(path: Path, w: TrustedWitness, digest: str, *, consume: bool) -> None:
-    if type(path) is not Path or not path.is_absolute() or not path.parent.is_dir():
+    if not isinstance(path, Path) or not path.is_absolute() or not path.parent.is_dir():
         raise GateHold("JOURNAL_PATH_UNQUALIFIED")
     try:
         with closing(sqlite3.connect(str(path), timeout=3, isolation_level=None)) as db:
