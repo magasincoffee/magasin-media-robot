@@ -89,10 +89,25 @@ class TestProjectGrant(unittest.TestCase):
         self.run_gate(2)
         self.blocked(self.run_gate(3), "CHILD_SCOPE_EXCEEDED")
 
-    def test_scope_binding_drift_blocks_next_child(self):
-        self.run_gate()
-        self.blocked(self.run_gate(1,verify=lambda:proof(root_key="model")),
-                     "GRANT_BINDING_DRIFT")
+    def test_same_project_grant_supports_scoped_checkpoint_audio_model(self):
+        self.assertEqual(self.run_gate(0)["status"], "SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED")
+        def audio():
+            return metadata(scope="audio")
+        next_result=self.run_gate(1,verify=lambda:proof(root_key="v5_audio",scope="audio"),
+                                  reader=audio)
+        self.assertEqual(next_result["status"], "SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED")
+        self.assertEqual(next_result["metadata"]["scope"],"audio")
+        final=self.run_gate(2,verify=lambda:proof(root_key="v5_model",scope="model"),
+                            reader=lambda:metadata(scope="model"))
+        self.assertEqual(final["status"], "SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED")
+
+    def test_root_changed_inside_child_suppresses_all_receipt(self):
+        n=[0]
+        def verify():
+            n[0]+=1
+            return proof(root_key="v5_audio",scope="audio") if n[0]==3 else proof()
+        self.blocked(self.run_gate(verify=verify),"STOP_OR_GRANT_CHANGED")
+        self.assertEqual(self.calls,1)
 
     def test_stop_not_engaged_blocks_any_read(self):
         self.blocked(self.run_gate(verify=lambda:proof(owner_stop_engaged=False)),
