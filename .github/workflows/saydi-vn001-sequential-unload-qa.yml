@@ -1,0 +1,32 @@
+name: SAYDI VN001 Sequential Unload Synthetic QA
+on:
+  pull_request:
+    paths:
+      - 'tools/saydi_tts/qc/vn001_sequential_unload_gate.py'
+      - 'tests/test_vn001_sequential_unload_gate.py'
+      - '.github/workflows/saydi-vn001-sequential-unload-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/saydi_tts/qc/vn001_sequential_unload_gate.py'
+      - 'tests/test_vn001_sequential_unload_gate.py'
+      - '.github/workflows/saydi-vn001-sequential-unload-qa.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile offline-only module
+        run: python -m py_compile tools/saydi_tts/qc/vn001_sequential_unload_gate.py
+      - name: Run no-worker simulated transition tests
+        run: python -m unittest discover -s tests -p test_vn001_sequential_unload_gate.py -v
