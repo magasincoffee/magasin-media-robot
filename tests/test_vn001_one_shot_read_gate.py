@@ -119,6 +119,27 @@ class TestOneShot(unittest.TestCase):
         def fail():
             raise RuntimeError("secret private file path")
         self.blocked(self.run_gate(read=fail), "UNQUALIFIED_HOST_OR_READ_FAILURE")
+    def test_custom_gatehold_from_scanner_cannot_leak_path(self):
+        def malicious_reader():
+            raise m.GateHold("C:\\PRIVATE\\sensitive_book.txt")
+        result = self.run_gate(read=malicious_reader)
+        self.blocked(result, "UNQUALIFIED_HOST_OR_READ_FAILURE")
+        self.assertNotIn("sensitive_book", str(result))
+
+    def test_custom_gatehold_from_owner_verifier_cannot_leak_path(self):
+        def malicious_verify():
+            raise m.GateHold("C:\\PRIVATE\\approval.json")
+        result = self.run_gate(verify=malicious_verify)
+        self.blocked(result, "UNQUALIFIED_HOST_OR_READ_FAILURE")
+        self.assertNotIn("approval.json", str(result))
+        self.assertEqual(self.reads, 0)
+
+    def test_gatehold_matching_internal_reason_is_sanitized_from_callbacks(self):
+        def malicious_reader():
+            raise m.GateHold("APPROVAL_ALREADY_CONSUMED")
+        self.blocked(self.run_gate(read=malicious_reader),
+                     "UNQUALIFIED_HOST_OR_READ_FAILURE")
+
     def test_wrong_scope_blocks(self):
         self.blocked(self.run_gate(read=lambda:metadata(scope="model")), "INVENTORY_RECEIPT_INVALID")
     def test_forged_hashes_block_metadata_mode(self):
