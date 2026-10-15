@@ -1,0 +1,37 @@
+name: SAYDI VN001 One Shot Read QA
+on:
+  pull_request:
+    paths:
+      - 'tools/saydi_tts/qc/vn001_one_shot_read_gate.py'
+      - 'tests/test_vn001_one_shot_read_gate.py'
+      - '.github/workflows/saydi-vn001-one-shot-read-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/saydi_tts/qc/vn001_one_shot_read_gate.py'
+      - 'tests/test_vn001_one_shot_read_gate.py'
+      - '.github/workflows/saydi-vn001-one-shot-read-qa.yml'
+permissions:
+  contents: read
+jobs:
+  fixture:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact tested commit
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: python -c "import os,subprocess; assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==os.environ['EXPECTED_SHA']"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline fixture one-shot safety tests
+        run: python -m unittest discover -s tests -p test_vn001_one_shot_read_gate.py -v
