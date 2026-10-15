@@ -62,6 +62,7 @@ def assess_offline_handoff(frame: SimulatedTransition) -> dict[str, object]:
         type(frame.tts_generation) is str
         and 1 <= len(frame.tts_generation) <= 80
         and frame.tts_generation.isascii()
+        and type(frame.asr_generation) is str
         and frame.tts_generation == frame.asr_generation
     )
     require(generation_ok, "GENERATION_UNVERIFIED_OR_CHANGED")
