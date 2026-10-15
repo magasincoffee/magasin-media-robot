@@ -67,11 +67,16 @@ class TestProjectGrant(unittest.TestCase):
                          ["SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED"]*3)
         self.assertEqual(self.calls,3)
         self.assertTrue(a["grant_reusable_for_remaining_children"])
+        self.assertTrue(b["grant_reusable_for_remaining_children"])
+        self.assertFalse(c["grant_reusable_for_remaining_children"])
+        self.assertTrue(c["child_consumed"])
         self.assertFalse(c["task_completed"])
 
     def test_duplicate_same_child_blocked(self):
         self.run_gate()
-        self.blocked(self.run_gate(), "CHILD_OUT_OF_ORDER_OR_REPLAY")
+        replay=self.run_gate()
+        self.blocked(replay, "CHILD_OUT_OF_ORDER_OR_REPLAY")
+        self.assertFalse(replay["child_consumed"])
         self.assertEqual(self.calls,1)
 
     def test_skipping_child_is_blocked(self):
@@ -114,6 +119,16 @@ class TestProjectGrant(unittest.TestCase):
                      "GRANT_STOP_OR_TRANSPORT_UNVERIFIED")
         self.assertEqual(self.calls,0)
 
+    def test_single_operation_grant_is_exhausted_after_success(self):
+        single=lambda:proof(max_operations=1)
+        done=self.run_gate(0,verify=single)
+        self.assertEqual(done["status"],"SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED")
+        self.assertFalse(done["grant_reusable_for_remaining_children"])
+        self.assertTrue(done["child_consumed"])
+        next_child=self.run_gate(1,verify=single)
+        self.blocked(next_child,"CHILD_SCOPE_EXCEEDED")
+        self.assertFalse(next_child["child_consumed"])
+
     def test_stop_engaged_allows_read_only_and_never_start(self):
         result=self.run_gate()
         self.assertEqual(result["status"],"SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED")
@@ -125,7 +140,9 @@ class TestProjectGrant(unittest.TestCase):
         def verify():
             n[0]+=1
             return proof(grant_not_revoked=False) if n[0]==3 else proof()
-        self.blocked(self.run_gate(verify=verify),"GRANT_STOP_OR_TRANSPORT_UNVERIFIED")
+        rejected=self.run_gate(verify=verify)
+        self.blocked(rejected,"GRANT_STOP_OR_TRANSPORT_UNVERIFIED")
+        self.assertTrue(rejected["child_consumed"])
         self.assertEqual(self.calls,1)
         self.blocked(self.run_gate(),"CHILD_OUT_OF_ORDER_OR_REPLAY")
 
@@ -155,6 +172,7 @@ class TestProjectGrant(unittest.TestCase):
             raise m.Hold("C:\\SAYDI\\private.wav")
         x=self.run_gate(reader=bad)
         self.blocked(x,"HOST_CALLBACK_FAILED")
+        self.assertTrue(x["child_consumed"])
         self.assertNotIn("private",str(x))
 
     def test_reader_base_exception_redacts_private_path(self):
