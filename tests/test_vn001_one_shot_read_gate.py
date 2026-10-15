@@ -140,6 +140,48 @@ class TestOneShot(unittest.TestCase):
         self.blocked(self.run_gate(read=malicious_reader),
                      "UNQUALIFIED_HOST_OR_READ_FAILURE")
 
+    def test_callback_reader_systemexit_is_redacted(self):
+        def reader():
+            raise SystemExit("C:\\PRIVATE\\private_audio.wav")
+        result = self.run_gate(read=reader)
+        self.blocked(result, "UNQUALIFIED_HOST_OR_READ_FAILURE")
+        self.assertNotIn("private_audio", str(result))
+
+    def test_callback_verifier_keyboardinterrupt_is_redacted(self):
+        def verifier():
+            raise KeyboardInterrupt("C:\\PRIVATE\\owner_stop.txt")
+        result = self.run_gate(verify=verifier)
+        self.blocked(result, "UNQUALIFIED_HOST_OR_READ_FAILURE")
+        self.assertEqual(self.reads, 0)
+        self.assertNotIn("owner_stop.txt", str(result))
+
+    def test_schema_object_cannot_spoof_gatehold_reason(self):
+        class EvilSchema:
+            def __ne__(self, other):
+                raise m.GateHold("APPROVAL_ALREADY_CONSUMED")
+        result = self.run_gate(read=lambda:metadata(schema=EvilSchema()))
+        self.blocked(result, "INVENTORY_RECEIPT_INVALID")
+
+    def test_callback_value_cannot_trigger_exception_formatting(self):
+        class EvilString:
+            def __str__(self):
+                raise RuntimeError("C:\\PRIVATE\\voice.wav")
+            def __ne__(self, other):
+                raise m.GateHold(EvilString())
+        result = self.run_gate(read=lambda:metadata(schema=EvilString()))
+        self.blocked(result, "INVENTORY_RECEIPT_INVALID")
+        self.assertNotIn("voice.wav", str(result))
+
+    def test_callback_dict_unknown_object_key_rejected(self):
+        obj = metadata()
+        obj[object()] = "private"
+        self.blocked(self.run_gate(read=lambda:obj), "INVENTORY_RECEIPT_INVALID")
+
+    def test_reader_gatehold_keyboardinterrupt_subclass_is_sanitized(self):
+        def reader():
+            raise BaseException("C:\\PRIVATE\\checkpoint")
+        self.blocked(self.run_gate(read=reader), "UNQUALIFIED_HOST_OR_READ_FAILURE")
+
     def test_wrong_scope_blocks(self):
         self.blocked(self.run_gate(read=lambda:metadata(scope="model")), "INVENTORY_RECEIPT_INVALID")
     def test_forged_hashes_block_metadata_mode(self):
