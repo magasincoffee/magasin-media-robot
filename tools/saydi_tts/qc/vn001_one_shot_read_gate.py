@@ -98,24 +98,45 @@ def _journal(path: Path, w: TrustedWitness, digest: str, *, consume: bool) -> No
         raise GateHold("JOURNAL_UNAVAILABLE") from None
 
 def _sanitize(data: Any, expected_scope: str) -> dict[str, Any]:
-    if type(data) is not dict or data.get("schema") != INVENTORY_SCHEMA or data.get("scope") != expected_scope:
-        raise GateHold("INVENTORY_RECEIPT_INVALID")
-    n, total, fingerprint = (data.get("candidate_files"),
-                             data.get("candidate_bytes"), data.get("metadata_fingerprint_sha256"))
-    if (type(n) is not int or not 0 <= n <= 5000 or type(total) is not int or total < 0
-        or type(fingerprint) is not str or SHA64.fullmatch(fingerprint) is None
-        or data.get("mode") != "metadata" or data.get("individual_hashes") != []
-        or data.get("hash_batch_offset") != 0):
-        raise GateHold("INVENTORY_RECEIPT_INVALID")
-    return {"schema": INVENTORY_SCHEMA, "scope": expected_scope,
-            "candidate_files": n, "candidate_bytes": total,
-            "metadata_fingerprint_sha256": fingerprint}
+    """Treat ALL callback-owned output as untrusted, including dict values."""
+    try:
+        if type(data) is not dict or any(type(key) is not str for key in data):
+            raise GateHold("INVENTORY_RECEIPT_INVALID")
+        schema = data.get("schema")
+        scope = data.get("scope")
+        mode = data.get("mode")
+        hashes = data.get("individual_hashes")
+        offset = data.get("hash_batch_offset")
+        n = data.get("candidate_files")
+        total = data.get("candidate_bytes")
+        fingerprint = data.get("metadata_fingerprint_sha256")
+        if (
+            type(schema) is not str or schema != INVENTORY_SCHEMA
+            or type(scope) is not str or scope != expected_scope
+            or type(mode) is not str or mode != "metadata"
+            or type(hashes) is not list or hashes != []
+            or type(offset) is not int or offset != 0
+            or type(n) is not int or not 0 <= n <= 5000
+            or type(total) is not int or total < 0
+            or type(fingerprint) is not str or SHA64.fullmatch(fingerprint) is None
+        ):
+            raise GateHold("INVENTORY_RECEIPT_INVALID")
+        return {"schema": INVENTORY_SCHEMA, "scope": expected_scope,
+                "candidate_files": n, "candidate_bytes": total,
+                "metadata_fingerprint_sha256": fingerprint}
+    except BaseException:
+        # Malicious equality/string hooks on callback values may raise ANY
+        # exception, including a forged GateHold or a BaseException.
+        raise GateHold("INVENTORY_RECEIPT_INVALID") from None
 
 def _call_trusted(callback: Callable[[], Any]) -> Any:
     """External callback failure must never escape into public error text."""
     try:
         return callback()
-    except Exception:
+    except BaseException:
+        # This narrow callback boundary is untrusted: normalize even SystemExit
+        # and KeyboardInterrupt, never propagate callback-provided secrets.
+        # Outside this source-only boundary, process control is unchanged.
         raise GateHold("UNQUALIFIED_HOST_OR_READ_FAILURE") from None
 
 
@@ -158,9 +179,10 @@ def guarded_read_once(
                 "one_shot_consumed": True, "field_accepted": False,
                 "metadata": clean}
     except GateHold as exc:
-        # Allowlist only codes generated inside this module; callbacks are
-        # wrapped and cannot leak a private path through their GateHold.
-        code = str(exc)
+        # Never call __str__ on an exception: its args can be replaced
+        # with objects whose formatting executes attacker-controlled code.
+        code = exc.args[0] if (type(exc) is GateHold and len(exc.args) == 1
+                               and type(exc.args[0]) is str) else None
         if code not in {
             "TRUSTED_CALLBACKS_MISSING", "TRUSTED_WITNESS_MISSING",
             "IDENTITY_INVALID", "OWNER_STOP_OR_ROOT_UNVERIFIED",
