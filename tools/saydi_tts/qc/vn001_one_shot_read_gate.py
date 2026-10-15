@@ -111,6 +111,14 @@ def _sanitize(data: Any, expected_scope: str) -> dict[str, Any]:
             "candidate_files": n, "candidate_bytes": total,
             "metadata_fingerprint_sha256": fingerprint}
 
+def _call_trusted(callback: Callable[[], Any]) -> Any:
+    """External callback failure must never escape into public error text."""
+    try:
+        return callback()
+    except Exception:
+        raise GateHold("UNQUALIFIED_HOST_OR_READ_FAILURE") from None
+
+
 def guarded_read_once(
     *, trusted_verify: Callable[[], TrustedWitness],
     trusted_read_metadata: Callable[[], dict[str, Any]],
@@ -128,19 +136,19 @@ def guarded_read_once(
     try:
         if not callable(trusted_verify) or not callable(trusted_read_metadata):
             raise GateHold("TRUSTED_CALLBACKS_MISSING")
-        before = trusted_verify()
+        before = _call_trusted(trusted_verify)
         validate(before)
         digest = binding(before)
         _journal(trusted_journal_path, before, digest, consume=True)
         # Check immediately before protected metadata read, not just approval.
-        pre = trusted_verify()
+        pre = _call_trusted(trusted_verify)
         validate(pre)
         if pre != before:
             raise GateHold("WITNESS_CHANGED")
         _journal(trusted_journal_path, before, digest, consume=False)
-        candidate = trusted_read_metadata()
+        candidate = _call_trusted(trusted_read_metadata)
         # Check immediately after protected read and BEFORE releasing receipt.
-        after = trusted_verify()
+        after = _call_trusted(trusted_verify)
         validate(after)
         if after != before:
             raise GateHold("WITNESS_CHANGED")
@@ -150,6 +158,18 @@ def guarded_read_once(
                 "one_shot_consumed": True, "field_accepted": False,
                 "metadata": clean}
     except GateHold as exc:
-        return {**denied, "reason": str(exc)}
+        # Allowlist only codes generated inside this module; callbacks are
+        # wrapped and cannot leak a private path through their GateHold.
+        code = str(exc)
+        if code not in {
+            "TRUSTED_CALLBACKS_MISSING", "TRUSTED_WITNESS_MISSING",
+            "IDENTITY_INVALID", "OWNER_STOP_OR_ROOT_UNVERIFIED",
+            "JOURNAL_PATH_UNQUALIFIED", "JOURNAL_UNAVAILABLE",
+            "JOURNAL_CHANGED_DURING_READ", "APPROVAL_ALREADY_CONSUMED",
+            "INVENTORY_RECEIPT_INVALID", "WITNESS_CHANGED",
+            "UNQUALIFIED_HOST_OR_READ_FAILURE",
+        }:
+            code = "UNQUALIFIED_HOST_OR_READ_FAILURE"
+        return {**denied, "reason": code}
     except Exception:
         return {**denied, "reason": "UNQUALIFIED_HOST_OR_READ_FAILURE"}
