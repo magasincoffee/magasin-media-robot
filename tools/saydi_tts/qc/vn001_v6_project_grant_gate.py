@@ -77,8 +77,11 @@ def _validate(a: Any, now_epoch: int) -> None:
 
 
 def _binding(a: HostAttestation) -> str:
+    # Bind the PROJECT grant to immutable identity/lifecycle/limit, but do
+    # not bind it to a single root: different authorized V5 read scopes are
+    # separate immutable CHILD operations under one standing Owner grant.
     d = [SCHEMA, TASK, REPO, a.grant_id, a.owner_id, a.main_sha,
-         a.stop_generation, a.root_key, a.scope, a.expires_epoch, a.max_operations]
+         a.stop_generation, a.expires_epoch, a.max_operations]
     return hashlib.sha256(json.dumps(d, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -96,7 +99,8 @@ def _journal(path: Path, a: HostAttestation, b: str, index: int, op_id: str,
                            "(grant_id TEXT PRIMARY KEY, binding TEXT NOT NULL)")
                 db.execute("CREATE TABLE IF NOT EXISTS child_reads "
                            "(grant_id TEXT NOT NULL, seq INTEGER NOT NULL, "
-                           "op_id TEXT NOT NULL, state TEXT NOT NULL, "
+                           "op_id TEXT NOT NULL, root_key TEXT NOT NULL, "
+                           "scope TEXT NOT NULL, state TEXT NOT NULL, "
                            "PRIMARY KEY(grant_id, seq), UNIQUE(grant_id, op_id))")
                 current = db.execute("SELECT binding FROM grants WHERE grant_id=?",
                                      (a.grant_id,)).fetchone()
@@ -111,8 +115,8 @@ def _journal(path: Path, a: HostAttestation, b: str, index: int, op_id: str,
                     db.execute("ROLLBACK")
                     raise Hold("CHILD_OUT_OF_ORDER_OR_REPLAY")
                 try:
-                    db.execute("INSERT INTO child_reads VALUES (?,?,?,'CONSUMED')",
-                               (a.grant_id, index, op_id))
+                    db.execute("INSERT INTO child_reads VALUES (?,?,?,?,?,'CONSUMED')",
+                               (a.grant_id, index, op_id, a.root_key, a.scope))
                 except sqlite3.IntegrityError:
                     db.execute("ROLLBACK")
                     raise Hold("CHILD_REPLAY_BLOCKED") from None
@@ -120,10 +124,10 @@ def _journal(path: Path, a: HostAttestation, b: str, index: int, op_id: str,
                 current = db.execute("SELECT binding FROM grants WHERE grant_id=?",
                                      (a.grant_id,)).fetchone()
                 child = db.execute(
-                    "SELECT op_id,state FROM child_reads WHERE grant_id=? AND seq=?",
+                    "SELECT op_id,root_key,scope,state FROM child_reads WHERE grant_id=? AND seq=?",
                     (a.grant_id, index),
                 ).fetchone()
-                if current != (b,) or child != (op_id, "CONSUMED"):
+                if current != (b,) or child != (op_id, a.root_key, a.scope, "CONSUMED"):
                     db.execute("ROLLBACK")
                     raise Hold("JOURNAL_WITNESS_CHANGED")
             db.execute("COMMIT")
