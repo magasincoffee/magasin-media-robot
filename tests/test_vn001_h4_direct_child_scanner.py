@@ -126,6 +126,26 @@ class WindowsStageScanner(unittest.TestCase):
         self.assertFalse(result["field_accepted"])
         self.assertNotIn("metadata_fingerprint_sha256",result)
 
+    def test_h4_parent_traversal_cannot_escape_stage(self):
+        from unittest.mock import patch
+        escaping=m.H4_STAGE / ".." / ".." / ".." / ".." / "SAYDI"
+        self.assertIn("..", escaping.parts)
+        with patch.object(m.socket, "gethostname", return_value=m.H4):
+            with patch.object(m, "_native_handle_info", side_effect=AssertionError("fs_opened")):
+                result=m.inspect_direct_metadata(escaping)
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertEqual(result["reason"],"STAGE_PATH_TRAVERSAL_REJECTED")
+        self.assertNotIn("candidate_files",result)
+        self.assertFalse(result["field_accepted"])
+
+    def test_h4_in_stage_parent_traversal_is_refused(self):
+        from unittest.mock import patch
+        escaping=m.H4_STAGE / "synthetic_sub" / ".." / "synthetic_sub"
+        with patch.object(m.socket, "gethostname", return_value=m.H4):
+            with patch.object(m, "_native_handle_info", side_effect=AssertionError("fs_opened")):
+                result=m.inspect_direct_metadata(escaping)
+        self.assertEqual(result["reason"],"STAGE_PATH_TRAVERSAL_REJECTED")
+
     def test_h4_stage_synthetic_fixture_is_only_allowlisted_root(self):
         from unittest.mock import patch
         (self.root/"safe_fixture.wav").write_bytes(b"synthetic")
