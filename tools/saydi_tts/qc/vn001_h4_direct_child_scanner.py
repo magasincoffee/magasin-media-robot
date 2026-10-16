@@ -20,6 +20,7 @@ import json
 import os
 from pathlib import Path
 import re
+import socket
 import stat
 from typing import Any
 
@@ -28,6 +29,8 @@ SUFFIXES = frozenset((".wav", ".mp3", ".flac", ".m4b", ".json", ".sqlite",
                       ".db", ".onnx", ".pt", ".pth", ".safetensors", ".ckpt"))
 REPARSE_ATTRIBUTE = 0x400
 MAX_CHILDREN = 1000
+H4 = "DESKTOP-H4A16IL"
+H4_STAGE = Path(r"C:\MAGASIN_MCP\staging\saydi_v6_grant\fixtures")
 FILE_READ_ATTRIBUTES = 0x80
 FILE_LIST_DIRECTORY = 0x1
 FILE_SHARE_READ = 0x1
@@ -120,6 +123,14 @@ def inspect_direct_metadata(root: Path, *, max_children: int = MAX_CHILDREN) -> 
             raise SafeHold("ROOT_NOT_WINDOWS_ABSOLUTE")
         if type(max_children) is not int or not 1 <= max_children <= MAX_CHILDREN:
             raise SafeHold("SCAN_LIMIT_UNQUALIFIED")
+        # This source-stage implementation is not an authenticated host route.
+        # On the actual H4 it MUST NOT scan C:\SAYDI / D:\SAYDI even when a
+        # caller invokes this module directly, outside the MCP service.
+        # Only synthetic fixture roots strictly inside the isolated stage
+        # tree may be opened. Root/ancestor reparse checks still follow.
+        if socket.gethostname().upper() == H4:
+            if root == H4_STAGE or H4_STAGE not in root.parents:
+                raise SafeHold("LIVE_H4_PROTECTED_SCAN_NOT_AUTHORIZED")
         # Check every existing parent: unlike Path.is_symlink this also
         # rejects Windows junction/reparse points. This is a static stage
         # guard, NOT an atomic handle-relative traversal qualification.
@@ -195,6 +206,7 @@ def inspect_direct_metadata(root: Path, *, max_children: int = MAX_CHILDREN) -> 
             "FILE_HANDLE_UNAVAILABLE", "FILE_IDENTITY_UNAVAILABLE",
             "REPARSE_REJECTED", "FILE_TYPE_CHANGED", "SCAN_LIMIT_EXCEEDED",
             "FILE_CHANGED_DURING_SCAN", "ANCESTOR_CHANGED_DURING_SCAN",
+            "LIVE_H4_PROTECTED_SCAN_NOT_AUTHORIZED",
         }
         return {**block, "reason": code if code in valid else "SAFE_SCAN_UNAVAILABLE"}
     except BaseException:
