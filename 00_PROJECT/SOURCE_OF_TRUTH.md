@@ -963,21 +963,21 @@ Only one task should be treated as NEXT at a time.
 
 **SAYDI-002 — Executable vertical slice + provider/AI contracts.**
 
-It must verify a runnable local VieNeu vertical slice, provider-neutral AI/Voice contracts, the existing Owner-approved narrator fingerprint, idempotent synthesis/checkpoint and a bounded audible sample/QC flow. No SaydiVoice access is required.
+It must verify a runnable local VieNeu vertical slice, provider-neutral AI/Voice contracts, a stable fingerprint for each NEW V6 voice audition candidate (the prior V5 narrator is NOT accepted by default), idempotent NEW V6-only synthesis/checkpoint and a NEW 3–5-minute original-text sample/QC flow with Owner V6 listening acceptance. No SaydiVoice access is required.
 
 Required SAYDI-002 evidence:
 
 - runnable CLI/operator runner; **IMPLEMENTED OFFLINE FOUNDATION**
 - local offline compile/unit/smoke evidence; **PASS (5 unit tests + prepare/approve smoke in development environment)**
-- Windows-local audible sample workflow; **FIELD-RUN PASS — GitHub Actions run 36745274726**
+- historical Windows SAPI-only audible fixture workflow; **FIELD-RUN PASS (SAPI technical smoke only) — run 36745274726; NOT VieNeu V6 or Owner quality acceptance**
 - versioned structured contracts for AI analysis and VoiceProvider;
 - deterministic fallback behavior when no LLM is available;
 - local-LLM adapter boundary (model may be selected/benchmarked during implementation);
-- local VieNeu v3 Turbo/ONNX adapter and approved narrator reference with auditable fingerprint;
+- local VieNeu v3 Turbo/ONNX adapter, auditable fingerprint for each candidate reference and NEW Owner-approved V6 listening sample (do not inherit V5 fingerprint quality acceptance);
 - sample narration fingerprint;
 - text-preview and audio-approval state;
 - tests for idempotency/privacy/schema validation;
-- one bounded real audible sample run after offline gates pass. **PASS — local Windows SAPI WAV produced on trusted runner in run 36745274726**
+- one NEW bounded VieNeu V6 audible sample generated from original text after host approval/resource gates; **NOT YET PASS — old Windows SAPI WAV in run 36745274726 is a fixture and cannot satisfy V6 audio acceptance**
 
 ### 2026-10-11 — Active SAYDI-002 closure reinterpretation
 
@@ -987,7 +987,7 @@ The older provider-specific completion terms are historical and non-executable. 
 
 SAYDI Audiobook V1 is production-ready when a clean supported Windows machine can:
 
-1. complete local VieNeu environment, resource and approved narrator preflight on H4 without paid-provider login;
+1. complete local VieNeu environment, resource and NEW V6 candidate narrator/ref provenance preflight on H4 without paid-provider login, then obtain Owner V6 listening approval before final voice promotion;
 2. import a supported book;
 3. validate/adjust chapter structure, OCR exceptions, annotations, punctuation interpretation and pronunciation;
 4. approve a narrator sample that demonstrates the active prosody/emotion policy;
