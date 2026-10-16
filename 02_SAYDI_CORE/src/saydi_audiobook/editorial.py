@@ -13,7 +13,9 @@ EDITORIAL_QA_VERSION = "editorial-qa-v1"
 
 _SENTENCE_RE = re.compile(r'.+?(?:[.!?…](?:["”])?|$)(?=\s+|$)', re.UNICODE)
 _STRONG_SPLIT_RE = re.compile(
-    r'(?<=[;:])\s+|,\s+(?=(?:nhưng|rồi|còn|và|chỉ|như|khi|nếu|vì|làm|mẹ|cha|anh|bà|ông|tôi|chúng ta)\b)',
+    # Preserve the comma in canonical/spoken text. Dropping it changed pacing
+    # and source-to-spoken equivalence when a long Vietnamese sentence split.
+    r'(?<=[;:])\s+|(?<=,)\s+(?=(?:nhưng|rồi|còn|và|chỉ|như|khi|nếu|vì|làm|mẹ|cha|anh|bà|ông|tôi|chúng ta)\b)',
     re.IGNORECASE,
 )
 
@@ -60,7 +62,9 @@ def _phrase_hits(text: str, phrases: Sequence[str]) -> tuple[str, ...]:
 
 
 def _pause_for_unit(text: str, beat: str) -> int:
-    stripped = text.rstrip()
+    # Closing dialogue quotes are not punctuation: inspect the terminal
+    # sentence mark inside them to avoid flattening questions/exclamations.
+    stripped = text.rstrip().rstrip('”"’').rstrip()
     if stripped.endswith(("…", "...")):
         base = 800
     elif stripped.endswith("?"):
