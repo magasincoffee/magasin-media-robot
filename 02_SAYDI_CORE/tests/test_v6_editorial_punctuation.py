@@ -31,6 +31,13 @@ class TestV6EditorialPunctuation(unittest.TestCase):
         self.assertEqual(_pause_for_unit("“Đừng đi!”", "NARRATIVE"), 550)
         self.assertEqual(_pause_for_unit("“Vậy thì…”", "NARRATIVE"), 800)
 
+    def test_curly_single_quote_question_retains_own_pause(self):
+        source = "‘Anh về chưa?’ Cô hỏi."
+        units = compile_editorial_reading(source)
+        self.assertEqual([u.spoken_text for u in units], ["‘Anh về chưa?’", "Cô hỏi."])
+        self.assertGreaterEqual(units[0].pause_after_ms, 650)
+        self.assertEqual(" ".join(u.spoken_text for u in units), source)
+
     def test_manifest_retains_comma_for_native_vieneu_prompt(self):
         manifest = editorial_manifest(self.SOURCE, max_chars=45)
         self.assertEqual(manifest["unit_count"], 2)
