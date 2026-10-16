@@ -152,9 +152,17 @@ def inspect_direct_metadata(root: Path, *, max_children: int = MAX_CHILDREN) -> 
                 # to ensure it is not a symlink/junction leaf.
                 volume, fid, file_size = _native_handle_info(child, directory=False)
                 after = child.stat(follow_symlinks=False)
-                if (before.st_size, before.st_mtime_ns, before.st_ino) != (
-                    after.st_size, after.st_mtime_ns, after.st_ino
-                ) or file_size != before.st_size:
+                # Windows st_ino is the native FileIndex exposed by the
+                # handle (dwFileIndexHigh/Low). A same-sized swap-and-restore
+                # must not be accepted merely because both path stats match.
+                # Fail closed on filesystems without a stable file ID.
+                if (not before.st_ino or not after.st_ino
+                        or fid != before.st_ino or fid != after.st_ino
+                        or volume != original[root][0]
+                        or before.st_dev != after.st_dev
+                        or (before.st_size, before.st_mtime_ns) !=
+                           (after.st_size, after.st_mtime_ns)
+                        or file_size != before.st_size):
                     raise SafeHold("FILE_CHANGED_DURING_SCAN")
                 if child.suffix.lower() not in SUFFIXES:
                     skipped_unsupported = True
