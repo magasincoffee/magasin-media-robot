@@ -116,6 +116,26 @@ class WindowsStageScanner(unittest.TestCase):
         self.assertEqual(m.inspect_direct_metadata(self.root,max_children=0)["status"],"BLOCKED")
         self.assertEqual(m.inspect_direct_metadata(self.root,max_children=True)["status"],"BLOCKED")
 
+    def test_h4_real_v5_root_is_denied_even_before_any_file_open(self):
+        from unittest.mock import patch
+        with patch.object(m.socket, "gethostname", return_value=m.H4):
+            with patch.object(m, "_native_handle_info", side_effect=AssertionError("accessed")):
+                result=m.inspect_direct_metadata(Path(r"C:\\SAYDI"))
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertEqual(result["reason"],"LIVE_H4_PROTECTED_SCAN_NOT_AUTHORIZED")
+        self.assertFalse(result["field_accepted"])
+        self.assertNotIn("metadata_fingerprint_sha256",result)
+
+    def test_h4_stage_synthetic_fixture_is_only_allowlisted_root(self):
+        from unittest.mock import patch
+        (self.root/"safe_fixture.wav").write_bytes(b"synthetic")
+        with patch.object(m.socket,"gethostname",return_value=m.H4):
+            with patch.object(m,"H4_STAGE",self.root.parent):
+                result=m.inspect_direct_metadata(self.root)
+        self.assertEqual(result["status"],"DIRECT_CHILD_METADATA_PARTIAL_UNATTESTED")
+        self.assertEqual(result["candidate_files"],1)
+        self.assertFalse(result["field_accepted"])
+
     def test_relative_root_blocks(self):
         res=m.inspect_direct_metadata(Path("synthetic_v5"))
         self.assertEqual(res["status"],"BLOCKED")
