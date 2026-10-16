@@ -16,11 +16,11 @@ NOW = 1792100000
 
 def proof(**changes):
     args = dict(grant_id="a"*32, owner_id=191064507,
-        main_sha="b"*40, stop_generation="STOP-42", root_key="v5_checkpoint",
+        main_sha="b"*40, stop_generation="STOP-42", stop_authority=m.STOP_AUTHORITY, root_key="v5_checkpoint",
         scope="checkpoint", expires_epoch=NOW+20000, max_operations=3,
         owner_identity_verified=True, project_grant_verified=True,
         main_verified=True, transport_verified=True, root_verified=True,
-        stop_generation_verified=True, owner_stop_engaged=True,
+        stop_generation_verified=True, saydi_stop_engaged=True,
         grant_not_revoked=True)
     args.update(changes)
     return m.HostAttestation(**args)
@@ -114,9 +114,26 @@ class TestProjectGrant(unittest.TestCase):
         self.blocked(self.run_gate(verify=verify),"STOP_OR_GRANT_CHANGED")
         self.assertEqual(self.calls,1)
 
-    def test_stop_not_engaged_blocks_any_read(self):
-        self.blocked(self.run_gate(verify=lambda:proof(owner_stop_engaged=False)),
-                     "GRANT_STOP_OR_TRANSPORT_UNVERIFIED")
+    def test_local_saydi_stop_not_engaged_still_allows_scoped_readonly(self):
+        r=self.run_gate(verify=lambda:proof(saydi_stop_engaged=False))
+        self.assertEqual(r["status"], "SOURCE_ONLY_CHILD_ACCEPTED_UNATTESTED")
+        self.assertFalse(r["approved_to_start"])
+        self.assertFalse(r["approved_to_dispatch"])
+        self.assertEqual(self.calls,1)
+
+    def test_supervisor_stop_origin_cannot_authorize_saydi_inventory(self):
+        r=self.run_gate(verify=lambda:proof(stop_authority="SUPERVISOR"))
+        self.blocked(r, "GRANT_SCOPE_OR_EXPIRY_INVALID")
+        self.assertEqual(self.calls,0)
+
+    def test_missing_saydi_stop_origin_fails_closed(self):
+        r=self.run_gate(verify=lambda:proof(stop_authority=""))
+        self.blocked(r, "GRANT_SCOPE_OR_EXPIRY_INVALID")
+        self.assertEqual(self.calls,0)
+
+    def test_fake_saydi_stop_flag_is_rejected(self):
+        r=self.run_gate(verify=lambda:proof(saydi_stop_engaged=1))
+        self.blocked(r, "GRANT_SCOPE_OR_EXPIRY_INVALID")
         self.assertEqual(self.calls,0)
 
     def test_single_operation_grant_is_exhausted_after_success(self):
