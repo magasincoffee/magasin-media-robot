@@ -129,6 +129,12 @@ def inspect_direct_metadata(root: Path, *, max_children: int = MAX_CHILDREN) -> 
         # Only synthetic fixture roots strictly inside the isolated stage
         # tree may be opened. Root/ancestor reparse checks still follow.
         if socket.gethostname().upper() == H4:
+            # pathlib preserves '..' in .parents; Windows interprets it
+            # before opening a handle. Refuse traversal lexically BEFORE any
+            # filesystem operation. A path resolving into the stage is not
+            # sufficient: no alias/reparse hop is allowed, either.
+            if any(part in ("..", ".") for part in root.parts):
+                raise SafeHold("STAGE_PATH_TRAVERSAL_REJECTED")
             if root == H4_STAGE or H4_STAGE not in root.parents:
                 raise SafeHold("LIVE_H4_PROTECTED_SCAN_NOT_AUTHORIZED")
         # Check every existing parent: unlike Path.is_symlink this also
@@ -207,6 +213,7 @@ def inspect_direct_metadata(root: Path, *, max_children: int = MAX_CHILDREN) -> 
             "REPARSE_REJECTED", "FILE_TYPE_CHANGED", "SCAN_LIMIT_EXCEEDED",
             "FILE_CHANGED_DURING_SCAN", "ANCESTOR_CHANGED_DURING_SCAN",
             "LIVE_H4_PROTECTED_SCAN_NOT_AUTHORIZED",
+            "STAGE_PATH_TRAVERSAL_REJECTED",
         }
         return {**block, "reason": code if code in valid else "SAFE_SCAN_UNAVAILABLE"}
     except BaseException:
