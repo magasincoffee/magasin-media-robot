@@ -11,7 +11,7 @@ from .director import classify_story_beat
 
 EDITORIAL_QA_VERSION = "editorial-qa-v1"
 
-_SENTENCE_RE = re.compile(r'.+?(?:[.!?…](?:["”’])?|$)(?=\s+|$)', re.UNICODE)
+_SENTENCE_RE = re.compile(r""".+?(?:[.!?…](?:["”’'])?|$)(?=\s+|$)""", re.UNICODE)
 _STRONG_SPLIT_RE = re.compile(
     # Preserve the comma in canonical/spoken text. Dropping it changed pacing
     # and source-to-spoken equivalence when a long Vietnamese sentence split.
@@ -64,7 +64,7 @@ def _phrase_hits(text: str, phrases: Sequence[str]) -> tuple[str, ...]:
 def _pause_for_unit(text: str, beat: str) -> int:
     # Closing dialogue quotes are not punctuation: inspect the terminal
     # sentence mark inside them to avoid flattening questions/exclamations.
-    stripped = text.rstrip().rstrip('”"’').rstrip()
+    stripped = text.rstrip().rstrip("”\"’'").rstrip()
     if stripped.endswith(("…", "...")):
         base = 800
     elif stripped.endswith("?"):
