@@ -27,6 +27,7 @@ GRANT_ID = re.compile(r"[a-f0-9]{32}\Z")
 ROOT = re.compile(r"[a-z0-9_-]{1,40}\Z")
 READ_SCOPES = frozenset(("checkpoint", "audio", "narrator", "model"))
 MAX_OPS = 256
+STOP_AUTHORITY = "SAYDI_V6_LOCAL"
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class HostAttestation:
     owner_id: int
     main_sha: str
     stop_generation: str
+    stop_authority: str
     root_key: str
     scope: str
     expires_epoch: int
@@ -46,7 +48,7 @@ class HostAttestation:
     transport_verified: bool
     root_verified: bool
     stop_generation_verified: bool
-    owner_stop_engaged: bool
+    saydi_stop_engaged: bool
     grant_not_revoked: bool
 
 
@@ -62,6 +64,8 @@ def _validate(a: Any, now_epoch: int) -> None:
         and type(a.owner_id) is int and a.owner_id > 0
         and type(a.main_sha) is str and SHA40.fullmatch(a.main_sha)
         and type(a.stop_generation) is str and OPAQUE.fullmatch(a.stop_generation)
+        and type(a.stop_authority) is str and a.stop_authority == STOP_AUTHORITY
+        and type(a.saydi_stop_engaged) is bool
         and type(a.root_key) is str and ROOT.fullmatch(a.root_key)
         and type(a.scope) is str and a.scope in READ_SCOPES
         and type(a.expires_epoch) is int and now_epoch < a.expires_epoch <= now_epoch + 86400 * 365
@@ -71,7 +75,7 @@ def _validate(a: Any, now_epoch: int) -> None:
     if not all(x is True for x in (
         a.owner_identity_verified, a.project_grant_verified, a.main_verified,
         a.transport_verified, a.root_verified, a.stop_generation_verified,
-        a.owner_stop_engaged, a.grant_not_revoked,
+        a.grant_not_revoked,
     )):
         raise Hold("GRANT_STOP_OR_TRANSPORT_UNVERIFIED")
 
@@ -81,7 +85,7 @@ def _binding(a: HostAttestation) -> str:
     # not bind it to a single root: different authorized V5 read scopes are
     # separate immutable CHILD operations under one standing Owner grant.
     d = [SCHEMA, TASK, REPO, a.grant_id, a.owner_id, a.main_sha,
-         a.stop_generation, a.expires_epoch, a.max_operations]
+         a.stop_authority, a.stop_generation, a.expires_epoch, a.max_operations]
     return hashlib.sha256(json.dumps(d, separators=(",", ":")).encode()).hexdigest()
 
 
@@ -172,7 +176,11 @@ def read_project_grant_child(
     """Reserve exactly one ordered child under standing V6 grant, then read.
 
     Each admitted child is consumed even if the callback fails. Never emits
-    private paths, secrets, audio or an actionable START approval. The H4 host
+    private paths, secrets, audio or an actionable START approval. The trusted
+    host must attest the SAYDI-specific STOP authority, not Supervisor's
+    guardian owner_stop / AUTOSTART_DISABLED. A verified SAYDI STOP may be
+    engaged or disengaged for non-actuating read-only inventory; neither
+    condition confers an authorized model START. The H4 host
     must serialize STOP/lifecycle changes with this transaction externally.
     """
     block = {"schema": SCHEMA, "task_id": TASK, "status": "BLOCKED",
