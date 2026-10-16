@@ -73,6 +73,33 @@ class WindowsStageScanner(unittest.TestCase):
         self.assertEqual(report["reason"],"REPARSE_REJECTED")
         self.assertNotIn("candidate_files",report)
 
+    def test_real_windows_junction_as_root_rejected(self):
+        import subprocess
+        target=self.root/"real_dir"
+        target.mkdir()
+        link=self.root.parent/"junction_root"
+        proc=subprocess.run(["cmd","/c","mklink","/J",str(link),str(target)],
+                            capture_output=True,text=True,check=False)
+        if proc.returncode != 0:
+            self.skipTest("mklink /J unsupported on this runner")
+        result=m.inspect_direct_metadata(link)
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertEqual(result["reason"],"REPARSE_REJECTED")
+
+    def test_real_windows_junction_inside_root_rejected(self):
+        import subprocess
+        target=self.root.parent/"outside_dir"
+        target.mkdir()
+        (target/"fixture.wav").write_bytes(b"synthetic")
+        link=self.root/"junction_child"
+        proc=subprocess.run(["cmd","/c","mklink","/J",str(link),str(target)],
+                            capture_output=True,text=True,check=False)
+        if proc.returncode != 0:
+            self.skipTest("mklink /J unsupported on this runner")
+        result=m.inspect_direct_metadata(self.root)
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertEqual(result["reason"],"REPARSE_REJECTED")
+
     def test_direct_file_link_rejected(self):
         target=self.root/"fixture_audio.wav"
         target.write_bytes(b"x")
