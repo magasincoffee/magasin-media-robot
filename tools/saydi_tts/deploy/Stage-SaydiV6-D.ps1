@@ -124,7 +124,7 @@ if ($Mode -eq 'Install') {
         & $venvPython -m saydi_audiobook --help | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'V6_CLI_SMOKE_FAILED' }
     } finally {
-        Remove-Item Env:\PYTHONPATH -ErrorAction SilentlyContinue
+        $env:PYTHONPATH = $null
     }
     $receipt['status'] = 'V6_CLI_INSTALLED_ONLY_NO_TTS_START'
     $receipt['model_runtime'] = 'NOT_STARTED_LOCAL_SAYDI_GATE_REQUIRED'
