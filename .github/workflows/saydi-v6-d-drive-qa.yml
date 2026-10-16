@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'tools/saydi_tts/deploy/**'
+      - '02_SAYDI_CORE/fixtures/v6_original_5min_vi.txt'
       - '.github/workflows/saydi-v6-d-drive-*.yml'
   push:
     branches: [main]
     paths:
       - 'tools/saydi_tts/deploy/**'
+      - '02_SAYDI_CORE/fixtures/v6_original_5min_vi.txt'
       - '.github/workflows/saydi-v6-d-drive-*.yml'
 
 permissions:
@@ -38,3 +40,8 @@ jobs:
           }
       - name: Fail-closed staging contract tests
         run: python -m unittest discover -s tools/saydi_tts/deploy -p 'test_stage_saydi_v6_d.py' -v
+      - name: Source-only listening plan; no VieNeu inference
+        run: |
+          python -m py_compile tools/saydi_tts/deploy/prepare_v6_audition.py
+          python -m unittest discover -s tools/saydi_tts/deploy -p 'test_prepare_v6_audition.py' -v
+          python tools/saydi_tts/deploy/prepare_v6_audition.py --input 02_SAYDI_CORE/fixtures/v6_original_5min_vi.txt
