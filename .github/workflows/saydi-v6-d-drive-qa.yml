@@ -1,0 +1,40 @@
+name: SAYDI V6 D Drive Source Stage QA
+
+on:
+  pull_request:
+    paths:
+      - 'tools/saydi_tts/deploy/**'
+      - '.github/workflows/saydi-v6-d-drive-*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/saydi_tts/deploy/**'
+      - '.github/workflows/saydi-v6-d-drive-*.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  source-only-safety:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: PowerShell parse only - no H4 or model runtime
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'tools/saydi_tts/deploy/Stage-SaydiV6-D.ps1'),
+            [ref]$tokens, [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host $_.Message }
+            throw 'STAGE_POWERSHELL_PARSE_FAILED'
+          }
+      - name: Fail-closed staging contract tests
+        run: python -m unittest discover -s tools/saydi_tts/deploy -p 'test_stage_saydi_v6_d.py' -v
