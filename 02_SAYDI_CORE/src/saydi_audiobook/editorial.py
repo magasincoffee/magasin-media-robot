@@ -11,7 +11,7 @@ from .director import classify_story_beat
 
 EDITORIAL_QA_VERSION = "editorial-qa-v1"
 
-_SENTENCE_RE = re.compile(r'.+?(?:[.!?…](?:["”])?|$)(?=\s+|$)', re.UNICODE)
+_SENTENCE_RE = re.compile(r'.+?(?:[.!?…](?:["”’])?|$)(?=\s+|$)', re.UNICODE)
 _STRONG_SPLIT_RE = re.compile(
     # Preserve the comma in canonical/spoken text. Dropping it changed pacing
     # and source-to-spoken equivalence when a long Vietnamese sentence split.
