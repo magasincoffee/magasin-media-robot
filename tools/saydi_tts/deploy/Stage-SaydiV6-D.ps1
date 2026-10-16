@@ -2,7 +2,7 @@
 # This script is intentionally invoked only by the dedicated workflow_dispatch workflow.
 [CmdletBinding()]
 param(
-    [ValidateSet('Inspect', 'Stage')]
+    [ValidateSet('Inspect', 'Stage', 'Install')]
     [string]$Mode = 'Inspect',
     [ValidatePattern('^[a-fA-F0-9]{40}$')]
     [string]$ExpectedSha
@@ -31,6 +31,7 @@ if ([Environment]::MachineName -ne $expectedMachine) { throw 'WRONG_TARGET_H4' }
 if ($env:GITHUB_EVENT_NAME -ne 'workflow_dispatch') { throw 'NOT_EXPLICIT_DISPATCH' }
 if ($env:GITHUB_REPOSITORY -ne $project) { throw 'WRONG_REPOSITORY' }
 if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'NOT_CANONICAL_MAIN' }
+if ($env:GITHUB_ACTOR_ID -ne '191064507' -or $env:GITHUB_ACTOR -ne 'magasincoffee') { throw 'UNTRUSTED_WORKFLOW_ACTOR' }
 if (-not $ExpectedSha -or $env:GITHUB_SHA -ne $ExpectedSha) { throw 'MAIN_SHA_MISMATCH' }
 
 $c = Get-PSDrive -Name C -ErrorAction Stop
@@ -88,15 +89,49 @@ foreach ($entry in $sourceEntries) {
 }
 
 $stageName = 'source-' + $ExpectedSha.ToLowerInvariant()
-$target = Join-Path $stageParent $stageName
+if ($Mode -eq 'Install') {
+    $releaseBase = 'D:\SAYDI_V6'
+    if (-not (Test-Path -LiteralPath $releaseBase -PathType Container)) {
+        New-Item -ItemType Directory -Path $releaseBase -ErrorAction Stop | Out-Null
+    }
+    Assert-PlainDirectory $releaseBase
+    $releases = Join-Path $releaseBase 'releases'
+    if (-not (Test-Path -LiteralPath $releases -PathType Container)) {
+        New-Item -ItemType Directory -Path $releases -ErrorAction Stop | Out-Null
+    }
+    Assert-PlainDirectory $releases
+    $target = Join-Path $releases $ExpectedSha.ToLowerInvariant()
+} else {
+    $target = Join-Path $stageParent $stageName
+}
 if (Test-Path -LiteralPath $target) { throw 'STAGE_EXISTS_NO_OVERWRITE' }
 # Never overwrite or delete on error; partial stage remains for later inspection.
 New-Item -ItemType Directory -Path $target -ErrorAction Stop | Out-Null
 $sourceDestination = Join-Path $target '02_SAYDI_CORE'
 Copy-Item -LiteralPath $core -Destination $sourceDestination -Recurse -ErrorAction Stop
 $sourceFingerprint = (Get-FileHash -LiteralPath (Join-Path $sourceDestination 'pyproject.toml') -Algorithm SHA256).Hash
-$receipt['status'] = 'SOURCE_STAGED_ONLY_NOT_INSTALLED'
+if ($Mode -eq 'Install') {
+    # Isolated source-based CLI install; it does NOT install or launch VieNeu.
+    $python = 'C:\Users\admin\AppData\Local\Programs\Python\Python312\python.exe'
+    if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw 'TRUSTED_PYTHON_MISSING' }
+    $venv = Join-Path $target '.venv'
+    & $python -m venv $venv
+    if ($LASTEXITCODE -ne 0) { throw 'V6_VENV_CREATION_FAILED' }
+    $venvPython = Join-Path $venv 'Scripts\python.exe'
+    if (-not (Test-Path -LiteralPath $venvPython -PathType Leaf)) { throw 'V6_VENV_PYTHON_MISSING' }
+    $env:PYTHONPATH = Join-Path $sourceDestination 'src'
+    try {
+        & $venvPython -m saydi_audiobook --help | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'V6_CLI_SMOKE_FAILED' }
+    } finally {
+        Remove-Item Env:\PYTHONPATH -ErrorAction SilentlyContinue
+    }
+    $receipt['status'] = 'V6_CLI_INSTALLED_ONLY_NO_TTS_START'
+    $receipt['model_runtime'] = 'NOT_STARTED_LOCAL_SAYDI_GATE_REQUIRED'
+} else {
+    $receipt['status'] = 'SOURCE_STAGED_ONLY_NOT_INSTALLED'
+}
 $receipt['core_pyproject_sha256'] = $sourceFingerprint
-$receipt['stage_identity'] = $stageName
+$receipt['stage_identity'] = if ($Mode -eq 'Install') { $ExpectedSha.ToLowerInvariant() } else { $stageName }
 $receipt | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $target 'stage-receipt.json') -Encoding UTF8 -NoNewline
 $receipt | ConvertTo-Json -Compress

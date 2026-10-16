@@ -39,13 +39,21 @@ class SourceStagingContract(unittest.TestCase):
         for forbidden in ('pip install', 'uv sync', 'winget install', 'Stop-Process', 'Start-Service'):
             self.assertNotIn(forbidden, SCRIPT)
 
+    def test_install_is_cli_only_with_isolated_venv(self):
+        self.assertIn("[ValidateSet('Inspect', 'Stage', 'Install')]", SCRIPT)
+        self.assertIn("'D:\\SAYDI_V6'", SCRIPT)
+        self.assertIn('V6_CLI_INSTALLED_ONLY_NO_TTS_START', SCRIPT)
+        self.assertIn('UNTRUSTED_WORKFLOW_ACTOR', SCRIPT)
+        self.assertIn("& $venvPython -m saydi_audiobook --help", SCRIPT)
+        self.assertIn("'191064507'", WORKFLOW)
+
     def test_manual_only(self):
         self.assertIn('workflow_dispatch:', WORKFLOW)
         for forbidden in ('  schedule:', '  issues:', '  pull_request:', '  push:'):
             self.assertNotIn(forbidden, WORKFLOW)
         self.assertIn('persist-credentials: false', WORKFLOW)
         self.assertIn('shell: cmd', WORKFLOW)
-        self.assertIn('Inspect, Stage', WORKFLOW)
+        self.assertIn('Inspect, Stage, Install', WORKFLOW)
 
 if __name__ == '__main__':
     unittest.main()

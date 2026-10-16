@@ -8,7 +8,7 @@ on:
         description: 'Inspect only (default) or Stage copy-only source on D'
         required: true
         type: choice
-        options: [Inspect, Stage]
+        options: [Inspect, Stage, Install]
         default: Inspect
       expected_main_sha:
         description: 'Exact reviewed 40-character SHA of current main'
@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   h4-inspect-or-copy-source:
-    if: ${{ github.repository == 'magasincoffee/magasin-media-robot' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.repository == 'magasincoffee/magasin-media-robot' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && github.actor == 'magasincoffee' && github.actor_id == '191064507' }}
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 10
     steps:
