@@ -22,6 +22,15 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact tested head
+        shell: pwsh
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if ((git rev-parse HEAD).Trim() -cne $env:EXPECTED_HEAD) { throw 'WRONG_QA_HEAD' }
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
