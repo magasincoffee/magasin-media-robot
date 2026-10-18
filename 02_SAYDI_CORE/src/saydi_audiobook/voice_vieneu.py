@@ -13,6 +13,8 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable
 import gc
+import os
+import tempfile
 import platform
 import socket
 import wave
@@ -64,7 +66,12 @@ class VieNeuOnnxVoiceProvider(VoiceProvider):
             count = len(data)
             audio_hash = sha256(data).hexdigest()
             with wave.open(str(output), "rb") as reader:
-                duration_ms = round(1000 * reader.getnframes() / reader.getframerate())
+                frames, rate = reader.getnframes(), reader.getframerate()
+                if frames <= 0 or rate <= 0 or reader.getnchannels() <= 0 or reader.getsampwidth() <= 0:
+                    raise ValueError("EMPTY_OR_INVALID_AUDIO")
+                duration_ms = round(1000 * frames / rate)
+                if duration_ms <= 0:
+                    raise ValueError("ZERO_DURATION_AUDIO")
         return VoiceResult(
             operation_id=request.operation_id,
             sample_id=request.sample_id,
@@ -109,17 +116,50 @@ class VieNeuOnnxVoiceProvider(VoiceProvider):
         # A genuine subprocess-unload witness must be provided separately
         # before any next ASR stage; gc.collect() alone is insufficient.
         engine = None
+        temporary = None
+        published = False
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
+            # Never render directly to the final name. The candidate is
+            # isolated in a unique file in the same destination directory.
+            fd, name = tempfile.mkstemp(prefix=".v6-render-", suffix=".wav", dir=path.parent)
+            os.close(fd)
+            temporary = Path(name)
             engine = self._engine_factory()
             audio = engine.infer(request.text, voice=self.voice_name)
-            engine.save(audio, str(path))
+            engine.save(audio, str(temporary))
+            # Validate actual non-empty WAV samples before publication.
+            staged_result = self._result(request, "SUCCESS", output=temporary)
+            staged_result.validate()
+            # Recheck exact path identity and deny reparse parents at publish.
+            current_root = self.output_root.resolve(strict=True)
+            if current_root != root or path.parent.resolve(strict=True) != path.parent:
+                raise ValueError("V6_OUTPUT_ROOT_CHANGED")
+            for parent in (path.parent, *path.parent.parents):
+                if parent == root.parent:
+                    break
+                if parent.is_symlink():
+                    raise ValueError("V6_REPARSE_PARENT_DENIED")
+            if path.exists() or path.is_symlink():
+                return self._result(request, "ACTION_REQUIRED", error="NO_OVERWRITE_EXISTING_AUDIO")
+            # Hard-link creates the final entry exclusively: EEXIST if another
+            # render won the race. os.replace/rename could overwrite.
+            try:
+                os.link(temporary, path, follow_symlinks=False)
+            except FileExistsError:
+                return self._result(request, "ACTION_REQUIRED", error="NO_OVERWRITE_EXISTING_AUDIO")
+            published = True
             result = self._result(request, "SUCCESS", output=path)
             result.validate()
             return result
         except Exception:
             return self._result(request, "FAILED", error="VIENEU_RENDER_FAILED")
         finally:
+            if temporary is not None:
+                try:
+                    temporary.unlink(missing_ok=True)
+                except OSError:
+                    pass
             if engine is not None:
                 del engine
                 gc.collect()
