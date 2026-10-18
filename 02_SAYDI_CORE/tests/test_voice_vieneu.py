@@ -101,6 +101,35 @@ class VieNeuProviderSourceTests(unittest.TestCase):
         self.assertEqual(result.error_class, "NO_OVERWRITE_EXISTING_AUDIO")
         self.assertEqual(self.out.read_bytes(), b"keep")
 
+    def test_empty_wav_rejected_and_not_published(self):
+        class HeaderOnlyEngine(FakeEngine):
+            def save(self, audio, path):
+                with wave.open(path, "wb") as w:
+                    w.setnchannels(1)
+                    w.setsampwidth(2)
+                    w.setframerate(16000)
+                    w.writeframes(b"")
+        p = self.provider(host_admission=lambda: True, engine_factory=HeaderOnlyEngine)
+        with patch("saydi_audiobook.voice_vieneu.platform.system", return_value="Windows"), patch(
+            "saydi_audiobook.voice_vieneu.socket.gethostname", return_value="DESKTOP-H4A16IL"
+        ):
+            result = p.generate(self.request)
+        self.assertEqual(result.status, "FAILED")
+        self.assertFalse(self.out.exists())
+
+    def test_concurrent_publish_no_replace(self):
+        class RacingEngine(FakeEngine):
+            def save(_, audio, path):
+                super().save(audio, path)
+                self.out.write_bytes(b"other-writer")
+        p = self.provider(host_admission=lambda: True, engine_factory=RacingEngine)
+        with patch("saydi_audiobook.voice_vieneu.platform.system", return_value="Windows"), patch(
+            "saydi_audiobook.voice_vieneu.socket.gethostname", return_value="DESKTOP-H4A16IL"
+        ):
+            result = p.generate(self.request)
+        self.assertEqual(result.error_class, "NO_OVERWRITE_EXISTING_AUDIO")
+        self.assertEqual(self.out.read_bytes(), b"other-writer")
+
     def test_untrusted_output_root_denied(self):
         outside = self.root.parent / "never-write.wav"
         r = VoiceRequest(operation_id="x", sample_id="s", text="sample",
