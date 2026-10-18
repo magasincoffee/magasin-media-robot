@@ -42,9 +42,10 @@ class SourceStagingContract(unittest.TestCase):
     def test_install_is_cli_only_with_isolated_venv(self):
         self.assertIn("[ValidateSet('Inspect', 'Stage', 'Install')]", SCRIPT)
         self.assertIn("'D:\\SAYDI_V6'", SCRIPT)
-        self.assertIn('V6_CLI_INSTALLED_ONLY_NO_TTS_START', SCRIPT)
+        self.assertIn('LEGACY_INSTALL_DISABLED_USE_VERIFIED_PORTABLE_D_RELEASE', SCRIPT)
         self.assertIn('UNTRUSTED_WORKFLOW_ACTOR', SCRIPT)
-        self.assertIn("& $venvPython -m saydi_audiobook --help", SCRIPT)
+        self.assertNotIn("& $venvPython -m saydi_audiobook --help", SCRIPT)
+        self.assertNotIn("C:\\Users\\admin\\AppData", SCRIPT)
         self.assertIn("'191064507'", WORKFLOW)
 
     def test_manual_only(self):
