@@ -1,0 +1,55 @@
+name: SAYDI V6 Portable Python CLI Smoke
+
+on:
+  pull_request:
+    paths:
+      - "02_SAYDI_CORE/**"
+      - ".github/workflows/saydi-v6-portable-cli-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - "02_SAYDI_CORE/**"
+      - ".github/workflows/saydi-v6-portable-cli-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  portable-cli-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify embedded Python archive and isolated CLI import on hosted Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip'
+          $sha = '4ACBED6DD1C744B0376E3B1CF57CE906F9DC9E95E68824584C8099A63025A3C3'
+          $root = Join-Path $env:RUNNER_TEMP 'saydi-portable-cli-smoke'
+          $archive = Join-Path $root 'python.zip'
+          $runtime = Join-Path $root 'runtime'
+          New-Item -ItemType Directory -Path $runtime -Force | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          if ((Get-Item $archive).Length -ne 11133606) { throw 'PYTHON_ARCHIVE_LENGTH_MISMATCH' }
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -cne $sha) { throw 'PYTHON_ARCHIVE_HASH_MISMATCH' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $runtime
+          foreach ($name in @('python.exe','python312.dll','python3.dll','python312.zip','python312._pth')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $runtime $name) -PathType Leaf)) {
+              throw "MISSING_EMBEDDED_FILE:$name"
+            }
+          }
+          # Same relative source-path layout as the H4 versioned release,
+          # without any registration, pip/venv, Windows Registry, or model START.
+          Copy-Item '02_SAYDI_CORE' (Join-Path $root '02_SAYDI_CORE') -Recurse
+          $pth = Join-Path $runtime 'python312._pth'
+          [System.IO.File]::WriteAllText($pth, "python312.zip`r`n.`r`n..\02_SAYDI_CORE\src`r`n", [Text.Encoding]::ASCII)
+          $python = Join-Path $runtime 'python.exe'
+          & $python -I -S -m saydi_audiobook --help
+          if ($LASTEXITCODE -ne 0) { throw 'PORTABLE_CLI_IMPORT_FAILED' }
+          & $python -I -S -c 'import sys; assert sys.version_info[:2] == (3,12); print("PORTABLE_PYTHON_312_PASS")'
+          if ($LASTEXITCODE -ne 0) { throw 'PORTABLE_PYTHON_VERSION_FAILED' }
+          Write-Output 'HOSTED_PORTABLE_CLI_SMOKE_PASS_NO_MODEL_STARTED'
