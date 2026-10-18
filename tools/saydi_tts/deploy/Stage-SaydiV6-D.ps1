@@ -31,6 +31,7 @@ if ([Environment]::MachineName -ne $expectedMachine) { throw 'WRONG_TARGET_H4' }
 if ($env:GITHUB_EVENT_NAME -ne 'workflow_dispatch') { throw 'NOT_EXPLICIT_DISPATCH' }
 if ($env:GITHUB_REPOSITORY -ne $project) { throw 'WRONG_REPOSITORY' }
 if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'NOT_CANONICAL_MAIN' }
+if ($Mode -eq 'Install') { throw 'LEGACY_INSTALL_DISABLED_USE_VERIFIED_PORTABLE_D_RELEASE' }
 if ($env:GITHUB_ACTOR_ID -ne '191064507' -or $env:GITHUB_ACTOR -ne 'magasincoffee' -or $env:GITHUB_TRIGGERING_ACTOR -ne 'magasincoffee' -or $env:GITHUB_RUN_ATTEMPT -ne '1') { throw 'UNTRUSTED_WORKFLOW_ACTOR' }
 if (-not $ExpectedSha -or $env:GITHUB_SHA -ne $ExpectedSha) { throw 'MAIN_SHA_MISMATCH' }
 
@@ -110,13 +111,7 @@ New-Item -ItemType Directory -Path $target -ErrorAction Stop | Out-Null
 $sourceDestination = Join-Path $target '02_SAYDI_CORE'
 Copy-Item -LiteralPath $core -Destination $sourceDestination -Recurse -ErrorAction Stop
 $sourceFingerprint = (Get-FileHash -LiteralPath (Join-Path $sourceDestination 'pyproject.toml') -Algorithm SHA256).Hash
-if ($Mode -eq 'Install') {
-    # Isolated source-based CLI install; it does NOT install or launch VieNeu.
-    $python = 'C:\Users\admin\AppData\Local\Programs\Python\Python312\python.exe'
-
-} else {
-    $receipt['status'] = 'SOURCE_STAGED_ONLY_NOT_INSTALLED'
-}
+$receipt['status'] = 'SOURCE_STAGED_ONLY_NOT_INSTALLED'
 $receipt['core_pyproject_sha256'] = $sourceFingerprint
 $receipt['stage_identity'] = if ($Mode -eq 'Install') { $ExpectedSha.ToLowerInvariant() } else { $stageName }
 $receipt | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $target 'stage-receipt.json') -Encoding UTF8 -NoNewline
