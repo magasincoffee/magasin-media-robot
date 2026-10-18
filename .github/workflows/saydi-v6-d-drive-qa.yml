@@ -1,0 +1,56 @@
+name: SAYDI V6 D Drive Source Stage QA
+
+on:
+  pull_request:
+    paths:
+      - 'tools/saydi_tts/deploy/**'
+      - '02_SAYDI_CORE/fixtures/v6_original_5min_vi.txt'
+      - '.github/workflows/saydi-v6-d-drive-*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/saydi_tts/deploy/**'
+      - '02_SAYDI_CORE/fixtures/v6_original_5min_vi.txt'
+      - '.github/workflows/saydi-v6-d-drive-*.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  source-only-safety:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact tested head
+        shell: pwsh
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if ((git rev-parse HEAD).Trim() -cne $env:EXPECTED_HEAD) { throw 'WRONG_QA_HEAD' }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: PowerShell parse only - no H4 or model runtime
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'tools/saydi_tts/deploy/Stage-SaydiV6-D.ps1'),
+            [ref]$tokens, [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host $_.Message }
+            throw 'STAGE_POWERSHELL_PARSE_FAILED'
+          }
+      - name: Fail-closed staging contract tests
+        run: python -m unittest discover -s tools/saydi_tts/deploy -p 'test_stage_saydi_v6_d.py' -v
+      - name: Source-only listening plan; no VieNeu inference
+        run: |
+          python -m py_compile tools/saydi_tts/deploy/prepare_v6_audition.py
+          python -m unittest discover -s tools/saydi_tts/deploy -p 'test_prepare_v6_audition.py' -v
+          python tools/saydi_tts/deploy/prepare_v6_audition.py --input 02_SAYDI_CORE/fixtures/v6_original_5min_vi.txt
