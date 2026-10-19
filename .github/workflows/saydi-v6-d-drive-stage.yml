@@ -1,0 +1,52 @@
+name: SAYDI V6 D Drive Isolated Stage
+
+# Explicit manual dispatch only. No pushes, PRs, schedules or Issues can write to H4.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Inspect only (default) or Stage copy-only source on D'
+        required: true
+        type: choice
+        options: [Inspect, Stage, Install]
+        default: Inspect
+      expected_main_sha:
+        description: 'Exact reviewed 40-character SHA of current main'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saydi-v6-h4-isolated-stage
+  cancel-in-progress: false
+
+jobs:
+  h4-inspect-or-copy-source:
+    if: ${{ github.repository == 'magasincoffee/magasin-media-robot' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && github.actor == 'magasincoffee' && github.actor_id == '191064507' }}
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    steps:
+      - name: Verify actual machine before any checkout
+        shell: cmd
+        run: |
+          @echo off
+          if /I not "%COMPUTERNAME%"=="DESKTOP-H4A16IL" (
+            echo WRONG_TARGET_MACHINE
+            exit /b 21
+          )
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Inspect or isolate D drive SAYDI V6 sources (no model start)
+        shell: cmd
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          STAGE_MODE: ${{ inputs.mode }}
+        run: |
+          @echo off
+          if /I not "%COMPUTERNAME%"=="DESKTOP-H4A16IL" exit /b 21
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "tools\saydi_tts\deploy\Stage-SaydiV6-D.ps1" -Mode "%STAGE_MODE%" -ExpectedSha "%EXPECTED_MAIN_SHA%"
+          if errorlevel 1 exit /b 22
