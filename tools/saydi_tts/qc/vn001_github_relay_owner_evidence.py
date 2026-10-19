@@ -244,6 +244,7 @@ def observe_owner_readonly_intent(
         "approval_comment_id": approval_comment_id,
         "main_sha_observed": expected_main_sha,
         "issue_body_sha256": issue_hash,
+        "approval_nonce_sha256": hashlib.sha256(intent["one_shot_nonce"].encode("ascii")).hexdigest(),
         "owner_claims_match": True,
         # Synthetic fetch functions do NOT prove HTTPS platform identity.
         "github_live_https_observed": fetch_json is None,
